@@ -4,7 +4,7 @@ require_once __DIR__.'/../fixtures/SaftFixtureProvider.php';
 require_once __DIR__.'/../../dkmodul/class/Saft/V21/Saft21Exporter.php';
 
 $provider = new DkSaftFixtureProvider();
-$exporter = new DkSaft21Exporter($provider);
+$exporter = new DkSaft21Exporter($provider, null, new DkSaftFixtureVatMappingService());
 $xml = $exporter->export('2026-01-01', '2026-12-31', array(
     'createdDate' => '2026-09-18',
     'softwareCompanyName' => 'Dolibarr DK',
@@ -22,9 +22,14 @@ $xpath->registerNamespace('saf', DkSaftSchemaRegistry::NAMESPACE_URI);
 assert($xpath->evaluate('string(/saf:AuditFile/saf:Header/saf:AuditFileVersion)') === '2.1');
 assert($xpath->evaluate('string(/saf:AuditFile/saf:Header/saf:Company/saf:CVR)') === '12345678');
 assert($xpath->evaluate('string(/saf:AuditFile/saf:MasterFiles/saf:GeneralLedgerAccounts/saf:VersionOfStandardAccount)') === '20260101');
-assert($xpath->evaluate('string(/saf:AuditFile/saf:GeneralLedgerEntries/saf:NumberOfEntries)') === '2');
+assert($xpath->evaluate('string(/saf:AuditFile/saf:GeneralLedgerEntries/saf:NumberOfEntries)') === '3');
 assert($xpath->evaluate('string(/saf:AuditFile/saf:GeneralLedgerEntries/saf:TotalDebit)') === '250.00000000');
 assert($xpath->evaluate('string(/saf:AuditFile/saf:GeneralLedgerEntries/saf:TotalCredit)') === '250.00000000');
 assert($xpath->evaluate('string(/saf:AuditFile/saf:GeneralLedgerEntries/saf:Journal/saf:Description)') === 'Diverse posteringer');
+assert($xpath->evaluate('count(/saf:AuditFile/saf:GeneralLedgerEntries/saf:Journal/saf:Transaction/saf:Line/saf:TaxInformation)') === 1.0);
+assert($xpath->evaluate('string(//saf:TaxInformation/saf:TaxCode)') === 'Salg25');
+assert($xpath->evaluate('string(//saf:TaxInformation/saf:StandardTaxCode)') === 'S1');
+assert($xpath->evaluate('string(//saf:TaxInformation/saf:TaxBase)') === '200.00000000');
+assert($xpath->evaluate('string(//saf:TaxInformation/saf:TaxAmount/saf:Amount)') === '50.00000000');
 
 echo "SAF-T 2.1 exporter unit tests passed\n";
