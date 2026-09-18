@@ -184,7 +184,7 @@ class DkSaft21Importer
                     foreach ($this->childElements($lineNode, 'TaxInformation') as $taxNode) {
                         $taxAmountNode = $this->firstChildElement($taxNode, 'TaxAmount');
                         $taxInformation[] = array(
-                            'taxType' => $this->childValue($taxNode, 'TaxType'),
+                            'taxType' => $this->optionalChildValue($taxNode, 'TaxType') ?: 'VAT',
                             'taxCode' => $this->childValue($taxNode, 'TaxCode'),
                             'standardTaxCode' => $this->optionalChildValue($taxNode, 'StandardTaxCode'),
                             'taxPercentage' => $this->optionalChildValue($taxNode, 'TaxPercentage'),
