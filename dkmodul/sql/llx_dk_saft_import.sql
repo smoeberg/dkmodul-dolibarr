@@ -7,6 +7,8 @@ CREATE TABLE llx_dk_saft_import (
     source_company_registration VARCHAR(64) NULL,
     source_company_name VARCHAR(255) NOT NULL,
     default_currency_code VARCHAR(3) NOT NULL,
+    standard_account_name VARCHAR(128) NULL,
+    standard_account_version VARCHAR(32) NULL,
     selection_start_date DATE NULL,
     selection_end_date DATE NULL,
     status VARCHAR(32) NOT NULL DEFAULT 'staged',
