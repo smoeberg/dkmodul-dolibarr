@@ -26,6 +26,8 @@ CREATE TABLE llx_accounting_bookkeeping (
     lettering_code VARCHAR(32) NULL
 );
 
+DELIMITER //
+
 CREATE TRIGGER dkmodul_bookkeeping_immutable_update
 BEFORE UPDATE ON llx_accounting_bookkeeping
 FOR EACH ROW
@@ -53,7 +55,7 @@ BEGIN
     ) THEN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'DK compliance: validated bookkeeping financial fields are immutable';
     END IF;
-END;
+END//
 
 CREATE TRIGGER dkmodul_bookkeeping_immutable_delete
 BEFORE DELETE ON llx_accounting_bookkeeping
@@ -62,7 +64,9 @@ BEGIN
     IF OLD.date_validated IS NOT NULL THEN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'DK compliance: validated bookkeeping entries cannot be deleted';
     END IF;
-END;
+END//
+
+DELIMITER ;
 
 INSERT INTO llx_accounting_bookkeeping
 (doc_date, doc_type, doc_ref, numero_compte, debit, credit, montant, sens, code_journal, piece_num, ref)
