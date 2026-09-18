@@ -212,6 +212,19 @@ class DkSaft21Importer
                     $systemEntryDate .= ' 00:00:00';
                 }
 
+                $transactionDebit = DkCanonicalDecimal::normalize('0');
+                $transactionCredit = DkCanonicalDecimal::normalize('0');
+                foreach ($lines as $parsedLine) {
+                    $transactionDebit = DkCanonicalDecimal::add($transactionDebit, $parsedLine['debit']);
+                    $transactionCredit = DkCanonicalDecimal::add($transactionCredit, $parsedLine['credit']);
+                }
+                if (!DkCanonicalDecimal::equals($transactionDebit, $transactionCredit)) {
+                    throw new InvalidArgumentException(
+                        'Unbalanced SAF-T TransactionID '.$transactionId
+                        .' debit='.$transactionDebit.' credit='.$transactionCredit
+                    );
+                }
+
                 $transactions[] = new DkCanonicalTransaction(array(
                     'transactionId' => $transactionId,
                     'sourcePieceNumber' => null,
