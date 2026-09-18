@@ -10,7 +10,7 @@ if ($argc < 2) {
 }
 
 $provider = new DkSaftFixtureProvider();
-$exporter = new DkSaft21Exporter($provider);
+$exporter = new DkSaft21Exporter($provider, null, new DkSaftFixtureVatMappingService());
 $xml = $exporter->export('2026-01-01', '2026-12-31', array(
     'createdDate' => '2026-09-18',
     'softwareCompanyName' => 'Dolibarr DK',
@@ -31,7 +31,10 @@ $xpath->registerNamespace('saf', DkSaftSchemaRegistry::NAMESPACE_URI);
 $assertions = array(
     'string(/saf:AuditFile/saf:Header/saf:AuditFileVersion)' => '2.1',
     'string(/saf:AuditFile/saf:MasterFiles/saf:GeneralLedgerAccounts/saf:VersionOfStandardAccount)' => '20260101',
-    'string(/saf:AuditFile/saf:GeneralLedgerEntries/saf:NumberOfEntries)' => '2',
+    'string(/saf:AuditFile/saf:GeneralLedgerEntries/saf:NumberOfEntries)' => '3',
+    'string(//saf:TaxInformation/saf:StandardTaxCode)' => 'S1',
+    'string(//saf:TaxInformation/saf:TaxBase)' => '200.00000000',
+    'string(//saf:TaxInformation/saf:TaxAmount/saf:Amount)' => '50.00000000',
 );
 
 foreach ($assertions as $query => $expected) {
