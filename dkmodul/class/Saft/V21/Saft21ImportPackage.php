@@ -5,6 +5,8 @@ class DkSaft21ImportPackage
     public $sourceHash;
     public $header = array();
     public $accounts = array();
+    public $standardAccountName;
+    public $standardAccountVersion;
     public $taxCodes = array();
     public $transactions = array();
     public $declaredNumberOfEntries;
@@ -16,6 +18,8 @@ class DkSaft21ImportPackage
         $this->sourceHash = (string) ($data['sourceHash'] ?? '');
         $this->header = (array) ($data['header'] ?? array());
         $this->accounts = (array) ($data['accounts'] ?? array());
+        $this->standardAccountName = isset($data['standardAccountName']) ? (string) $data['standardAccountName'] : null;
+        $this->standardAccountVersion = isset($data['standardAccountVersion']) ? (string) $data['standardAccountVersion'] : null;
         $this->taxCodes = (array) ($data['taxCodes'] ?? array());
         $this->transactions = (array) ($data['transactions'] ?? array());
         $this->declaredNumberOfEntries = (int) ($data['declaredNumberOfEntries'] ?? 0);
