@@ -44,6 +44,8 @@ class DkSaft21Importer
             'sourceHash' => hash('sha256', $xml),
             'header' => $this->parseHeader($xpath),
             'accounts' => $this->parseAccounts($xpath),
+            'standardAccountName' => $this->optionalValue($xpath, '/saf:AuditFile/saf:MasterFiles/saf:GeneralLedgerAccounts/saf:NameOfStandardAccount'),
+            'standardAccountVersion' => $this->optionalValue($xpath, '/saf:AuditFile/saf:MasterFiles/saf:GeneralLedgerAccounts/saf:VersionOfStandardAccount'),
             'taxCodes' => $this->parseTaxCodes($xpath),
             'transactions' => $this->parseTransactions($xpath),
             'declaredNumberOfEntries' => $this->integerValue($xpath, '/saf:AuditFile/saf:GeneralLedgerEntries/saf:NumberOfEntries'),
