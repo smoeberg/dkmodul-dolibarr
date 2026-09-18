@@ -17,7 +17,7 @@ class DkSaft21Importer
         $this->validator = $validator ?: new DkSaftValidator();
     }
 
-    public function importXml($xml, $xsdPath)
+    public function importXml($xml, $xsdPath, $strictConsistency = true)
     {
         $xml = (string) $xml;
         $this->validator->validateXml($xml, $xsdPath);
@@ -54,7 +54,9 @@ class DkSaft21Importer
             'declaredTotalCredit' => $this->value($xpath, '/saf:AuditFile/saf:GeneralLedgerEntries/saf:TotalCredit'),
         ));
 
-        $this->assertPackageConsistency($package);
+        if ($strictConsistency) {
+            $this->assertPackageConsistency($package);
+        }
 
         return $package;
     }
