@@ -14,6 +14,17 @@ require '/var/www/html/custom/dkmodul/class/Accounting/AccountMappingService.php
 require '/var/www/html/custom/dkmodul/class/Accounting/VatMappingService.php';
 require '/var/www/html/custom/dkmodul/class/Saft/V21/Saft21Exporter.php';
 
+function dkFetchCount($db, $sql)
+{
+    $resql = $db->query($sql);
+    if (!$resql) {
+        throw new RuntimeException('Count query failed: '.$db->lasterror());
+    }
+
+    $row = $db->fetch_object($resql);
+    return $row ? (int) $row->nb : 0;
+}
+
 if ($argc < 3) {
     fwrite(STDERR, "Usage: php assert-saft21-import-staging.php /path/file.xml /path/schema.xsd\n");
     exit(2);
@@ -74,8 +85,9 @@ if ($applied['status'] !== 'applied'
     exit(1);
 }
 
-$lockedCount = (int) $db->getValue(
-    "SELECT COUNT(*) FROM ".$db->prefix()."accounting_bookkeeping"
+$lockedCount = dkFetchCount(
+    $db,
+    "SELECT COUNT(*) AS nb FROM ".$db->prefix()."accounting_bookkeeping"
     ." WHERE entity=1 AND doc_type='saft_import' AND fk_doc=".((int) $result['id'])
     ." AND date_validated IS NOT NULL"
 );
@@ -84,16 +96,18 @@ if ($lockedCount !== $result['lineCount']) {
     exit(1);
 }
 
-$linkedCount = (int) $db->getValue(
-    "SELECT COUNT(*) FROM ".$db->prefix()."dk_saft_import_line WHERE bookkeeping_rowid IS NOT NULL"
+$linkedCount = dkFetchCount(
+    $db,
+    "SELECT COUNT(*) AS nb FROM ".$db->prefix()."dk_saft_import_line WHERE bookkeeping_rowid IS NOT NULL"
 );
 if ($linkedCount !== $result['lineCount']) {
     fwrite(STDERR, "Applied SAF-T lines are missing bookkeeping provenance links\n");
     exit(1);
 }
 
-$originCount = (int) $db->getValue(
-    "SELECT COUNT(*) FROM ".$db->prefix()."dk_bookkeeping_origin o"
+$originCount = dkFetchCount(
+    $db,
+    "SELECT COUNT(*) AS nb FROM ".$db->prefix()."dk_bookkeeping_origin o"
     ." INNER JOIN ".$db->prefix()."accounting_bookkeeping b ON b.rowid=o.bookkeeping_rowid"
     ." WHERE b.entity=1 AND b.doc_type='saft_import' AND b.fk_doc=".((int) $result['id'])
 );
