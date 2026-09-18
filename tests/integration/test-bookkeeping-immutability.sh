@@ -87,3 +87,14 @@ sql "UPDATE llx_accounting_bookkeeping SET date_export=NOW() WHERE rowid=${rowid
 test -n "$(sql "SELECT date_export FROM llx_accounting_bookkeeping WHERE rowid=${rowid}")"
 
 echo "DK bookkeeping database immutability integration test passed"
+
+echo "Creating balanced bookkeeping transaction for canonical adapter..."
+sql "INSERT INTO llx_accounting_bookkeeping
+(entity,ref,piece_num,doc_date,doc_type,doc_ref,fk_doc,fk_docdet,numero_compte,label_compte,label_operation,debit,credit,fk_user_author,date_creation,code_journal,date_validated)
+VALUES
+(1,'DK-990002',990002,CURDATE(),'dk_test','DK-CANONICAL-1',0,0,'1000','Cash','Canonical debit',250.00,0.00,1,NOW(),'OD',NOW()),
+(1,'DK-990002',990002,CURDATE(),'dk_test','DK-CANONICAL-1',0,0,'3000','Revenue','Canonical credit',0.00,250.00,1,NOW(),'OD',NOW())"
+
+docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-canonical-provider.php
+
+echo "Dolibarr DK accounting integration tests passed"
