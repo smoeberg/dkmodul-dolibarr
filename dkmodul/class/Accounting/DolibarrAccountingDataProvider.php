@@ -248,7 +248,8 @@ class DkDolibarrAccountingDataProvider implements DkAccountingDataProviderInterf
                 'taxInformation' => $this->resolveTaxInformation(
                     (string) $row->doc_type,
                     (int) $row->fk_doc,
-                    (string) $row->numero_compte
+                    (string) $row->numero_compte,
+                    (int) $row->fk_docdet
                 ),
             );
         }
@@ -269,7 +270,7 @@ class DkDolibarrAccountingDataProvider implements DkAccountingDataProviderInterf
         ));
     }
 
-    private function resolveTaxInformation($docType, $docId, $accountCode)
+    private function resolveTaxInformation($docType, $docId, $accountCode, $docDetailId = 0)
     {
         global $mysoc;
 
@@ -283,7 +284,7 @@ class DkDolibarrAccountingDataProvider implements DkAccountingDataProviderInterf
             $countryCode
         );
 
-        return $resolver->resolve($docType, $docId, $accountCode);
+        return $resolver->resolve($docType, $docId, $accountCode, $docDetailId);
     }
 
     private function getCompanyBankAccounts()
