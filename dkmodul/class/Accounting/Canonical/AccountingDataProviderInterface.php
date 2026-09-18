@@ -14,6 +14,12 @@ interface DkAccountingDataProviderInterface
     public function getParties($fromDate, $toDate);
 
     /**
+     * Tax/VAT code catalogue relevant for the export period.
+     * Standard-tax-code mapping may be supplied by a separate DK mapping service.
+     */
+    public function getTaxCodes($fromDate, $toDate);
+
+    /**
      * @return DkCanonicalTransaction[]
      */
     public function getTransactions($fromDate, $toDate);
