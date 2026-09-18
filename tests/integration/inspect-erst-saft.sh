@@ -73,3 +73,33 @@ print_named_type "complexType" "AmountStructure" 120
 
 print_named_type "complexType" "AddressStructure" 120
 print_named_type "complexType" "CompanyHeaderStructure" 140
+
+
+vat_json="Standardkontoplanen/JSON/2026-01-01-Momskoder-Bruttoliste.json"
+test -f "$vat_json"
+
+echo "=== VAT JSON structure ==="
+python3 - "$vat_json" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+with open(path, encoding="utf-8-sig") as fh:
+    data = json.load(fh)
+
+print("top_type=" + type(data).__name__)
+if isinstance(data, dict):
+    print("top_keys=" + repr(list(data.keys())))
+    for key, value in data.items():
+        print(f"section={key!r} type={type(value).__name__}")
+        if isinstance(value, list):
+            print("count=" + str(len(value)))
+            for item in value[:3]:
+                print("sample=" + json.dumps(item, ensure_ascii=False, sort_keys=True))
+        elif isinstance(value, dict):
+            print("value=" + json.dumps(value, ensure_ascii=False, sort_keys=True))
+elif isinstance(data, list):
+    print("count=" + str(len(data)))
+    for item in data[:3]:
+        print("sample=" + json.dumps(item, ensure_ascii=False, sort_keys=True))
+PY
