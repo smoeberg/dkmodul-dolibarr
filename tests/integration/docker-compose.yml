@@ -28,6 +28,7 @@ services:
       DOLI_ADMIN_PASSWORD: admintest
       DOLI_COMPANY_NAME: Dolibarr DK Test
       DOLI_COMPANY_COUNTRYCODE: DK
+      DOLI_ENABLE_MODULES: Accounting,Dkmodul
       DOLI_URL_ROOT: http://localhost:8080
     ports:
       - "8080:80"
