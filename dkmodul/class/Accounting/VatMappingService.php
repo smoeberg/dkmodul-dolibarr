@@ -55,7 +55,7 @@ class DkVatMappingService
     {
         $this->assertDate($date);
 
-        $sql = 'SELECT m.standard_version,m.standard_tax_code,v.label,v.tax_percentage,v.country_code';
+        $sql = 'SELECT m.standard_version,m.standard_tax_code,m.valid_from,m.valid_to,v.label,v.tax_percentage,v.country_code';
         $sql .= ' FROM '.$this->db->prefix().'dk_vat_mapping m';
         $sql .= ' INNER JOIN '.$this->db->prefix().'dk_standard_vat_code v';
         $sql .= ' ON v.standard_version = m.standard_version AND v.tax_code = m.standard_tax_code';
@@ -78,6 +78,8 @@ class DkVatMappingService
         return array(
             'standardVersion' => (string) $row->standard_version,
             'standardTaxCode' => (string) $row->standard_tax_code,
+            'effectiveDate' => (string) $row->valid_from,
+            'expirationDate' => $row->valid_to !== null ? (string) $row->valid_to : null,
             'description' => (string) $row->label,
             'taxPercentage' => $row->tax_percentage !== null ? (string) $row->tax_percentage : null,
             'countryCode' => (string) $row->country_code,
