@@ -187,6 +187,10 @@ VALUES
 
 echo "Creating customer invoice source lines with two VAT codes on one revenue account..."
 sql "DELETE FROM llx_accounting_account WHERE entity=1 AND fk_pcg_version='DKTEST' AND account_number='3999'"
+sql "DELETE FROM llx_accounting_system WHERE pcg_version='DKTEST'"
+sql "INSERT INTO llx_accounting_system
+(fk_country,pcg_version,label,active,date_creation,fk_user_author)
+VALUES (${dk_country_id},'DKTEST','Dolibarr DK integration test chart',1,NOW(),1)"
 sql "INSERT INTO llx_accounting_account
 (entity,datec,fk_pcg_version,pcg_type,account_number,label,active)
 VALUES (1,NOW(),'DKTEST','INCOME','3999','DK VAT provenance revenue',1)"
