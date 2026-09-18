@@ -29,3 +29,9 @@ jobs:
         run: |
           php tests/integration/validate-saft21.php \
             "/tmp/erst-standard-filformater/SAF-T/XSD/Danish_SAF-T_Financial_Schema_v_2_1.xsd"
+
+      - name: Parse official ERST SAF-T 2.1 example
+        run: |
+          php tests/integration/validate-saft21-import.php \
+            "/tmp/erst-standard-filformater/SAF-T/XSD/Danish_SAF-T_Financial_Schema_v_2_1.xsd" \
+            "/tmp/erst-standard-filformater/SAF-T/XML_examples/SAF-T v. 2.1.xml"
