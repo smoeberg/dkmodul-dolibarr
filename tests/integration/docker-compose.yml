@@ -1,0 +1,35 @@
+services:
+  mariadb:
+    image: mariadb:11.4
+    environment:
+      MARIADB_ROOT_PASSWORD: root
+      MARIADB_DATABASE: dolidb
+      MARIADB_USER: dolidbuser
+      MARIADB_PASSWORD: dolidbpass
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  dolibarr:
+    image: dolibarr/dolibarr:24.0.1-php8.2
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    environment:
+      DOLI_INSTALL_AUTO: "1"
+      DOLI_INIT_DEMO: "0"
+      DOLI_DB_HOST: mariadb
+      DOLI_DB_NAME: dolidb
+      DOLI_DB_USER: dolidbuser
+      DOLI_DB_PASSWORD: dolidbpass
+      DOLI_ADMIN_LOGIN: admintest
+      DOLI_ADMIN_PASSWORD: admintest
+      DOLI_COMPANY_NAME: Dolibarr DK Test
+      DOLI_COMPANY_COUNTRYCODE: DK
+      DOLI_URL_ROOT: http://localhost:8080
+    ports:
+      - "8080:80"
+    volumes:
+      - ../../dkmodul:/var/www/html/custom/dkmodul
