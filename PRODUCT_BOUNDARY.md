@@ -8,10 +8,10 @@ Dette dokument definerer den produktgrænse, som "Dolibarr DK" udvikles, testes 
 
 Dolibarr DK består af:
 
-- en understøttet Dolibarr-version,
+- Dolibarr 24.0.x (første certificeringsbaseline),
 - Dolibarr Advanced Accounting,
 - DK-modulet i dette repository,
-- en dokumenteret og understøttet runtime-/hostingprofil,
+- managed-cloud referenceprofil med PHP 8.2 og MariaDB 11.4,
 - de eksterne integrationsservices, som er nødvendige for dansk compliance.
 
 Produktet skal kunne identificeres entydigt ved versioner af:
@@ -53,10 +53,17 @@ Som udgangspunkt er følgende ikke dækket af compliance-garantien:
 - databaseændringer uden for officielle migrations,
 - integrationer som ikke er eksplicit dokumenteret som understøttede.
 
+## Første runtime-baseline
+
+- Dolibarr 24.0.x
+- CI/integration pin: 24.0.1
+- PHP 8.2
+- MariaDB 11.4
+- managed cloud
+- PostgreSQL og generisk self-hosting er uden for første registrerede produktgrænse
+
 ## Åbne beslutninger
 
-- første understøttede Dolibarr-majorversion,
-- referencehosting og cloudleverandør,
+- konkret referencehosting/cloudleverandør,
 - e-fakturerings-/access-point-leverandør,
-- backup- og object-storage-platform,
-- model for SaaS vs. reference self-hosting.
+- backup- og object-storage-platform.
