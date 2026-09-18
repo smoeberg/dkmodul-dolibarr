@@ -15,4 +15,15 @@ jobs:
       - name: PHP syntax
         run: find dkmodul tests -name '*.php' -print0 | xargs -0 -n1 php -l
       - name: Domain unit tests
-        run: php -d zend.assertions=1 -d assert.exception=1 tests/unit/PostingGuardTest.php
+        run: |
+          for test in tests/unit/*Test.php; do
+            php -d zend.assertions=1 -d assert.exception=1 "$test"
+          done
+
+  bookkeeping-immutability:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dolibarr 24.0.1 / MariaDB integration test
+        run: bash tests/integration/test-bookkeeping-immutability.sh
