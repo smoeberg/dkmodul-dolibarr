@@ -1,0 +1,38 @@
+{
+  "File info": {
+    "Document name": "Momskoder-Bruttoliste",
+    "Valid from date": "2025-12-01",
+    "csv source file": "2025-12-01 Moms koder.csv"
+  },
+  "momskoder - bruttoliste": [
+    {
+      "momsgruppe": "Salg",
+      "momskoder": [
+        {
+          "momskode": "S1",
+          "momskode NY": "S01",
+          "momskode betegnelse": "S-DK-25",
+          "momskode betegnelse NY": "S_DK_25",
+          "momssats": "25%",
+          "overskrift": "Momspligtige salg (DK), 25% moms",
+          "type": "Salg",
+          "momsangivelse": "Salgsmoms (udgående moms)",
+          "fradragsret": "",
+          "vejledning": "Fixture"
+        },
+        {
+          "momskode": "S%",
+          "momskode NY": "S81",
+          "momskode betegnelse": "S-DK-U",
+          "momskode betegnelse NY": "S_DK_UdenforMomslov",
+          "momssats": "",
+          "overskrift": "Udenfor momslovens anvendelsesområde",
+          "type": "Salg",
+          "momsangivelse": "Skal ikke medtages i angivelsen",
+          "fradragsret": "",
+          "vejledning": "Fixture"
+        }
+      ]
+    }
+  ]
+}
