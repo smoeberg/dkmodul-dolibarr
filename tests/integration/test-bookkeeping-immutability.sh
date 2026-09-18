@@ -106,9 +106,15 @@ echo "Creating real customer invoice source for VAT provenance..."
 
 revenue_account_rowid="$(sql "SELECT rowid FROM llx_accounting_account WHERE entity=1 AND account_number='3000' ORDER BY rowid LIMIT 1")"
 if [ -z "$revenue_account_rowid" ]; then
+  pcg_version="$(sql "SELECT pcg_version FROM llx_accounting_system WHERE active=1 ORDER BY rowid LIMIT 1")"
+  if [ -z "$pcg_version" ]; then
+    pcg_version="$(sql "SELECT pcg_version FROM llx_accounting_system ORDER BY rowid LIMIT 1")"
+  fi
+  test -n "$pcg_version"
+
   sql "INSERT INTO llx_accounting_account
   (entity,datec,fk_pcg_version,pcg_type,account_number,label,fk_user_author,active)
-  VALUES (1,NOW(),'DKTEST','INCOME','3000','Revenue',1,1)"
+  VALUES (1,NOW(),'${pcg_version}','INCOME','3000','Revenue',1,1)"
   revenue_account_rowid="$(sql "SELECT rowid FROM llx_accounting_account WHERE entity=1 AND account_number='3000' ORDER BY rowid LIMIT 1")"
 fi
 test -n "$revenue_account_rowid"
