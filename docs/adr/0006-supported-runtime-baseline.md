@@ -7,7 +7,7 @@ Status: Accepted
 The initial Dolibarr DK certification/development baseline is:
 
 - Dolibarr 24.0.x,
-- Docker integration pin: Dolibarr 24.0.0,
+- Docker integration pin: Dolibarr 24.0.1,
 - PHP 8.2,
 - MariaDB 11.4,
 - DK module installed as an external module,
@@ -33,4 +33,16 @@ Before approval it must pass:
 The pinned integration-test version may then be advanced through a reviewed pull request.
 
 
-Note: Dolibarr 24.0.1 is available as a stable application package, but the official Docker Hub repository does not currently expose a 24.0.1 PHP 8.2 tag. The integration container is therefore pinned to 24.0.0 until the newer official image is available or we add a reproducible image build.
+## Reproducible integration image
+
+At the time this ADR was updated, the official Docker Hub registry did not yet expose the generated `24.0.1-php8.2` image tag.
+
+The integration runtime therefore builds Dolibarr 24.0.1 directly from the official `Dolibarr/dolibarr-docker` source pinned to commit:
+
+`ec6b10487e52244b64142b6d8806eb26409ac406` — "Add 24.0.1 version".
+
+Build context:
+
+`images/24.0.1-php8.2`
+
+This avoids using a third-party image or silently falling back to 24.0.0. The pin must only be changed through a reviewed runtime-baseline update.
