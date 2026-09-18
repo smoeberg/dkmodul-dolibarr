@@ -44,7 +44,7 @@ class DkSaft21Exporter
 
         $this->appendHeader($doc, $root, $company, $fromDate, $toDate, $defaultCurrency, $options);
         $this->appendMasterFiles($doc, $root, $accounts, $taxCodes, $fromDate, $options);
-        $this->appendGeneralLedgerEntries($doc, $root, $transactions, $defaultCurrency);
+        $this->appendGeneralLedgerEntries($doc, $root, $transactions, $defaultCurrency, $company);
 
         return $doc->saveXML();
     }
@@ -304,7 +304,7 @@ class DkSaft21Exporter
         }
     }
 
-    private function appendGeneralLedgerEntries(DOMDocument $doc, DOMElement $root, array $transactions, $defaultCurrency)
+    private function appendGeneralLedgerEntries(DOMDocument $doc, DOMElement $root, array $transactions, $defaultCurrency, array $company)
     {
         $gle = $this->element($doc, $root, 'GeneralLedgerEntries');
 
@@ -393,14 +393,92 @@ class DkSaft21Exporter
                         $this->appendAmount($doc, $lineNode, 'CreditAmount', $line->credit, $line, $defaultCurrency);
                     }
 
-                    if (!empty($line->taxCode)) {
-                        $tax = $this->element($doc, $lineNode, 'TaxInformation');
-                        $this->element($doc, $tax, 'TaxType', 'VAT');
-                        $this->element($doc, $tax, 'TaxCode', $line->taxCode);
+                    foreach ($line->taxComponents as $taxComponent) {
+                        $this->appendTaxInformation(
+                            $doc,
+                            $lineNode,
+                            $taxComponent,
+                            $transaction->transactionDate,
+                            (int) ($company['id'] ?? 0),
+                            $line,
+                            $defaultCurrency
+                        );
                     }
                 }
             }
         }
+    }
+
+    private function appendTaxInformation(
+        DOMDocument $doc,
+        DOMElement $lineNode,
+        array $component,
+        $transactionDate,
+        $entity,
+        $line,
+        $defaultCurrency
+    ) {
+        $localTaxCode = trim((string) ($component['taxCode'] ?? ''));
+        if ($localTaxCode === '') {
+            throw new InvalidArgumentException('SAF-T tax component has no local tax code');
+        }
+
+        if ($this->vatMappingService === null) {
+            throw new InvalidArgumentException(
+                'SAF-T tax component '.$localTaxCode.' requires a VAT mapping service'
+            );
+        }
+
+        $mapping = $this->vatMappingService->resolve($entity, $localTaxCode, $transactionDate);
+        if (!$mapping) {
+            throw new InvalidArgumentException(
+                'Missing standard VAT mapping for '.$localTaxCode.' on '.$transactionDate
+            );
+        }
+
+        if (($mapping['standardVersion'] ?? null) !== DkSaftSchemaRegistry::STANDARD_VAT_VERSION) {
+            throw new InvalidArgumentException(
+                'VAT mapping for '.$localTaxCode.' does not target standard version '.DkSaftSchemaRegistry::STANDARD_VAT_VERSION
+            );
+        }
+
+        $sourcePercentage = DkCanonicalDecimal::normalize($component['taxPercentage'] ?? '0');
+        if (isset($mapping['taxPercentage']) && $mapping['taxPercentage'] !== null && $mapping['taxPercentage'] !== '') {
+            $mappedPercentage = DkCanonicalDecimal::normalize($mapping['taxPercentage']);
+            if (!DkCanonicalDecimal::equals($sourcePercentage, $mappedPercentage)) {
+                throw new InvalidArgumentException(
+                    'VAT percentage mismatch for '.$localTaxCode.': source '.$sourcePercentage.' vs standard '.$mappedPercentage
+                );
+            }
+        }
+
+        $tax = $this->element($doc, $lineNode, 'TaxInformation');
+        $this->element($doc, $tax, 'TaxCode', $localTaxCode);
+        $this->element($doc, $tax, 'StandardTaxCode', $this->requiredValue(
+            $mapping['standardTaxCode'] ?? null,
+            'Standard VAT code'
+        ));
+
+        if (!empty($mapping['description'])) {
+            $this->element($doc, $tax, 'StandardTaxCodeDescription', $mapping['description']);
+        }
+
+        $this->element($doc, $tax, 'Country', $mapping['countryCode'] ?? 'DK');
+        $this->element($doc, $tax, 'TaxPercentage', $sourcePercentage);
+        $this->element($doc, $tax, 'TaxBase', DkCanonicalDecimal::normalize($component['taxBase'] ?? '0'));
+
+        if (!empty($component['taxBaseDescription'])) {
+            $this->element($doc, $tax, 'TaxBaseDescription', $component['taxBaseDescription']);
+        }
+
+        $this->appendAmount(
+            $doc,
+            $tax,
+            'TaxAmount',
+            DkCanonicalDecimal::normalize($component['taxAmount'] ?? '0'),
+            $line,
+            $defaultCurrency
+        );
     }
 
     private function appendAmount(DOMDocument $doc, DOMElement $parent, $name, $amount, $line, $defaultCurrency)
