@@ -28,7 +28,7 @@ class DkSaft21ImportStagingService
         try {
             $sql = 'INSERT INTO '.$this->db->prefix().'dk_saft_import';
             $sql .= ' (entity,import_uuid,source_hash,audit_file_version,source_company_registration,source_company_name,';
-            $sql .= ' default_currency_code,selection_start_date,selection_end_date,status,transaction_count,line_count,';
+            $sql .= ' default_currency_code,standard_account_name,standard_account_version,selection_start_date,selection_end_date,status,transaction_count,line_count,';
             $sql .= ' total_debit,total_credit,fk_user_author,date_creation)';
             $sql .= ' VALUES ('.$entity;
             $sql .= ",'".$this->db->escape($uuid)."'";
@@ -37,6 +37,8 @@ class DkSaft21ImportStagingService
             $sql .= ','.$this->nullable($package->header['companyRegistrationNumber'] ?? null);
             $sql .= ",'".$this->db->escape((string) ($package->header['companyName'] ?? ''))."'";
             $sql .= ",'".$this->db->escape((string) ($package->header['defaultCurrencyCode'] ?? ''))."'";
+            $sql .= ','.$this->nullable($package->standardAccountName);
+            $sql .= ','.$this->nullable($package->standardAccountVersion);
             $sql .= ','.$this->nullable($package->header['selectionStartDate'] ?? null);
             $sql .= ','.$this->nullable($package->header['selectionEndDate'] ?? null);
             $sql .= ",'staged'";
@@ -57,6 +59,10 @@ class DkSaft21ImportStagingService
 
             foreach ($package->accounts as $account) {
                 $this->insertAccount($importId, $account);
+            }
+
+            foreach ($package->taxCodes as $taxCode) {
+                $this->insertTaxCode($importId, $taxCode);
             }
 
             foreach ($package->transactions as $transaction) {
@@ -95,6 +101,25 @@ class DkSaft21ImportStagingService
         $sql .= ','.$this->nullable($account['openingCredit'] ?? null);
         $sql .= ','.$this->nullable($account['closingDebit'] ?? null);
         $sql .= ','.$this->nullable($account['closingCredit'] ?? null).')';
+
+        if (!$this->db->query($sql)) {
+            throw new RuntimeException($this->db->lasterror());
+        }
+    }
+
+    private function insertTaxCode($importId, array $taxCode)
+    {
+        $sql = 'INSERT INTO '.$this->db->prefix().'dk_saft_import_tax_code';
+        $sql .= ' (fk_import,tax_type,source_tax_code,standard_tax_code,effective_date,expiration_date,description,tax_percentage,country_code)';
+        $sql .= ' VALUES ('.((int) $importId);
+        $sql .= ",'".$this->db->escape((string) $taxCode['taxType'])."'";
+        $sql .= ",'".$this->db->escape((string) $taxCode['taxCode'])."'";
+        $sql .= ','.$this->nullable($taxCode['standardTaxCode'] ?? null);
+        $sql .= ",'".$this->db->escape((string) $taxCode['effectiveDate'])."'";
+        $sql .= ','.$this->nullable($taxCode['expirationDate'] ?? null);
+        $sql .= ",'".$this->db->escape((string) $taxCode['description'])."'";
+        $sql .= ','.$this->nullable($taxCode['taxPercentage'] ?? null);
+        $sql .= ','.$this->nullable($taxCode['countryCode'] ?? null).')';
 
         if (!$this->db->query($sql)) {
             throw new RuntimeException($this->db->lasterror());
