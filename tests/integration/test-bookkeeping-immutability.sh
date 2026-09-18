@@ -65,7 +65,7 @@ expect_failure() {
 echo "Creating unlocked test entry..."
 sql "INSERT INTO llx_accounting_bookkeeping
 (entity,piece_num,doc_date,doc_type,doc_ref,fk_doc,fk_docdet,numero_compte,label_compte,debit,credit,fk_user_author,date_creation,code_journal)
-VALUES (1,990001,CURDATE(),'dk_test','DK-TEST-1',0,0,'1000','DK test',100.00,0.00,1,NOW(),'OD')"
+VALUES (1,990001,'2025-12-31','dk_test','DK-TEST-1',0,0,'1000','DK test',100.00,0.00,1,NOW(),'OD')"
 
 rowid="$(sql "SELECT rowid FROM llx_accounting_bookkeeping WHERE piece_num=990001 AND entity=1")"
 
