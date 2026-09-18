@@ -126,7 +126,7 @@ class DkSaft21ImportStagingService
         }
     }
 
-    private function insertTransaction($importId, DkCanonicalTransaction $transaction)
+    private function insertTransaction($importId, $transaction)
     {
         $sql = 'INSERT INTO '.$this->db->prefix().'dk_saft_import_transaction';
         $sql .= ' (fk_import,external_transaction_id,journal_id,journal_description,transaction_date,registration_datetime,actor,description)';
@@ -146,7 +146,7 @@ class DkSaft21ImportStagingService
         return (int) $this->db->last_insert_id($this->db->prefix().'dk_saft_import_transaction');
     }
 
-    private function insertLine($transactionId, DkCanonicalLine $line)
+    private function insertLine($transactionId, $line)
     {
         $tax = array();
         foreach ($line->taxInformation as $item) {
