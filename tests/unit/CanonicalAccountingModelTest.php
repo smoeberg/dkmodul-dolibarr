@@ -6,6 +6,7 @@ assert(DkCanonicalDecimal::normalize('1.2') === '1.20000000');
 assert(DkCanonicalDecimal::add('0.10', '0.20') === '0.30000000');
 assert(DkCanonicalDecimal::add('1000000000000000.12345678', '0.87654322') === '1000000000000001.00000000');
 assert(DkCanonicalDecimal::add('-1.25', '0.25') === '-1.00000000');
+assert(DkCanonicalDecimal::add('9999999999999999.99999999', '-0.00000001') === '9999999999999999.99999998');
 
 $transaction = new DkCanonicalTransaction(array(
     'transactionId' => '1001',
