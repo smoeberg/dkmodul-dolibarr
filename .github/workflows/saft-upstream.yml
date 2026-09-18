@@ -20,6 +20,11 @@ jobs:
       - name: Fetch and verify pinned official ERST SAF-T upstream
         run: bash tests/integration/inspect-erst-saft.sh
 
+      - name: Validate official ERST VAT list
+        run: |
+          php tests/integration/validate-official-vat-list.php \
+            "/tmp/erst-standard-filformater/Standardkontoplanen/JSON/2026-01-01-Momskoder-Bruttoliste.json"
+
       - name: Generate SAF-T 2.1 and validate against official ERST XSD
         run: |
           php tests/integration/validate-saft21.php \
