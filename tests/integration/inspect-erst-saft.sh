@@ -52,3 +52,21 @@ grep -E '<(/)?(AuditFile|Header|MasterFiles|GeneralLedgerAccounts|Account|Genera
 
 echo "=== 2.1 schema required top-level sections ==="
 grep -n -E '<xs:element name="(Header|MasterFiles|GeneralLedgerEntries|SourceDocuments)"' "$schema" | head -30 || true
+
+
+print_named_type() {
+  local kind="$1"
+  local name="$2"
+  local lines="$3"
+  local start
+  start="$(grep -n -m1 "<xs:${kind} name=\"${name}\"" "$schema" | cut -d: -f1 || true)"
+  if [ -n "$start" ]; then
+    echo "=== XSD ${kind} ${name} from line ${start} ==="
+    sed -n "${start},$((start + lines))p" "$schema"
+  fi
+}
+
+print_named_type "complexType" "HeaderStructure" 180
+print_named_type "group" "CompanyStructureContent" 180
+print_named_type "complexType" "SelectionCriteriaStructure" 120
+print_named_type "complexType" "AmountStructure" 120
