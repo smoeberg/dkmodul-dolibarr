@@ -2,6 +2,7 @@
 
 require_once __DIR__.'/Canonical/AccountingDataProviderInterface.php';
 require_once __DIR__.'/Canonical/Transaction.php';
+require_once __DIR__.'/DolibarrTaxInformationResolver.php';
 
 /**
  * Read-only adapter from Dolibarr 24.0.x accounting data into the
@@ -159,7 +160,7 @@ class DkDolibarrAccountingDataProvider implements DkAccountingDataProviderInterf
     public function getTransactions($fromDate, $toDate)
     {
         $sql = 'SELECT b.rowid, b.ref, b.piece_num, b.doc_date, b.doc_type, b.doc_ref,';
-        $sql .= ' b.subledger_account, b.numero_compte, b.label_operation, b.debit, b.credit,';
+        $sql .= ' b.fk_doc, b.fk_docdet, b.subledger_account, b.numero_compte, b.label_operation, b.debit, b.credit,';
         $sql .= ' b.multicurrency_amount, b.multicurrency_code, b.fk_user_author,';
         $sql .= ' b.code_journal, b.journal_label, b.date_creation, b.date_validated';
         $sql .= ' FROM '.$this->db->prefix().'accounting_bookkeeping b';
@@ -244,6 +245,11 @@ class DkDolibarrAccountingDataProvider implements DkAccountingDataProviderInterf
                     : null,
                 'description' => (string) $row->label_operation,
                 'sourceDocumentRef' => (string) $row->doc_ref,
+                'taxInformation' => $this->resolveTaxInformation(
+                    (string) $row->doc_type,
+                    (int) $row->fk_doc,
+                    (string) $row->numero_compte
+                ),
             );
         }
 
@@ -261,6 +267,23 @@ class DkDolibarrAccountingDataProvider implements DkAccountingDataProviderInterf
             'description' => (string) $first->label_operation,
             'lines' => $lines,
         ));
+    }
+
+    private function resolveTaxInformation($docType, $docId, $accountCode)
+    {
+        global $mysoc;
+
+        $countryCode = isset($mysoc->country_code) && $mysoc->country_code !== ''
+            ? (string) $mysoc->country_code
+            : 'DK';
+
+        $resolver = new DkDolibarrTaxInformationResolver(
+            $this->db,
+            $this->entity,
+            $countryCode
+        );
+
+        return $resolver->resolve($docType, $docId, $accountCode);
     }
 
     private function getCompanyBankAccounts()
