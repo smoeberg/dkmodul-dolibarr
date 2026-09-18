@@ -24,3 +24,8 @@ jobs:
         run: |
           php tests/integration/validate-saft21.php \
             "/tmp/erst-standard-filformater/SAF-T/XSD/Danish_SAF-T_Financial_Schema_v_2_1.xsd"
+
+      - name: Validate official Danish VAT JSON
+        run: |
+          php tests/integration/validate-standard-vat.php \
+            "/tmp/erst-standard-filformater/Standardkontoplanen/JSON/2026-01-01-Momskoder-Bruttoliste.json"
