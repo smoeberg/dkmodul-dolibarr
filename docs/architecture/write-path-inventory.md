@@ -1,6 +1,6 @@
 # accounting_bookkeeping write-path inventory
 
-Baseline reviewed: Dolibarr 24.x/develop accounting implementation.
+Baseline reviewed: Dolibarr 24.0.0 accounting schema/runtime paths, with develop compared for forward changes.
 
 ## Runtime write paths
 
