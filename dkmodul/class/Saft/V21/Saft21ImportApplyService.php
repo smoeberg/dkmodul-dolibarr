@@ -1,6 +1,6 @@
 <?php
 
-require_once __DIR__.'/../../Compliance/AuditLedger.php';
+require_once __DIR__.'/../../Audit/AuditLedger.php';
 
 /**
  * Applies a fully analyzed SAF-T staging batch to Dolibarr bookkeeping.
