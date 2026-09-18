@@ -8,11 +8,13 @@ class DkSaft21Exporter
 {
     private $provider;
     private $accountMappingService;
+    private $vatMappingService;
 
-    public function __construct(DkAccountingDataProviderInterface $provider, $accountMappingService = null)
+    public function __construct(DkAccountingDataProviderInterface $provider, $accountMappingService = null, $vatMappingService = null)
     {
         $this->provider = $provider;
         $this->accountMappingService = $accountMappingService;
+        $this->vatMappingService = $vatMappingService;
     }
 
     public function export($fromDate, $toDate, array $options = array())
@@ -246,6 +248,23 @@ class DkSaft21Exporter
             $strictTaxMapping = !array_key_exists('strictStandardTaxMapping', $options)
                 || (bool) $options['strictStandardTaxMapping'];
             $standardTaxCode = trim((string) ($taxCode['standardTaxCode'] ?? ''));
+            $standardDescription = trim((string) ($taxCode['standardTaxCodeDescription'] ?? ''));
+
+            if ($standardTaxCode === '' && $this->vatMappingService !== null) {
+                $company = $this->provider->getCompanyContext();
+                $mapping = $this->vatMappingService->resolve(
+                    (int) ($company['id'] ?? 0),
+                    $localCode,
+                    $mappingDate
+                );
+
+                if ($mapping && ($mapping['standardVersion'] ?? null) === DkSaftSchemaRegistry::STANDARD_VAT_VERSION) {
+                    $standardTaxCode = (string) $mapping['standardTaxCode'];
+                    if ($standardDescription === '' && !empty($mapping['description'])) {
+                        $standardDescription = (string) $mapping['description'];
+                    }
+                }
+            }
 
             if ($strictTaxMapping && $standardTaxCode === '') {
                 throw new InvalidArgumentException('Missing standard VAT mapping for tax code '.$localCode);
