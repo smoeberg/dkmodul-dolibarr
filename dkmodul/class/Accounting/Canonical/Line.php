@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__.'/Decimal.php';
+require_once __DIR__.'/TaxInformation.php';
 
 class DkCanonicalLine
 {
@@ -10,6 +11,7 @@ class DkCanonicalLine
     public $credit;
     public $partyId;
     public $taxCode;
+    public $taxInformation = array();
     public $currencyCode;
     public $currencyAmount;
     public $description;
@@ -23,6 +25,20 @@ class DkCanonicalLine
         $this->credit = DkCanonicalDecimal::normalize($data['credit'] ?? '0');
         $this->partyId = isset($data['partyId']) ? (string) $data['partyId'] : null;
         $this->taxCode = isset($data['taxCode']) ? (string) $data['taxCode'] : null;
+
+        foreach (($data['taxInformation'] ?? array()) as $tax) {
+            $this->taxInformation[] = $tax instanceof DkCanonicalTaxInformation
+                ? $tax
+                : new DkCanonicalTaxInformation((array) $tax);
+        }
+
+        // Backward-compatible single-code input for callers not yet migrated.
+        if ($this->taxCode !== null && $this->taxCode !== '' && count($this->taxInformation) === 0) {
+            $this->taxInformation[] = new DkCanonicalTaxInformation(array(
+                'taxCode' => $this->taxCode,
+            ));
+        }
+
         $this->currencyCode = isset($data['currencyCode']) ? (string) $data['currencyCode'] : null;
         $this->currencyAmount = isset($data['currencyAmount'])
             ? DkCanonicalDecimal::normalize($data['currencyAmount'])
