@@ -1,0 +1,46 @@
+name: integration-db
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  mariadb-immutability:
+    runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_DATABASE: dolibarr
+          MARIADB_USER: dolibarr
+          MARIADB_PASSWORD: dolibarr
+          MARIADB_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install MariaDB client
+        run: sudo apt-get update && sudo apt-get install -y mariadb-client
+      - name: Install guard fixture
+        env:
+          MYSQL_PWD: dolibarr
+        run: mariadb -h 127.0.0.1 -u dolibarr dolibarr < tests/integration/sql/immutability_guard.sql
+      - name: Assert financial update is blocked
+        env:
+          MYSQL_PWD: dolibarr
+        run: bash tests/integration/sql/assert_financial_update_blocked.sh -h 127.0.0.1 -u dolibarr dolibarr
+      - name: Assert delete is blocked
+        env:
+          MYSQL_PWD: dolibarr
+        run: bash tests/integration/sql/assert_delete_blocked.sh -h 127.0.0.1 -u dolibarr dolibarr
+      - name: Assert operational metadata remains mutable
+        env:
+          MYSQL_PWD: dolibarr
+        run: |
+          mariadb -h 127.0.0.1 -u dolibarr dolibarr -e "UPDATE llx_accounting_bookkeeping SET date_export=NOW() WHERE rowid=1"
+          test "$(mariadb -N -h 127.0.0.1 -u dolibarr dolibarr -e "SELECT COUNT(*) FROM llx_accounting_bookkeeping WHERE rowid=1 AND date_export IS NOT NULL")" = "1"
