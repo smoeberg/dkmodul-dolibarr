@@ -263,6 +263,12 @@ class DkSaft21Exporter
                     if ($standardDescription === '' && !empty($mapping['description'])) {
                         $standardDescription = (string) $mapping['description'];
                     }
+                    if (empty($taxCode['effectiveDate']) && !empty($mapping['effectiveDate'])) {
+                        $taxCode['effectiveDate'] = (string) $mapping['effectiveDate'];
+                    }
+                    if (empty($taxCode['expirationDate']) && !empty($mapping['expirationDate'])) {
+                        $taxCode['expirationDate'] = (string) $mapping['expirationDate'];
+                    }
                 }
             }
 
@@ -273,9 +279,11 @@ class DkSaft21Exporter
             if ($standardTaxCode !== '') {
                 $this->element($doc, $details, 'StandardTaxCode', $standardTaxCode);
             }
-            if (!empty($taxCode['effectiveDate'])) {
-                $this->element($doc, $details, 'EffectiveDate', $taxCode['effectiveDate']);
+
+            if (empty($taxCode['effectiveDate'])) {
+                throw new InvalidArgumentException('Missing effective date for VAT mapping '.$localCode);
             }
+            $this->element($doc, $details, 'EffectiveDate', $taxCode['effectiveDate']);
             if (!empty($taxCode['expirationDate'])) {
                 $this->element($doc, $details, 'ExpirationDate', $taxCode['expirationDate']);
             }
