@@ -26,9 +26,9 @@ Statuskoder:
 | DK-SAFT-002 | SAF-T 2.1 kan importeres | SAF-T | CT-SAFT-002 | TODO |
 | DK-SAFT-003 | SAF-T 2.1-output valideres mod officiel XSD | SAF-T Validator | CT-SAFT-003 | DONE |
 | DK-SAFT-004 | SAF-T implementation er versionsstyret | SchemaRegistry + pinned ERST upstream | CT-SAFT-004 | DONE |
-| DK-BANK-001 | Banktransaktioner kan importeres | Bank | CT-BANK-001 | TODO |
-| DK-BANK-002 | Bankposter kan afstemmes | Bank | CT-BANK-002 | TODO |
-| DK-BANK-003 | Ikke-afstemte differencer fremgår tydeligt | Bank | CT-BANK-003 | TODO |
+| DK-BANK-001 | Banktransaktioner kan importeres | bankconnect: CamtParser | CT-BANK-001 | PARTIAL |
+| DK-BANK-002 | Bankposter kan afstemmes | bankconnect: ReconciliationEngine + MistralMatcher | CT-BANK-002 | PARTIAL |
+| DK-BANK-003 | Ikke-afstemte differencer fremgår tydeligt | bankconnect: UI (afstemningsskærm) | CT-BANK-003 | TODO |
 | DK-EINV-001 | OIOUBL faktura kan sendes | EInvoice | CT-EINV-001 | TODO |
 | DK-EINV-002 | OIOUBL faktura kan modtages | EInvoice | CT-EINV-002 | TODO |
 | DK-EINV-003 | OIOUBL kreditnota kan sendes/modtages | EInvoice | CT-EINV-003 | TODO |
@@ -97,3 +97,24 @@ dokumenttyper skal vurderes og testes separat.
 - `tests/integration/assert-saft21-dolibarr-provider.php`
 - `tests/integration/test-bookkeeping-immutability.sh`
 - ERST upstream commit: `ea9a4b5704c7a0e9646b0d3b928a59089d71cf0e`
+
+## Bank-afstemnings-slice (bankconnect)
+
+Modulet er implementeret som selvstændigt Dolibarr-modul i
+[smoeberg/bankconnect](https://github.com/smoeberg/bankconnect), CI-verificeret
+(php -l + 21 unit tests, 59 assertions).
+
+- `DK-BANK-001` → PARTIAL: camt.053/054-parsing implementeret og testet
+  (`CamtParserTest`). Import via bank-PSD2/gateway er ikke tilsluttet endnu.
+- `DK-BANK-002` → PARTIAL: regelbaseret matching (reference → beløb →
+  datovindue) + Mistral AI fallback implementeret og testet
+  (`ReconciliationEngineTest`, `MistralMatcherTest`). Bokføring sker først
+  efter menneskelig godkendelse.
+- `DK-BANK-003` → TODO: afstemningsskærm (UI) mangler.
+
+Testevidens: `tests/unit/` i bankconnect-repoet; CI-workflow
+`.github/workflows/test.yml` på push/PR.
+
+GDPR-kontrol: MistralMatcher saniterer CPR-numre og lange numeriske koder
+frem afkald på sende følsomme data til AI, og logger kun metrikker (hash,
+latency, antal) - aldrig statement-tekst.
