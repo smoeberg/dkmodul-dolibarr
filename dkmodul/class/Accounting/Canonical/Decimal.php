@@ -99,7 +99,8 @@ class DkCanonicalDecimal
             return strlen($left) < strlen($right) ? -1 : 1;
         }
 
-        return $left <=> $right;
+        $comparison = strcmp($left, $right);
+        return $comparison < 0 ? -1 : ($comparison > 0 ? 1 : 0);
     }
 
     private static function addUnsigned($left, $right)
