@@ -2,6 +2,7 @@
 
 require_once __DIR__.'/Canonical/AccountingDataProviderInterface.php';
 require_once __DIR__.'/Canonical/Transaction.php';
+require_once __DIR__.'/DolibarrVatProvenanceResolver.php';
 
 /**
  * Read-only adapter from Dolibarr 24.0.x accounting data into the
@@ -11,6 +12,8 @@ class DkDolibarrAccountingDataProvider implements DkAccountingDataProviderInterf
 {
     private $db;
     private $entity;
+    private $vatProvenanceResolver;
+    private $vatProvenanceCache = array();
 
     public function __construct($db, $entity)
     {
@@ -20,6 +23,8 @@ class DkDolibarrAccountingDataProvider implements DkAccountingDataProviderInterf
         if ($this->entity <= 0) {
             throw new InvalidArgumentException('A positive Dolibarr entity id is required');
         }
+
+        $this->vatProvenanceResolver = new DkDolibarrVatProvenanceResolver($db, $this->entity);
     }
 
     public function getCompanyContext()
@@ -158,7 +163,7 @@ class DkDolibarrAccountingDataProvider implements DkAccountingDataProviderInterf
 
     public function getTransactions($fromDate, $toDate)
     {
-        $sql = 'SELECT b.rowid, b.ref, b.piece_num, b.doc_date, b.doc_type, b.doc_ref,';
+        $sql = 'SELECT b.rowid, b.ref, b.piece_num, b.doc_date, b.doc_type, b.doc_ref, b.fk_doc, b.fk_docdet,';
         $sql .= ' b.subledger_account, b.numero_compte, b.label_operation, b.debit, b.credit,';
         $sql .= ' b.multicurrency_amount, b.multicurrency_code, b.fk_user_author,';
         $sql .= ' b.code_journal, b.journal_label, b.date_creation, b.date_validated';
@@ -244,6 +249,11 @@ class DkDolibarrAccountingDataProvider implements DkAccountingDataProviderInterf
                     : null,
                 'description' => (string) $row->label_operation,
                 'sourceDocumentRef' => (string) $row->doc_ref,
+                'taxComponents' => $this->resolveTaxComponents(
+                    (string) $row->doc_type,
+                    (int) $row->fk_doc,
+                    (string) $row->numero_compte
+                ),
             );
         }
 
@@ -261,6 +271,21 @@ class DkDolibarrAccountingDataProvider implements DkAccountingDataProviderInterf
             'description' => (string) $first->label_operation,
             'lines' => $lines,
         ));
+    }
+
+    private function resolveTaxComponents($docType, $documentId, $accountCode)
+    {
+        $cacheKey = $docType.'|'.((int) $documentId).'|'.$accountCode;
+
+        if (!array_key_exists($cacheKey, $this->vatProvenanceCache)) {
+            $this->vatProvenanceCache[$cacheKey] = $this->vatProvenanceResolver->resolve(
+                $docType,
+                $documentId,
+                $accountCode
+            );
+        }
+
+        return $this->vatProvenanceCache[$cacheKey];
     }
 
     private function getCompanyBankAccounts()
