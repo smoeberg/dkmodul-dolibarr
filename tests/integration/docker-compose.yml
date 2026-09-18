@@ -33,3 +33,4 @@ services:
       - "8080:80"
     volumes:
       - ../../dkmodul:/var/www/html/custom/dkmodul
+      - ../../tests/integration:/var/www/dkmodul-tests:ro
