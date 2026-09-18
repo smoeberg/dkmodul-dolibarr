@@ -8,6 +8,7 @@ class DkCanonicalTransaction
     public $transactionId;
     public $sourcePieceNumber;
     public $journalCode;
+    public $journalDescription;
     public $transactionDate;
     public $registrationDateTime;
     public $validatedAt;
@@ -23,6 +24,7 @@ class DkCanonicalTransaction
         $this->transactionId = (string) ($data['transactionId'] ?? '');
         $this->sourcePieceNumber = isset($data['sourcePieceNumber']) ? (int) $data['sourcePieceNumber'] : null;
         $this->journalCode = (string) ($data['journalCode'] ?? '');
+        $this->journalDescription = isset($data['journalDescription']) ? (string) $data['journalDescription'] : null;
         $this->transactionDate = (string) ($data['transactionDate'] ?? '');
         $this->registrationDateTime = (string) ($data['registrationDateTime'] ?? '');
         $this->validatedAt = isset($data['validatedAt']) && $data['validatedAt'] !== ''
