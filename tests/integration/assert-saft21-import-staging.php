@@ -58,8 +58,14 @@ if (!$duplicateBlocked) {
     exit(1);
 }
 
+$importUser = new User($db);
+if ($importUser->fetch(1) <= 0 || empty($importUser->id)) {
+    fwrite(STDERR, "Unable to load integration-test Dolibarr user\n");
+    exit(1);
+}
+
 $apply = new DkSaft21ImportApplyService($db);
-$applied = $apply->apply(1, $result['id'], $user);
+$applied = $apply->apply(1, $result['id'], $importUser);
 
 if ($applied['status'] !== 'applied'
     || $applied['transactionCount'] !== $result['transactionCount']
@@ -98,7 +104,7 @@ if ($originCount !== $result['lineCount']) {
 
 $secondApplyBlocked = false;
 try {
-    $apply->apply(1, $result['id'], $user);
+    $apply->apply(1, $result['id'], $importUser);
 } catch (RuntimeException $e) {
     $secondApplyBlocked = str_contains($e->getMessage(), 'Only analyzed and ready');
 }
