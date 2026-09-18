@@ -10,6 +10,7 @@ class DkCanonicalLine
     public $credit;
     public $partyId;
     public $taxCode;
+    public $taxComponents = array();
     public $currencyCode;
     public $currencyAmount;
     public $description;
@@ -23,6 +24,28 @@ class DkCanonicalLine
         $this->credit = DkCanonicalDecimal::normalize($data['credit'] ?? '0');
         $this->partyId = isset($data['partyId']) ? (string) $data['partyId'] : null;
         $this->taxCode = isset($data['taxCode']) ? (string) $data['taxCode'] : null;
+        $this->taxComponents = array();
+
+        foreach (($data['taxComponents'] ?? array()) as $component) {
+            if (!is_array($component)) {
+                throw new InvalidArgumentException('Canonical tax component must be an array');
+            }
+
+            $taxCode = trim((string) ($component['taxCode'] ?? ''));
+            if ($taxCode === '') {
+                throw new InvalidArgumentException('Canonical tax component requires a tax code');
+            }
+
+            $this->taxComponents[] = array(
+                'taxCode' => $taxCode,
+                'taxPercentage' => DkCanonicalDecimal::normalize($component['taxPercentage'] ?? '0'),
+                'taxBase' => DkCanonicalDecimal::normalize($component['taxBase'] ?? '0'),
+                'taxAmount' => DkCanonicalDecimal::normalize($component['taxAmount'] ?? '0'),
+                'taxBaseDescription' => isset($component['taxBaseDescription'])
+                    ? (string) $component['taxBaseDescription']
+                    : null,
+            );
+        }
         $this->currencyCode = isset($data['currencyCode']) ? (string) $data['currencyCode'] : null;
         $this->currencyAmount = isset($data['currencyAmount'])
             ? DkCanonicalDecimal::normalize($data['currencyAmount'])
