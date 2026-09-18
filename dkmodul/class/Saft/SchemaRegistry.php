@@ -6,6 +6,7 @@ class DkSaftSchemaRegistry
     public const NAMESPACE_URI = 'urn:StandardAuditFile-Taxation-Financial:DK';
     public const STANDARD_ACCOUNT_NAME = 'Standardkontoplanen';
     public const STANDARD_ACCOUNT_VERSION = '20260101';
+    public const STANDARD_VAT_VERSION = '20260101';
 
     public const UPSTREAM_REPOSITORY = 'https://git.erst.dk/standard-filformater/standard-filformater.git';
     public const UPSTREAM_COMMIT = 'ea9a4b5704c7a0e9646b0d3b928a59089d71cf0e';
@@ -23,6 +24,7 @@ class DkSaftSchemaRegistry
             'examplePath' => self::EXAMPLE_RELATIVE_PATH,
             'standardAccountName' => self::STANDARD_ACCOUNT_NAME,
             'standardAccountVersion' => self::STANDARD_ACCOUNT_VERSION,
+            'standardVatVersion' => self::STANDARD_VAT_VERSION,
         );
     }
 }
