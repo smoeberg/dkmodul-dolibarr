@@ -13,7 +13,7 @@ services:
       retries: 30
 
   dolibarr:
-    image: dolibarr/dolibarr:24.0.1-php8.2
+    image: dolibarr/dolibarr:24.0.0-php8.2
     depends_on:
       mariadb:
         condition: service_healthy
