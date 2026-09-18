@@ -24,30 +24,20 @@ class DkDolibarrAccountingDataProvider implements DkAccountingDataProviderInterf
 
     public function getCompanyContext()
     {
-        $sql = 'SELECT rowid, nom, address, zip, town, country_code, idprof1';
-        $sql .= ' FROM '.$this->db->prefix().'societe';
-        $sql .= ' WHERE entity = '.$this->entity;
-        $sql .= ' AND fk_typent = 0';
-        $sql .= ' ORDER BY rowid ASC LIMIT 1';
+        global $mysoc;
 
-        $resql = $this->db->query($sql);
-        if (!$resql) {
-            throw new RuntimeException('Unable to load Dolibarr company context: '.$this->db->lasterror());
-        }
-
-        $row = $this->db->fetch_object($resql);
-        if (!$row) {
-            return null;
+        if (!function_exists('getDolGlobalString')) {
+            throw new RuntimeException('Dolibarr runtime is required to read company context');
         }
 
         return array(
-            'id' => (string) $row->rowid,
-            'name' => (string) $row->nom,
-            'address' => (string) $row->address,
-            'postalCode' => (string) $row->zip,
-            'city' => (string) $row->town,
-            'countryCode' => (string) $row->country_code,
-            'registrationNumber' => (string) $row->idprof1,
+            'id' => (string) $this->entity,
+            'name' => getDolGlobalString('MAIN_INFO_SOCIETE_NOM'),
+            'address' => getDolGlobalString('MAIN_INFO_SOCIETE_ADDRESS'),
+            'postalCode' => getDolGlobalString('MAIN_INFO_SOCIETE_ZIP'),
+            'city' => getDolGlobalString('MAIN_INFO_SOCIETE_TOWN'),
+            'countryCode' => isset($mysoc->country_code) ? (string) $mysoc->country_code : '',
+            'registrationNumber' => getDolGlobalString('MAIN_INFO_SIREN'),
         );
     }
 
