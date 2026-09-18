@@ -70,3 +70,6 @@ print_named_type "complexType" "HeaderStructure" 180
 print_named_type "group" "CompanyStructureContent" 180
 print_named_type "complexType" "SelectionCriteriaStructure" 120
 print_named_type "complexType" "AmountStructure" 120
+
+print_named_type "complexType" "AddressStructure" 120
+print_named_type "complexType" "CompanyHeaderStructure" 140
