@@ -32,8 +32,23 @@ sed -n '1,320p' "SAF-T/XML_examples/MasterFiles.xml"
 echo "=== GeneralLedgerEntries example (first 420 lines) ==="
 sed -n '1,420p' "SAF-T/XML_examples/GeneralLedgerEntries.xml"
 
+print_schema_range() {
+  local element="$1"
+  local lines="$2"
+  local start
+  start="$(grep -n -m1 "<xs:element name=\"$element\"" "$schema" | cut -d: -f1 || true)"
+  if [ -n "$start" ]; then
+    echo "=== XSD $element from line $start ==="
+    sed -n "${start},$((start + lines))p" "$schema"
+  fi
+}
+
+print_schema_range "Header" 220
+print_schema_range "MasterFiles" 220
+print_schema_range "GeneralLedgerEntries" 300
+
 echo "=== Full 2.1 example structural tags ==="
-grep -E '<(/)?(AuditFile|Header|MasterFiles|GeneralLedgerAccounts|Account|GeneralLedgerEntries|Journal|Transaction|Line|DebitLine|CreditLine|TaxInformation|SourceDocuments)([ >])' "$example" | head -250
+grep -E '<(/)?(AuditFile|Header|MasterFiles|GeneralLedgerAccounts|Account|GeneralLedgerEntries|Journal|Transaction|Line|TaxInformation|SourceDocuments)([ >])' "$example" | head -250 || true
 
 echo "=== 2.1 schema required top-level sections ==="
-grep -n -E '<xs:element name="(Header|MasterFiles|GeneralLedgerEntries|SourceDocuments)"' "$schema" | head -30
+grep -n -E '<xs:element name="(Header|MasterFiles|GeneralLedgerEntries|SourceDocuments)"' "$schema" | head -30 || true
