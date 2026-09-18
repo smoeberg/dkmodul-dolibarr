@@ -153,6 +153,7 @@ class DkSaft21ImportStagingService
             $tax[] = array(
                 'taxType' => $item->taxType,
                 'taxCode' => $item->taxCode,
+                'standardTaxCode' => $item->standardTaxCode,
                 'taxPercentage' => $item->taxPercentage,
                 'taxBase' => $item->taxBase,
                 'taxAmount' => $item->taxAmount,
