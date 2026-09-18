@@ -22,13 +22,13 @@ class DkCanonicalTaxInformation
     {
         $this->taxType = isset($data['taxType']) ? (string) $data['taxType'] : 'VAT';
         $this->taxCode = trim((string) ($data['taxCode'] ?? ''));
-        $this->taxPercentage = $data['taxPercentage'] === null || !isset($data['taxPercentage'])
+        $this->taxPercentage = !array_key_exists('taxPercentage', $data) || $data['taxPercentage'] === null
             ? null
             : DkCanonicalDecimal::normalize($data['taxPercentage']);
-        $this->taxBase = $data['taxBase'] === null || !isset($data['taxBase'])
+        $this->taxBase = !array_key_exists('taxBase', $data) || $data['taxBase'] === null
             ? null
             : DkCanonicalDecimal::normalize($data['taxBase']);
-        $this->taxAmount = $data['taxAmount'] === null || !isset($data['taxAmount'])
+        $this->taxAmount = !array_key_exists('taxAmount', $data) || $data['taxAmount'] === null
             ? null
             : DkCanonicalDecimal::normalize($data['taxAmount']);
         $this->countryCode = isset($data['countryCode']) ? trim((string) $data['countryCode']) : null;
