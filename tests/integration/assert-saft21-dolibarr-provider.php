@@ -45,7 +45,7 @@ $checks = array(
     'string(/saf:AuditFile/saf:Header/saf:DefaultCurrencyCode)' => 'DKK',
     'string(/saf:AuditFile/saf:MasterFiles/saf:GeneralLedgerAccounts/saf:VersionOfStandardAccount)' => '20260101',
     'string(/saf:AuditFile/saf:MasterFiles/saf:TaxTable/saf:TaxTableEntry/saf:TaxCodeDetails/saf:StandardTaxCode)' => 'S1',
-    'string(/saf:AuditFile/saf:GeneralLedgerEntries/saf:NumberOfEntries)' => '2',
+    'string(/saf:AuditFile/saf:GeneralLedgerEntries/saf:NumberOfEntries)' => '5',
 );
 
 foreach ($checks as $query => $expected) {
@@ -56,4 +56,34 @@ foreach ($checks as $query => $expected) {
     }
 }
 
-echo "Dolibarr provider generated strict SAF-T 2.1 candidate\n";
+$taxInfoCount = (int) $xpath->evaluate(
+    'count(/saf:AuditFile/saf:GeneralLedgerEntries/saf:Journal/saf:Transaction[saf:TransactionID="DK-990003"]/saf:Line[saf:AccountID="3999"]/saf:TaxInformation)'
+);
+if ($taxInfoCount !== 2) {
+    fwrite(STDERR, "Expected two TaxInformation blocks on aggregated revenue line, got {$taxInfoCount}\n");
+    exit(1);
+}
+
+$expectedTax = array(
+    'DKT25A' => array('200.00000000', '50.00000000'),
+    'DKT25B' => array('100.00000000', '25.00000000'),
+);
+
+foreach ($expectedTax as $localCode => $expected) {
+    $base = (string) $xpath->evaluate(
+        'string(//saf:Transaction[saf:TransactionID="DK-990003"]/saf:Line[saf:AccountID="3999"]/saf:TaxInformation[saf:TaxCode="'.$localCode.'"]/saf:TaxBase)'
+    );
+    $amount = (string) $xpath->evaluate(
+        'string(//saf:Transaction[saf:TransactionID="DK-990003"]/saf:Line[saf:AccountID="3999"]/saf:TaxInformation[saf:TaxCode="'.$localCode.'"]/saf:TaxAmount/saf:Amount)'
+    );
+    $standardCode = (string) $xpath->evaluate(
+        'string(//saf:Transaction[saf:TransactionID="DK-990003"]/saf:Line[saf:AccountID="3999"]/saf:TaxInformation[saf:TaxCode="'.$localCode.'"]/saf:StandardTaxCode)'
+    );
+
+    if ($base !== $expected[0] || $amount !== $expected[1] || $standardCode !== 'S1') {
+        fwrite(STDERR, "Unexpected mapped VAT output for {$localCode}\n");
+        exit(1);
+    }
+}
+
+echo "Dolibarr provider generated strict SAF-T 2.1 candidate with VAT provenance\n";
