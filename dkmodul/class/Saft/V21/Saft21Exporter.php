@@ -26,6 +26,7 @@ class DkSaft21Exporter
 
         $company = $this->provider->getCompanyContext();
         $accounts = $this->provider->getAccounts($fromDate, $toDate);
+        $taxCodes = $this->provider->getTaxCodes($fromDate, $toDate);
         $transactions = $this->provider->getTransactions($fromDate, $toDate);
 
         $defaultCurrency = $this->requiredValue(
@@ -40,7 +41,7 @@ class DkSaft21Exporter
         $doc->appendChild($root);
 
         $this->appendHeader($doc, $root, $company, $fromDate, $toDate, $defaultCurrency, $options);
-        $this->appendMasterFiles($doc, $root, $accounts, $fromDate, $options);
+        $this->appendMasterFiles($doc, $root, $accounts, $taxCodes, $fromDate, $options);
         $this->appendGeneralLedgerEntries($doc, $root, $transactions, $defaultCurrency);
 
         return $doc->saveXML();
@@ -183,7 +184,7 @@ class DkSaft21Exporter
         }
     }
 
-    private function appendMasterFiles(DOMDocument $doc, DOMElement $root, array $accounts, $mappingDate, array $options)
+    private function appendMasterFiles(DOMDocument $doc, DOMElement $root, array $accounts, array $taxCodes, $mappingDate, array $options)
     {
         if (count($accounts) === 0) {
             throw new InvalidArgumentException('SAF-T 2.1 requires at least one General Ledger account');
@@ -225,6 +226,54 @@ class DkSaft21Exporter
 
             $this->appendBalance($doc, $node, 'Opening', $account['openingBalance'] ?? '0');
             $this->appendBalance($doc, $node, 'Closing', $account['closingBalance'] ?? '0');
+        }
+
+        if (count($taxCodes) === 0) {
+            throw new InvalidArgumentException('SAF-T 2.1 requires a VAT TaxTable');
+        }
+
+        $taxTable = $this->element($doc, $masterFiles, 'TaxTable');
+        $taxEntry = $this->element($doc, $taxTable, 'TaxTableEntry');
+        $this->element($doc, $taxEntry, 'TaxType', 'VAT');
+        $this->element($doc, $taxEntry, 'Description', 'VAT');
+
+        foreach ($taxCodes as $taxCode) {
+            $localCode = $this->requiredValue($taxCode['taxCode'] ?? null, 'Tax code');
+            $details = $this->element($doc, $taxEntry, 'TaxCodeDetails');
+
+            $this->element($doc, $details, 'TaxCode', $localCode);
+
+            $strictTaxMapping = !array_key_exists('strictStandardTaxMapping', $options)
+                || (bool) $options['strictStandardTaxMapping'];
+            $standardTaxCode = trim((string) ($taxCode['standardTaxCode'] ?? ''));
+
+            if ($strictTaxMapping && $standardTaxCode === '') {
+                throw new InvalidArgumentException('Missing standard VAT mapping for tax code '.$localCode);
+            }
+
+            if ($standardTaxCode !== '') {
+                $this->element($doc, $details, 'StandardTaxCode', $standardTaxCode);
+            }
+            if (!empty($taxCode['effectiveDate'])) {
+                $this->element($doc, $details, 'EffectiveDate', $taxCode['effectiveDate']);
+            }
+            if (!empty($taxCode['expirationDate'])) {
+                $this->element($doc, $details, 'ExpirationDate', $taxCode['expirationDate']);
+            }
+
+            $this->element(
+                $doc,
+                $details,
+                'Description',
+                $this->requiredValue($taxCode['description'] ?? null, 'Tax code description')
+            );
+
+            if (isset($taxCode['taxPercentage']) && $taxCode['taxPercentage'] !== '') {
+                $this->element($doc, $details, 'TaxPercentage', $taxCode['taxPercentage']);
+            }
+            if (!empty($taxCode['countryCode'])) {
+                $this->element($doc, $details, 'Country', $taxCode['countryCode']);
+            }
         }
     }
 
