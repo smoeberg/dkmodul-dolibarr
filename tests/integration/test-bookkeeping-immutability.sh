@@ -219,7 +219,7 @@ VALUES
 (1,'DK-990003',990003,'2026-09-18','customer_invoice','DKVAT-INV-1',${invoice_id},0,'3999','Revenue','Customer invoice revenue',0,300,1,NOW(),'VT','Sales',NOW()),
 (1,'DK-990003',990003,'2026-09-18','customer_invoice','DKVAT-INV-1',${invoice_id},0,'2610','VAT payable','Customer invoice VAT',0,75,1,NOW(),'VT','Sales',NOW())"
 
-docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-canonical-provider.php
+docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-vat-provenance-provider.php
 
 echo "Generating strict SAF-T 2.1 from Dolibarr provider..."
 docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-saft21-dolibarr-provider.php /tmp/dolibarr-dk-saft21.xml
