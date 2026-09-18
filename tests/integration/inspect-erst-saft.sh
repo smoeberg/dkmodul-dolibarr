@@ -103,3 +103,6 @@ elif isinstance(data, list):
     for item in data[:3]:
         print("sample=" + json.dumps(item, ensure_ascii=False, sort_keys=True))
 PY
+
+
+print_named_type "complexType" "TaxInformationStructure" 180
