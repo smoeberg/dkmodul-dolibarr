@@ -3,11 +3,21 @@ CREATE TABLE llx_dk_standard_vat_code (
     standard_version VARCHAR(32) NOT NULL,
     valid_from DATE NOT NULL,
     tax_code VARCHAR(32) NOT NULL,
+    legacy_tax_code VARCHAR(32) NULL,
+    next_tax_code VARCHAR(32) NULL,
+    designation VARCHAR(128) NULL,
+    next_designation VARCHAR(128) NULL,
+    group_name VARCHAR(255) NULL,
     label VARCHAR(500) NOT NULL,
     tax_percentage DECIMAL(12,6) NULL,
+    tax_type VARCHAR(64) NULL,
+    vat_return_box VARCHAR(255) NULL,
+    deduction_right VARCHAR(255) NULL,
+    guidance TEXT NULL,
     country_code VARCHAR(2) NOT NULL DEFAULT 'DK',
     source_hash CHAR(64) NOT NULL,
     date_imported DATETIME NOT NULL,
     UNIQUE KEY uk_dk_standard_vat_code (standard_version, tax_code),
-    KEY idx_dk_standard_vat_valid_from (valid_from)
+    KEY idx_dk_standard_vat_valid_from (valid_from),
+    KEY idx_dk_standard_vat_next_code (standard_version, next_tax_code)
 ) ENGINE=InnoDB;
