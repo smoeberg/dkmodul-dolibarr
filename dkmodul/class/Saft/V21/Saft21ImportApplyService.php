@@ -44,8 +44,8 @@ class DkSaft21ImportApplyService
 
         try {
             $batch = $this->loadBatchForUpdate($entity, $importId);
-            if ((string) $batch->status !== 'staged') {
-                throw new InvalidArgumentException('Only staged SAF-T imports can be applied');
+            if ((string) $batch->status !== 'ready') {
+                throw new InvalidArgumentException('Only analyzed and ready SAF-T imports can be applied');
             }
 
             $this->assertMappingsResolved($importId);
@@ -145,7 +145,7 @@ class DkSaft21ImportApplyService
 
             $sql = 'UPDATE '.$this->db->prefix().'dk_saft_import';
             $sql .= " SET status = 'applied', date_applied = NOW()";
-            $sql .= ' WHERE rowid = '.$importId.' AND entity = '.$entity." AND status = 'staged'";
+            $sql .= ' WHERE rowid = '.$importId.' AND entity = '.$entity." AND status = 'ready'";
 
             if (!$this->db->query($sql)) {
                 throw new RuntimeException('Unable to mark SAF-T import as applied: '.$this->db->lasterror());
