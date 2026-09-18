@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__.'/../../Audit/AuditLedger.php';
+require_once DOL_DOCUMENT_ROOT.'/core/lib/date.lib.php';
 
 /**
  * Applies a fully analyzed SAF-T staging batch to Dolibarr bookkeeping.
