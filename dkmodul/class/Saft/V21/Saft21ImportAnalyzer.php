@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__.'/../../Accounting/Canonical/Decimal.php';
+
 /**
  * Resolves imported SAF-T source accounts to local Dolibarr accounts.
  *
@@ -81,13 +83,17 @@ class DkSaft21ImportAnalyzer
         }
 
         $this->assertAllLineAccountsDeclared($importId, $accounts, $errors);
+        $this->assertTransactionIntegrity($importId, $errors);
 
         if ($import->standard_account_version === null || trim((string) $import->standard_account_version) === '') {
             $warnings[] = 'Imported SAF-T file does not declare VersionOfStandardAccount';
         }
 
+        $canApply = count($errors) === 0;
+        $this->setBatchStatus($entity, $importId, $canApply ? 'ready' : 'blocked');
+
         return array(
-            'canApply' => count($errors) === 0,
+            'canApply' => $canApply,
             'resolvedAccounts' => $resolved,
             'errors' => $errors,
             'warnings' => $warnings,
@@ -193,6 +199,50 @@ class DkSaft21ImportAnalyzer
         $sql .= ", mapping_status = '".$this->db->escape($status)."'";
         $sql .= ', mapping_note = '.($note === null ? 'NULL' : "'".$this->db->escape($note)."'");
         $sql .= ' WHERE rowid = '.((int) $rowId);
+
+        if (!$this->db->query($sql)) {
+            throw new RuntimeException($this->db->lasterror());
+        }
+    }
+
+    private function assertTransactionIntegrity($importId, array &$errors)
+    {
+        $sql = 'SELECT t.external_transaction_id,COUNT(l.rowid) AS line_count,';
+        $sql .= ' COALESCE(SUM(l.debit),0) AS total_debit,COALESCE(SUM(l.credit),0) AS total_credit';
+        $sql .= ' FROM '.$this->db->prefix().'dk_saft_import_transaction t';
+        $sql .= ' LEFT JOIN '.$this->db->prefix().'dk_saft_import_line l';
+        $sql .= ' ON l.fk_import_transaction = t.rowid';
+        $sql .= ' WHERE t.fk_import = '.((int) $importId);
+        $sql .= ' GROUP BY t.rowid,t.external_transaction_id';
+        $sql .= ' ORDER BY t.rowid ASC';
+
+        $resql = $this->db->query($sql);
+        if (!$resql) {
+            throw new RuntimeException($this->db->lasterror());
+        }
+
+        while ($row = $this->db->fetch_object($resql)) {
+            if ((int) $row->line_count < 2) {
+                $errors[] = 'Transaction '.$row->external_transaction_id.' has fewer than two lines';
+                continue;
+            }
+
+            $debit = DkCanonicalDecimal::normalize((string) $row->total_debit);
+            $credit = DkCanonicalDecimal::normalize((string) $row->total_credit);
+
+            if (!DkCanonicalDecimal::equals($debit, $credit)) {
+                $errors[] = 'Transaction '.$row->external_transaction_id
+                    .' is unbalanced (debit='.$debit.', credit='.$credit.')';
+            }
+        }
+    }
+
+    private function setBatchStatus($entity, $importId, $status)
+    {
+        $sql = 'UPDATE '.$this->db->prefix().'dk_saft_import';
+        $sql .= " SET status = '".$this->db->escape($status)."'";
+        $sql .= ' WHERE rowid = '.((int) $importId).' AND entity = '.((int) $entity);
+        $sql .= " AND status <> 'applied'";
 
         if (!$this->db->query($sql)) {
             throw new RuntimeException($this->db->lasterror());
