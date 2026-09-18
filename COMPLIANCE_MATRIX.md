@@ -14,9 +14,9 @@ Statuskoder:
 | DK-ACC-003 | Fortløbende/entydig identifikation af postering | Accounting | CT-ACC-003 | TODO |
 | DK-ACC-004 | Registreringsdato registreres | Audit | CT-ACC-004 | TODO |
 | DK-ACC-005 | Bruger/program bag registrering kan identificeres | Audit | CT-ACC-005 | TODO |
-| DK-ACC-006 | Bogførte transaktioner kan ikke ændres | PostingGuard | CT-ACC-006 | PARTIAL |
-| DK-ACC-007 | Bogførte transaktioner kan ikke slettes | PostingGuard | CT-ACC-007 | PARTIAL |
-| DK-ACC-008 | Rettelser sker sporbar via ny/modgående postering | Accounting | CT-ACC-008 | TODO |
+| DK-ACC-006 | Bogførte transaktioner kan ikke ændres | DB Guard + PostingGuard | CT-ACC-006 | DONE |
+| DK-ACC-007 | Bogførte transaktioner kan ikke slettes | DB Guard + PostingGuard | CT-ACC-007 | DONE |
+| DK-ACC-008 | Rettelser sker sporbar via ny/modgående postering | CorrectionService | CT-ACC-008 | PARTIAL |
 | DK-DOC-001 | Digitale bilag kan knyttes til bogføringen | Documents | CT-DOC-001 | TODO |
 | DK-DOC-002 | Bilag og bogføringsdata kan opbevares iht. retentionkrav | Runtime | CT-DOC-002 | TODO |
 | DK-AUD-001 | Compliance-relevant audit trail er append-only/logisk uforanderlig | AuditLedger | CT-AUD-001 | PARTIAL |
