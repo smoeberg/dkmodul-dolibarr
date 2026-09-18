@@ -36,8 +36,14 @@ class DkCanonicalLine
         if ($this->accountCode === '') {
             throw new InvalidArgumentException('Canonical account code is required');
         }
-        if (!DkCanonicalDecimal::equals($this->debit, '0') && !DkCanonicalDecimal::equals($this->credit, '0')) {
+        $hasDebit = !DkCanonicalDecimal::equals($this->debit, '0');
+        $hasCredit = !DkCanonicalDecimal::equals($this->credit, '0');
+
+        if ($hasDebit && $hasCredit) {
             throw new InvalidArgumentException('A canonical line cannot have both debit and credit amounts');
+        }
+        if (!$hasDebit && !$hasCredit) {
+            throw new InvalidArgumentException('A canonical line must have a debit or credit amount');
         }
     }
 }
