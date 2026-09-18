@@ -2,6 +2,7 @@
 
 require_once __DIR__.'/../../Accounting/Canonical/Decimal.php';
 require_once __DIR__.'/../../Accounting/Canonical/Transaction.php';
+require_once __DIR__.'/Saft21ImportedTransaction.php';
 require_once __DIR__.'/../../Accounting/Canonical/TaxInformation.php';
 require_once __DIR__.'/../SaftValidator.php';
 require_once __DIR__.'/../SchemaRegistry.php';
@@ -212,30 +213,13 @@ class DkSaft21Importer
                     $systemEntryDate .= ' 00:00:00';
                 }
 
-                $transactionDebit = DkCanonicalDecimal::normalize('0');
-                $transactionCredit = DkCanonicalDecimal::normalize('0');
-                foreach ($lines as $parsedLine) {
-                    $transactionDebit = DkCanonicalDecimal::add($transactionDebit, $parsedLine['debit']);
-                    $transactionCredit = DkCanonicalDecimal::add($transactionCredit, $parsedLine['credit']);
-                }
-                if (!DkCanonicalDecimal::equals($transactionDebit, $transactionCredit)) {
-                    throw new InvalidArgumentException(
-                        'Unbalanced SAF-T TransactionID '.$transactionId
-                        .' debit='.$transactionDebit.' credit='.$transactionCredit
-                    );
-                }
-
-                $transactions[] = new DkCanonicalTransaction(array(
+                $transactions[] = new DkSaft21ImportedTransaction(array(
                     'transactionId' => $transactionId,
-                    'sourcePieceNumber' => null,
                     'journalCode' => $journalId,
                     'journalDescription' => $journalDescription,
                     'transactionDate' => $this->childValue($transactionNode, 'TransactionDate'),
                     'registrationDateTime' => $systemEntryDate,
-                    'validatedAt' => null,
                     'actor' => $sourceId !== null && $sourceId !== '' ? $sourceId : 'saft-import',
-                    'sourceType' => 'saft_import',
-                    'documentRef' => null,
                     'description' => $this->childValue($transactionNode, 'Description'),
                     'lines' => $lines,
                 ));
