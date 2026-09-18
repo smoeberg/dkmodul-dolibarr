@@ -102,6 +102,42 @@ VALUES
 
 docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-canonical-provider.php
 
+echo "Creating real customer invoice source for VAT provenance..."
+
+revenue_account_rowid="$(sql "SELECT rowid FROM llx_accounting_account WHERE entity=1 AND account_number='3000' ORDER BY rowid LIMIT 1")"
+if [ -z "$revenue_account_rowid" ]; then
+  sql "INSERT INTO llx_accounting_account
+  (entity,datec,fk_pcg_version,pcg_type,account_number,label,fk_user_author,active)
+  VALUES (1,NOW(),'DKTEST','INCOME','3000','Revenue',1,1)"
+  revenue_account_rowid="$(sql "SELECT rowid FROM llx_accounting_account WHERE entity=1 AND account_number='3000' ORDER BY rowid LIMIT 1")"
+fi
+test -n "$revenue_account_rowid"
+
+sql "INSERT INTO llx_societe
+(nom,entity,status,code_client,fk_pays,fk_stcomm,client,fournisseur,datec)
+VALUES ('DK VAT Customer',1,1,'DKVATCUST',0,0,1,0,NOW())"
+customer_id="$(sql "SELECT rowid FROM llx_societe WHERE code_client='DKVATCUST' ORDER BY rowid DESC LIMIT 1")"
+test -n "$customer_id"
+
+sql "INSERT INTO llx_facture
+(ref,entity,type,fk_soc,datec,datef,total_tva,total_ht,total_ttc,fk_statut,fk_user_author,fk_cond_reglement)
+VALUES ('DKVAT-1',1,0,${customer_id},NOW(),'2026-09-18',62.50,250.00,312.50,1,1,1)"
+invoice_id="$(sql "SELECT rowid FROM llx_facture WHERE ref='DKVAT-1' AND entity=1 ORDER BY rowid DESC LIMIT 1")"
+test -n "$invoice_id"
+
+sql "INSERT INTO llx_facturedet
+(fk_facture,label,description,vat_src_code,tva_tx,qty,subprice,total_ht,total_tva,total_ttc,product_type,fk_code_ventilation)
+VALUES (${invoice_id},'VAT test sale','VAT test sale','DKTEST25',25,1,250.00,250.00,62.50,312.50,0,${revenue_account_rowid})"
+
+sql "INSERT INTO llx_accounting_bookkeeping
+(entity,ref,piece_num,doc_date,doc_type,doc_ref,fk_doc,fk_docdet,thirdparty_code,subledger_account,subledger_label,numero_compte,label_compte,label_operation,debit,credit,fk_user_author,date_creation,code_journal,journal_label,date_validated)
+VALUES
+(1,'DK-990003',990003,'2026-09-18','customer_invoice','DKVAT-1',${invoice_id},0,'DKVATCUST','DKVATCUST','DK VAT Customer','1000','Receivables','Customer receivable',312.50,0.00,1,NOW(),'VT','Sales',NOW()),
+(1,'DK-990003',990003,'2026-09-18','customer_invoice','DKVAT-1',${invoice_id},0,'DKVATCUST','','','3000','Revenue','VAT test sale',0.00,250.00,1,NOW(),'VT','Sales',NOW()),
+(1,'DK-990003',990003,'2026-09-18','customer_invoice','DKVAT-1',${invoice_id},0,'DKVATCUST','','','2600','Sales VAT','Sales VAT',0.00,62.50,1,NOW(),'VT','Sales',NOW())"
+
+docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-tax-provenance.php
+
 echo "Configuring strict SAF-T mapping fixture on real Dolibarr database..."
 
 set_const() {
@@ -128,18 +164,20 @@ sql "INSERT INTO llx_bank_account
 (ref,label,entity,fk_user_author,iban_prefix,bic,fk_pays,courant,clos,rappro,currency_code,account_number)
 VALUES ('DKTEST','DK Test Bank',1,1,'DK5000400440116243','DABADKKK',${dk_country_id},1,0,1,'DKK','1000')"
 
-sql "DELETE FROM llx_dk_account_mapping WHERE entity=1 AND source_account IN ('1000','3000')"
-sql "DELETE FROM llx_dk_standard_account WHERE standard_version='20260101' AND account_code IN ('1000','3000')"
+sql "DELETE FROM llx_dk_account_mapping WHERE entity=1 AND source_account IN ('1000','3000','2600')"
+sql "DELETE FROM llx_dk_standard_account WHERE standard_version='20260101' AND account_code IN ('1000','3000','2600')"
 sql "INSERT INTO llx_dk_standard_account
 (standard_version,valid_from,account_code,account_type,label,source_hash,date_imported)
 VALUES
 ('20260101','2026-01-01','1000','Asset','Test bank account',REPEAT('0',64),NOW()),
-('20260101','2026-01-01','3000','Sale','Test revenue account',REPEAT('0',64),NOW())"
+('20260101','2026-01-01','3000','Sale','Test revenue account',REPEAT('0',64),NOW()),
+('20260101','2026-01-01','2600','Liability','Test sales VAT account',REPEAT('0',64),NOW())"
 sql "INSERT INTO llx_dk_account_mapping
 (entity,source_account,standard_version,standard_account,valid_from,valid_to,fk_user_author,date_creation)
 VALUES
 (1,'1000','20260101','1000','2026-01-01',NULL,1,NOW()),
-(1,'3000','20260101','3000','2026-01-01',NULL,1,NOW())"
+(1,'3000','20260101','3000','2026-01-01',NULL,1,NOW()),
+(1,'2600','20260101','2600','2026-01-01',NULL,1,NOW())"
 
 # Isolate the VAT catalogue so strict mapping can be proven deterministically.
 sql "DELETE FROM llx_c_tva WHERE fk_pays=${dk_country_id}"
@@ -147,22 +185,25 @@ sql "INSERT INTO llx_c_tva
 (entity,fk_pays,code,type_vat,taux,note,active)
 VALUES (1,${dk_country_id},'DKTEST25',0,25,'Integration test sales VAT',1)"
 
+echo "Importing official ERST VAT catalogue..."
+rm -rf /tmp/erst-standard-filformater
+git clone -q https://git.erst.dk/standard-filformater/standard-filformater.git /tmp/erst-standard-filformater
+git -C /tmp/erst-standard-filformater checkout -q ea9a4b5704c7a0e9646b0d3b928a59089d71cf0e
+docker compose cp "/tmp/erst-standard-filformater/Standardkontoplanen/JSON/2026-01-01-Momskoder-Bruttoliste.json" dolibarr:/tmp/erst-vat.json
+docker compose exec -T dolibarr php /var/www/dkmodul-tests/import-official-vat-list.php /tmp/erst-vat.json
+
+test "$(sql "SELECT new_tax_code FROM llx_dk_standard_vat_code WHERE standard_version='20260101' AND tax_code='S1'")" = "S01"
+test "$(sql "SELECT DATE_FORMAT(valid_from,'%Y-%m-%d') FROM llx_dk_standard_vat_code WHERE standard_version='20260101' AND tax_code='S1'")" = "2025-12-01"
+
 sql "DELETE FROM llx_dk_vat_mapping WHERE entity=1 AND source_tax_code='DKTEST25'"
-sql "DELETE FROM llx_dk_standard_vat_code WHERE standard_version='20260101' AND tax_code='S1'"
-sql "INSERT INTO llx_dk_standard_vat_code
-(standard_version,valid_from,tax_code,label,tax_percentage,country_code,source_hash,date_imported)
-VALUES ('20260101','2026-01-01','S1','Momspligtige salg (DK), 25% moms',25,'DK',REPEAT('0',64),NOW())"
 sql "INSERT INTO llx_dk_vat_mapping
 (entity,source_tax_code,standard_version,standard_tax_code,valid_from,valid_to,fk_user_author,date_creation)
-VALUES (1,'DKTEST25','20260101','S1','2026-01-01',NULL,1,NOW())"
+VALUES (1,'DKTEST25','20260101','S1','2025-12-01',NULL,1,NOW())"
 
 echo "Generating strict SAF-T 2.1 from Dolibarr provider..."
 docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-saft21-dolibarr-provider.php /tmp/dolibarr-dk-saft21.xml
 
 echo "Validating Dolibarr-generated SAF-T against pinned official ERST XSD..."
-rm -rf /tmp/erst-standard-filformater
-git clone -q https://git.erst.dk/standard-filformater/standard-filformater.git /tmp/erst-standard-filformater
-git -C /tmp/erst-standard-filformater checkout -q ea9a4b5704c7a0e9646b0d3b928a59089d71cf0e
 docker compose cp "/tmp/erst-standard-filformater/SAF-T/XSD/Danish_SAF-T_Financial_Schema_v_2_1.xsd" dolibarr:/tmp/saft21.xsd
 
 docker compose exec -T dolibarr php -r '
