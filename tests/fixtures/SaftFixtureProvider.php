@@ -47,8 +47,16 @@ class DkSaftFixtureProvider implements DkAccountingDataProviderInterface
                 'label' => 'Salg af varer og ydelser',
                 'accountType' => 'INCOME',
                 'openingBalance' => '0',
-                'closingBalance' => '-250',
+                'closingBalance' => '-200',
                 'standardAccountId' => '1010',
+            ),
+            array(
+                'accountCode' => '2610',
+                'label' => 'Salgsmoms',
+                'accountType' => 'LIABILITY',
+                'openingBalance' => '0',
+                'closingBalance' => '-50',
+                'standardAccountId' => '2610',
             ),
         );
     }
@@ -103,12 +111,50 @@ class DkSaftFixtureProvider implements DkAccountingDataProviderInterface
                         'lineId' => '2',
                         'accountCode' => '1010',
                         'debit' => '0',
-                        'credit' => '250',
+                        'credit' => '200',
                         'description' => 'Salg',
+                        'sourceDocumentRef' => 'BILAG-1',
+                        'taxComponents' => array(
+                            array(
+                                'taxCode' => 'Salg25',
+                                'taxPercentage' => '25',
+                                'taxBase' => '200',
+                                'taxAmount' => '50',
+                                'taxBaseDescription' => 'Salg af varer og ydelser',
+                            ),
+                        ),
+                    ),
+                    array(
+                        'lineId' => '3',
+                        'accountCode' => '2610',
+                        'debit' => '0',
+                        'credit' => '50',
+                        'description' => 'Salgsmoms',
                         'sourceDocumentRef' => 'BILAG-1',
                     ),
                 ),
             )),
+        );
+    }
+}
+
+
+class DkSaftFixtureVatMappingService
+{
+    public function resolve($entity, $sourceTaxCode, $date)
+    {
+        if ((int) $entity !== 1 || $sourceTaxCode !== 'Salg25' || $date !== '2026-09-18') {
+            return null;
+        }
+
+        return array(
+            'standardVersion' => DkSaftSchemaRegistry::STANDARD_VAT_VERSION,
+            'standardTaxCode' => 'S1',
+            'effectiveDate' => '2025-12-01',
+            'expirationDate' => null,
+            'description' => 'Momspligtige salg (DK), 25% moms',
+            'taxPercentage' => '25',
+            'countryCode' => 'DK',
         );
     }
 }
