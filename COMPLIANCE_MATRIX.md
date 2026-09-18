@@ -20,12 +20,12 @@ Statuskoder:
 | DK-DOC-001 | Digitale bilag kan knyttes til bogføringen | Documents | CT-DOC-001 | TODO |
 | DK-DOC-002 | Bilag og bogføringsdata kan opbevares iht. retentionkrav | Runtime | CT-DOC-002 | TODO |
 | DK-AUD-001 | Compliance-relevant audit trail er append-only/logisk uforanderlig | AuditLedger | CT-AUD-001 | PARTIAL |
-| DK-COA-001 | Understøttelse af offentlig standardkontoplan eller mapping | AccountMapping | CT-COA-001 | TODO |
-| DK-VAT-001 | Understøttelse/mapping af relevante momskoder | VatMapping | CT-VAT-001 | TODO |
-| DK-SAFT-001 | SAF-T 2.1 kan eksporteres | SAF-T | CT-SAFT-001 | TODO |
+| DK-COA-001 | Understøttelse af offentlig standardkontoplan eller mapping | AccountMapping | CT-COA-001 | PARTIAL |
+| DK-VAT-001 | Understøttelse/mapping af relevante momskoder | VatMapping + VAT provenance | CT-VAT-001 | PARTIAL |
+| DK-SAFT-001 | SAF-T 2.1 kan eksporteres | SAF-T | CT-SAFT-001 | PARTIAL |
 | DK-SAFT-002 | SAF-T 2.1 kan importeres | SAF-T | CT-SAFT-002 | TODO |
-| DK-SAFT-003 | SAF-T 2.1-output valideres mod officiel XSD | SAF-T | CT-SAFT-003 | TODO |
-| DK-SAFT-004 | SAF-T implementation er versionsstyret | SAF-T | CT-SAFT-004 | DESIGN |
+| DK-SAFT-003 | SAF-T 2.1-output valideres mod officiel XSD | SAF-T Validator | CT-SAFT-003 | DONE |
+| DK-SAFT-004 | SAF-T implementation er versionsstyret | SchemaRegistry + pinned ERST upstream | CT-SAFT-004 | DONE |
 | DK-BANK-001 | Banktransaktioner kan importeres | Bank | CT-BANK-001 | TODO |
 | DK-BANK-002 | Bankposter kan afstemmes | Bank | CT-BANK-002 | TODO |
 | DK-BANK-003 | Ikke-afstemte differencer fremgår tydeligt | Bank | CT-BANK-003 | TODO |
@@ -66,3 +66,34 @@ Matrixen skal udbygges med præcis paragraf-/kildereference for hvert krav før 
 - **BEK 97/2023 §8**: høj IT-sikkerhed for cloud-baserede standardsystemer og løbende risikovurdering.
 - **BEK 98/2023 §8**: anmeldelsesoplysninger og dokumentation; produktets cloud/hybrid-model og opbevaringspart indgår i anmeldelsen.
 - **Erhvervsstyrelsens “Standardkontoplan og SAF-T”, opdateret 8. september 2026**: registrerede bogføringssystemer skal fra 1. januar 2027 understøtte SAF-T 2.1; systemet skal kunne generere, importere og eksportere standardfilen.
+
+
+## Aktuel evidens for SAF-T/VAT-slicen
+
+Følgende automatiserede beviser er nu grønne på Dolibarr 24.0.1:
+
+- officiel ERST VAT JSON parses og versions-/gyldighedsdata bevares,
+- 72 officielle momskoder importeres fra den pinned ERST-kilde,
+- lokal Dolibarr-momskode mappes effective-dated til offentlig dansk momskode,
+- canonical ledger lines kan bære flere VAT provenance records,
+- en reel Dolibarr-kundefaktura rekonstrueres til VAT provenance på den relevante omsætningslinje,
+- SAF-T 2.1 `TaxInformation` genereres uden at splitte faktiske GL-linjer,
+- både fixture-output og output fra den reelle Dolibarr-provider validerer mod den pinned officielle ERST 2.1-XSD.
+
+`DK-SAFT-003` og `DK-SAFT-004` er derfor teknisk testet og markeret `DONE`.
+Det betyder ikke, at den samlede SAF-T-compliance er færdig: `DK-SAFT-001` forbliver
+`PARTIAL`, indtil hele det relevante eksportscope er dækket, og SAF-T import
+(`DK-SAFT-002`) er fortsat ikke implementeret.
+
+VAT-mapping/provenance (`DK-VAT-001`) forbliver `PARTIAL`, fordi kunde- og
+leverandørfakturaer er de første implementerede kilder; øvrige momsrelevante
+dokumenttyper skal vurderes og testes separat.
+
+### Testevidens
+
+- `tests/integration/validate-official-vat-list.php`
+- `tests/integration/validate-saft21.php`
+- `tests/integration/assert-tax-provenance.php`
+- `tests/integration/assert-saft21-dolibarr-provider.php`
+- `tests/integration/test-bookkeeping-immutability.sh`
+- ERST upstream commit: `ea9a4b5704c7a0e9646b0d3b928a59089d71cf0e`

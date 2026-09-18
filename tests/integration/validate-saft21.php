@@ -31,7 +31,10 @@ $xpath->registerNamespace('saf', DkSaftSchemaRegistry::NAMESPACE_URI);
 $assertions = array(
     'string(/saf:AuditFile/saf:Header/saf:AuditFileVersion)' => '2.1',
     'string(/saf:AuditFile/saf:MasterFiles/saf:GeneralLedgerAccounts/saf:VersionOfStandardAccount)' => '20260101',
-    'string(/saf:AuditFile/saf:GeneralLedgerEntries/saf:NumberOfEntries)' => '2',
+    'string(/saf:AuditFile/saf:GeneralLedgerEntries/saf:NumberOfEntries)' => '3',
+    'string(/saf:AuditFile/saf:GeneralLedgerEntries/saf:Journal/saf:Transaction/saf:Line[saf:AccountID="1010"]/saf:TaxInformation/saf:TaxCode)' => 'Salg25',
+    'string(/saf:AuditFile/saf:GeneralLedgerEntries/saf:Journal/saf:Transaction/saf:Line[saf:AccountID="1010"]/saf:TaxInformation/saf:StandardTaxCode)' => 'S1',
+    'string(/saf:AuditFile/saf:GeneralLedgerEntries/saf:Journal/saf:Transaction/saf:Line[saf:AccountID="1010"]/saf:TaxInformation/saf:TaxBase)' => '250.00000000',
 );
 
 foreach ($assertions as $query => $expected) {

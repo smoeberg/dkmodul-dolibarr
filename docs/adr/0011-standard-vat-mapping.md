@@ -23,7 +23,16 @@ llx_dk_standard_vat_code
 SAF-T StandardTaxCode
 ```
 
-The initial target list version is `20260101`, corresponding to the official 2026-01-01 VAT-code list.
+The initial release/version identifier is `20260101`, corresponding to the official file `2026-01-01-Momskoder-Bruttoliste.json`.
+
+The file's own metadata says `Valid from date = 2025-12-01`. Release/version and legal/effective validity are therefore stored separately.
+
+The official list currently contains both code families, for example:
+
+- established `momskode = S1`,
+- newer `momskode NY = S01`.
+
+SAF-T 2.1's official example currently uses the established family (`S1`) as `StandardTaxCode`. Dolibarr DK stores both code families so a future switch can be made through a reviewed version change rather than rewriting historical mappings.
 
 Mappings are effective-dated and may not overlap for the same Dolibarr VAT code.
 

@@ -103,3 +103,7 @@ elif isinstance(data, list):
     for item in data[:3]:
         print("sample=" + json.dumps(item, ensure_ascii=False, sort_keys=True))
 PY
+
+
+echo "=== TaxInformation cardinality/context ==="
+grep -n -B 8 -A 24 '<xs:element name="TaxInformation"' "$schema" | head -120 || true

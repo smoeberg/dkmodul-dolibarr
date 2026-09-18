@@ -39,7 +39,7 @@ class DkSaftFixtureProvider implements DkAccountingDataProviderInterface
                 'label' => 'Bank',
                 'accountType' => 'ASSET',
                 'openingBalance' => '0',
-                'closingBalance' => '250',
+                'closingBalance' => '312.5',
                 'standardAccountId' => '5500',
             ),
             array(
@@ -49,6 +49,14 @@ class DkSaftFixtureProvider implements DkAccountingDataProviderInterface
                 'openingBalance' => '0',
                 'closingBalance' => '-250',
                 'standardAccountId' => '1010',
+            ),
+            array(
+                'accountCode' => '2600',
+                'label' => 'Salgsmoms',
+                'accountType' => 'LIABILITY',
+                'openingBalance' => '0',
+                'closingBalance' => '-62.5',
+                'standardAccountId' => '2600',
             ),
         );
     }
@@ -94,7 +102,7 @@ class DkSaftFixtureProvider implements DkAccountingDataProviderInterface
                     array(
                         'lineId' => '1',
                         'accountCode' => '5500',
-                        'debit' => '250',
+                        'debit' => '312.5',
                         'credit' => '0',
                         'description' => 'Bank',
                         'sourceDocumentRef' => 'BILAG-1',
@@ -105,6 +113,23 @@ class DkSaftFixtureProvider implements DkAccountingDataProviderInterface
                         'debit' => '0',
                         'credit' => '250',
                         'description' => 'Salg',
+                        'sourceDocumentRef' => 'BILAG-1',
+                        'taxInformation' => array(
+                            array(
+                                'taxCode' => 'Salg25',
+                                'taxPercentage' => '25',
+                                'taxBase' => '250',
+                                'taxAmount' => '62.5',
+                                'countryCode' => 'DK',
+                            ),
+                        ),
+                    ),
+                    array(
+                        'lineId' => '3',
+                        'accountCode' => '2600',
+                        'debit' => '0',
+                        'credit' => '62.5',
+                        'description' => 'Salgsmoms',
                         'sourceDocumentRef' => 'BILAG-1',
                     ),
                 ),
