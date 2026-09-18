@@ -100,7 +100,7 @@ $secondApplyBlocked = false;
 try {
     $apply->apply(1, $result['id'], $user);
 } catch (RuntimeException $e) {
-    $secondApplyBlocked = str_contains($e->getMessage(), 'Only staged');
+    $secondApplyBlocked = str_contains($e->getMessage(), 'Only analyzed and ready');
 }
 if (!$secondApplyBlocked) {
     fwrite(STDERR, "Second SAF-T Apply was not blocked\n");
