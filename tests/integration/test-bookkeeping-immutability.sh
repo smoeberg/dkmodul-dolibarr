@@ -24,8 +24,19 @@ if ! docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse     "SELEC
   exit 1
 fi
 
-echo "Installing DK database guards..."
-docker compose exec -T mariadb mariadb -uroot -proot dolidb < ../../dkmodul/sql/mysql/install_bookkeeping_guards.sql
+echo "Installing DK database guards through the module installer..."
+docker compose exec -T dolibarr php -r '
+define("NOLOGIN", 1);
+define("NOREQUIREMENU", 1);
+define("NOREQUIREHTML", 1);
+require "/var/www/html/main.inc.php";
+require "/var/www/html/custom/dkmodul/class/Compliance/DatabaseGuardInstaller.php";
+$installer = new DkDatabaseGuardInstaller($db);
+$installer->install();
+'
+
+trigger_count="$(docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_schema='dolidb' AND trigger_name IN ('llx_dk_bookkeeping_lock_bu','llx_dk_bookkeeping_lock_bd')")"
+test "$trigger_count" = "2"
 
 sql() {
   docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "$1"
