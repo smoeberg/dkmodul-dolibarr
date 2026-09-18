@@ -6,10 +6,13 @@ require_once __DIR__.'/Line.php';
 class DkCanonicalTransaction
 {
     public $transactionId;
+    public $sourcePieceNumber;
     public $journalCode;
     public $transactionDate;
     public $registrationDateTime;
+    public $validatedAt;
     public $actor;
+    public $sourceType;
     public $documentRef;
     public $description;
     public $correctionOf;
@@ -18,10 +21,15 @@ class DkCanonicalTransaction
     public function __construct(array $data)
     {
         $this->transactionId = (string) ($data['transactionId'] ?? '');
+        $this->sourcePieceNumber = isset($data['sourcePieceNumber']) ? (int) $data['sourcePieceNumber'] : null;
         $this->journalCode = (string) ($data['journalCode'] ?? '');
         $this->transactionDate = (string) ($data['transactionDate'] ?? '');
         $this->registrationDateTime = (string) ($data['registrationDateTime'] ?? '');
+        $this->validatedAt = isset($data['validatedAt']) && $data['validatedAt'] !== ''
+            ? (string) $data['validatedAt']
+            : null;
         $this->actor = (string) ($data['actor'] ?? '');
+        $this->sourceType = isset($data['sourceType']) ? (string) $data['sourceType'] : null;
         $this->documentRef = isset($data['documentRef']) ? (string) $data['documentRef'] : null;
         $this->description = isset($data['description']) ? (string) $data['description'] : null;
         $this->correctionOf = isset($data['correctionOf']) ? (string) $data['correctionOf'] : null;
