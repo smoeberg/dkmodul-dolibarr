@@ -186,6 +186,7 @@ class DkSaft21Importer
                         $taxInformation[] = array(
                             'taxType' => $this->childValue($taxNode, 'TaxType'),
                             'taxCode' => $this->childValue($taxNode, 'TaxCode'),
+                            'standardTaxCode' => $this->optionalChildValue($taxNode, 'StandardTaxCode'),
                             'taxPercentage' => $this->optionalChildValue($taxNode, 'TaxPercentage'),
                             'taxBase' => $this->optionalChildValue($taxNode, 'TaxBase'),
                             'taxAmount' => $taxAmountNode ? $this->childValue($taxAmountNode, 'Amount') : null,
