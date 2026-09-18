@@ -28,17 +28,20 @@ $package = $importer->importXml($xml, 'not-used.xsd');
 assert($package->header['auditFileVersion'] === '2.1');
 assert($package->header['auditFileCountry'] === 'DK');
 assert($package->header['companyRegistrationNumber'] === '12345678');
-assert(count($package->accounts) === 2);
+assert(count($package->accounts) === 3);
 assert(count($package->transactions) === 1);
-assert($package->lineCount() === 2);
-assert(DkCanonicalDecimal::equals($package->totalDebit(), '250'));
-assert(DkCanonicalDecimal::equals($package->totalCredit(), '250'));
+assert($package->lineCount() === 3);
+assert(DkCanonicalDecimal::equals($package->totalDebit(), '312.5'));
+assert(DkCanonicalDecimal::equals($package->totalCredit(), '312.5'));
 assert($package->transactions[0]->transactionId === 'DK-1');
 assert($package->transactions[0]->lines[0]->accountCode === '5500');
+assert(count($package->transactions[0]->lines[1]->taxInformation) === 1);
+assert($package->transactions[0]->lines[1]->taxInformation[0]->taxCode === 'Salg25');
+assert($package->transactions[0]->lines[1]->taxInformation[0]->standardTaxCode === 'S1');
 
 $broken = preg_replace(
-    '/<NumberOfEntries>2<\/NumberOfEntries>/',
-    '<NumberOfEntries>3</NumberOfEntries>',
+    '/<NumberOfEntries>3<\/NumberOfEntries>/',
+    '<NumberOfEntries>4</NumberOfEntries>',
     $xml,
     1
 );
