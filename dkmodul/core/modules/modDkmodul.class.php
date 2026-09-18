@@ -73,6 +73,12 @@ class modDkmodul extends DolibarrModules
 
     public function init($options = '')
     {
+        // Module tables must exist before database guards/provenance triggers are installed.
+        $result = $this->_load_tables('/dkmodul/sql/');
+        if ($result < 0) {
+            return -1;
+        }
+
         $sql = array();
         $result = $this->_init($sql, $options);
         if ($result <= 0) {
