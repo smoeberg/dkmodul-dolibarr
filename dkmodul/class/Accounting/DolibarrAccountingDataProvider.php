@@ -115,6 +115,47 @@ class DkDolibarrAccountingDataProvider implements DkAccountingDataProviderInterf
         return $parties;
     }
 
+    public function getTaxCodes($fromDate, $toDate)
+    {
+        global $mysoc;
+
+        $countryCode = isset($mysoc->country_code) && $mysoc->country_code !== ''
+            ? (string) $mysoc->country_code
+            : 'DK';
+
+        $sql = 'SELECT DISTINCT t.code, t.taux, t.note, t.type_vat, c.code AS country_code';
+        $sql .= ' FROM '.$this->db->prefix().'c_tva t';
+        $sql .= ' INNER JOIN '.$this->db->prefix().'c_country c ON c.rowid = t.fk_pays';
+        $sql .= ' WHERE t.active = 1';
+        $sql .= ' AND t.entity IN (0, '.$this->entity.')';
+        $sql .= " AND c.code = '".$this->db->escape($countryCode)."'";
+        $sql .= " AND t.code IS NOT NULL AND t.code <> ''";
+        $sql .= ' ORDER BY t.taux ASC, t.code ASC';
+
+        $resql = $this->db->query($sql);
+        if (!$resql) {
+            throw new RuntimeException('Unable to load canonical tax codes: '.$this->db->lasterror());
+        }
+
+        $taxCodes = array();
+        while ($row = $this->db->fetch_object($resql)) {
+            $taxCodes[] = array(
+                'taxCode' => (string) $row->code,
+                'taxType' => 'VAT',
+                'description' => trim((string) $row->note) !== '' ? (string) $row->note : 'VAT '.$row->taux.'%',
+                'standardTaxCode' => null,
+                'standardTaxCodeDescription' => null,
+                'effectiveDate' => null,
+                'expirationDate' => null,
+                'taxPercentage' => $this->dbDecimal($row->taux),
+                'countryCode' => (string) $row->country_code,
+                'sourceVatType' => (int) $row->type_vat,
+            );
+        }
+
+        return $taxCodes;
+    }
+
     public function getTransactions($fromDate, $toDate)
     {
         $sql = 'SELECT b.rowid, b.ref, b.piece_num, b.doc_date, b.doc_type, b.doc_ref,';
