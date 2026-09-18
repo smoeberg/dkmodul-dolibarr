@@ -102,6 +102,32 @@ VALUES
 
 docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-canonical-provider.php
 
+echo "Fetching pinned official ERST standard files..."
+rm -rf /tmp/erst-standard-filformater
+git clone -q https://git.erst.dk/standard-filformater/standard-filformater.git /tmp/erst-standard-filformater
+git -C /tmp/erst-standard-filformater checkout -q ea9a4b5704c7a0e9646b0d3b928a59089d71cf0e
+
+docker compose cp "/tmp/erst-standard-filformater/Standardkontoplanen/JSON/2026-01-01-Momskoder-Bruttoliste.json" dolibarr:/tmp/standard-vat-20260101.json
+
+echo "Importing official Danish VAT list into Dolibarr DK tables..."
+docker compose exec -T dolibarr php -r '
+define("NOLOGIN", 1);
+define("NOREQUIREMENU", 1);
+define("NOREQUIREHTML", 1);
+require "/var/www/html/main.inc.php";
+require "/var/www/html/custom/dkmodul/class/Accounting/StandardVatImporter.php";
+$importer = new DkStandardVatImporter($db);
+$result = $importer->importJson(file_get_contents("/tmp/standard-vat-20260101.json"), "20260101");
+if ($result["validFrom"] !== "2025-12-01" || $result["codeCount"] < 1) {
+    fwrite(STDERR, "Unexpected official VAT import result\n");
+    exit(1);
+}
+echo "Official VAT list imported: ".$result["codeCount"]." codes\n";
+'
+
+test "$(sql "SELECT COUNT(*) FROM llx_dk_standard_vat_code WHERE standard_version='20260101'")" -ge 1
+test "$(sql "SELECT COUNT(*) FROM llx_dk_standard_vat_code WHERE standard_version='20260101' AND tax_code='S1' AND next_tax_code='S01' AND valid_from='2025-12-01'")" = "1"
+
 echo "Configuring strict SAF-T mapping fixture on real Dolibarr database..."
 
 set_const() {
@@ -128,41 +154,77 @@ sql "INSERT INTO llx_bank_account
 (ref,label,entity,fk_user_author,iban_prefix,bic,fk_pays,courant,clos,rappro,currency_code,account_number)
 VALUES ('DKTEST','DK Test Bank',1,1,'DK5000400440116243','DABADKKK',${dk_country_id},1,0,1,'DKK','1000')"
 
-sql "DELETE FROM llx_dk_account_mapping WHERE entity=1 AND source_account IN ('1000','3000')"
-sql "DELETE FROM llx_dk_standard_account WHERE standard_version='20260101' AND account_code IN ('1000','3000')"
+sql "DELETE FROM llx_dk_account_mapping WHERE entity=1 AND source_account IN ('1000','3000','3999','2610')"
+sql "DELETE FROM llx_dk_standard_account WHERE standard_version='20260101' AND account_code IN ('1000','3000','2610')"
 sql "INSERT INTO llx_dk_standard_account
 (standard_version,valid_from,account_code,account_type,label,source_hash,date_imported)
 VALUES
-('20260101','2026-01-01','1000','Asset','Test bank account',REPEAT('0',64),NOW()),
-('20260101','2026-01-01','3000','Sale','Test revenue account',REPEAT('0',64),NOW())"
+('20260101','2026-01-01','1000','Asset','Test bank/debtor account',REPEAT('0',64),NOW()),
+('20260101','2026-01-01','3000','Sale','Test revenue account',REPEAT('0',64),NOW()),
+('20260101','2026-01-01','2610','Liability','Test VAT payable account',REPEAT('0',64),NOW())"
 sql "INSERT INTO llx_dk_account_mapping
 (entity,source_account,standard_version,standard_account,valid_from,valid_to,fk_user_author,date_creation)
 VALUES
 (1,'1000','20260101','1000','2026-01-01',NULL,1,NOW()),
-(1,'3000','20260101','3000','2026-01-01',NULL,1,NOW())"
+(1,'3000','20260101','3000','2026-01-01',NULL,1,NOW()),
+(1,'3999','20260101','3000','2026-01-01',NULL,1,NOW()),
+(1,'2610','20260101','2610','2026-01-01',NULL,1,NOW())"
 
-# Isolate the VAT catalogue so strict mapping can be proven deterministically.
+# Isolate Dolibarr's local VAT catalogue while keeping the official target list imported above.
 sql "DELETE FROM llx_c_tva WHERE fk_pays=${dk_country_id}"
 sql "INSERT INTO llx_c_tva
 (entity,fk_pays,code,type_vat,taux,note,active)
-VALUES (1,${dk_country_id},'DKTEST25',0,25,'Integration test sales VAT',1)"
+VALUES
+(1,${dk_country_id},'DKT25A',0,25,'Integration sales VAT A',1),
+(1,${dk_country_id},'DKT25B',0,25,'Integration sales VAT B',1)"
 
-sql "DELETE FROM llx_dk_vat_mapping WHERE entity=1 AND source_tax_code='DKTEST25'"
-sql "DELETE FROM llx_dk_standard_vat_code WHERE standard_version='20260101' AND tax_code='S1'"
-sql "INSERT INTO llx_dk_standard_vat_code
-(standard_version,valid_from,tax_code,label,tax_percentage,country_code,source_hash,date_imported)
-VALUES ('20260101','2026-01-01','S1','Momspligtige salg (DK), 25% moms',25,'DK',REPEAT('0',64),NOW())"
+sql "DELETE FROM llx_dk_vat_mapping WHERE entity=1 AND source_tax_code IN ('DKT25A','DKT25B')"
 sql "INSERT INTO llx_dk_vat_mapping
 (entity,source_tax_code,standard_version,standard_tax_code,valid_from,valid_to,fk_user_author,date_creation)
-VALUES (1,'DKTEST25','20260101','S1','2026-01-01',NULL,1,NOW())"
+VALUES
+(1,'DKT25A','20260101','S1','2025-12-01',NULL,1,NOW()),
+(1,'DKT25B','20260101','S1','2025-12-01',NULL,1,NOW())"
+
+echo "Creating customer invoice source lines with two VAT codes on one revenue account..."
+sql "DELETE FROM llx_accounting_account WHERE entity=1 AND fk_pcg_version='DKTEST' AND account_number='3999'"
+sql "INSERT INTO llx_accounting_account
+(entity,datec,fk_pcg_version,pcg_type,account_number,label,active)
+VALUES (1,NOW(),'DKTEST','INCOME','3999','DK VAT provenance revenue',1)"
+revenue_account_rowid="$(sql "SELECT rowid FROM llx_accounting_account WHERE entity=1 AND fk_pcg_version='DKTEST' AND account_number='3999'")"
+test -n "$revenue_account_rowid"
+
+sql "DELETE FROM llx_facturedet WHERE fk_facture IN (SELECT rowid FROM llx_facture WHERE entity=1 AND ref='DKVAT-INV-1')"
+sql "DELETE FROM llx_facture WHERE entity=1 AND ref='DKVAT-INV-1'"
+sql "DELETE FROM llx_societe WHERE entity=1 AND code_client='DKVATTEST'"
+sql "INSERT INTO llx_societe
+(nom,entity,status,code_client,address,zip,town,fk_pays,fk_stcomm,client)
+VALUES ('DK VAT Test Customer',1,1,'DKVATTEST','Kundegade 1','8000','Aarhus C',${dk_country_id},0,1)"
+customer_id="$(sql "SELECT rowid FROM llx_societe WHERE entity=1 AND code_client='DKVATTEST'")"
+
+sql "INSERT INTO llx_facture
+(ref,entity,type,fk_soc,datec,datef,date_valid,total_ht,total_tva,total_ttc,fk_statut)
+VALUES ('DKVAT-INV-1',1,0,${customer_id},NOW(),'2026-09-18','2026-09-18',300,75,375,1)"
+invoice_id="$(sql "SELECT rowid FROM llx_facture WHERE entity=1 AND ref='DKVAT-INV-1'")"
+
+sql "INSERT INTO llx_facturedet
+(fk_facture,description,vat_src_code,tva_tx,qty,subprice,total_ht,total_tva,total_ttc,product_type,fk_code_ventilation)
+VALUES
+(${invoice_id},'VAT provenance line A','DKT25A',25,1,200,200,50,250,0,${revenue_account_rowid}),
+(${invoice_id},'VAT provenance line B','DKT25B',25,1,100,100,25,125,0,${revenue_account_rowid})"
+
+sql "INSERT INTO llx_accounting_bookkeeping
+(entity,ref,piece_num,doc_date,doc_type,doc_ref,fk_doc,fk_docdet,numero_compte,label_compte,label_operation,debit,credit,fk_user_author,date_creation,code_journal,journal_label,date_validated)
+VALUES
+(1,'DK-990003',990003,'2026-09-18','customer_invoice','DKVAT-INV-1',${invoice_id},0,'1000','Debtor','Customer invoice',375,0,1,NOW(),'VT','Sales',NOW()),
+(1,'DK-990003',990003,'2026-09-18','customer_invoice','DKVAT-INV-1',${invoice_id},0,'3999','Revenue','Customer invoice revenue',0,300,1,NOW(),'VT','Sales',NOW()),
+(1,'DK-990003',990003,'2026-09-18','customer_invoice','DKVAT-INV-1',${invoice_id},0,'2610','VAT payable','Customer invoice VAT',0,75,1,NOW(),'VT','Sales',NOW())"
+
+docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-canonical-provider.php
 
 echo "Generating strict SAF-T 2.1 from Dolibarr provider..."
 docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-saft21-dolibarr-provider.php /tmp/dolibarr-dk-saft21.xml
 
 echo "Validating Dolibarr-generated SAF-T against pinned official ERST XSD..."
-rm -rf /tmp/erst-standard-filformater
-git clone -q https://git.erst.dk/standard-filformater/standard-filformater.git /tmp/erst-standard-filformater
-git -C /tmp/erst-standard-filformater checkout -q ea9a4b5704c7a0e9646b0d3b928a59089d71cf0e
 docker compose cp "/tmp/erst-standard-filformater/SAF-T/XSD/Danish_SAF-T_Financial_Schema_v_2_1.xsd" dolibarr:/tmp/saft21.xsd
 
 docker compose exec -T dolibarr php -r '
