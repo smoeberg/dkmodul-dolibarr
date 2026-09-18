@@ -235,6 +235,12 @@ if [ "$(sql "SELECT COUNT(*) FROM llx_accounting_account WHERE entity=1 AND acco
   VALUES (1,NOW(),'${pcg_version}','LIABILITY','2600','Imported test VAT liability',1,1)"
 fi
 
+echo "Preparing active 2026 fiscal period for SAF-T Apply..."
+sql "DELETE FROM llx_accounting_fiscalyear WHERE entity=1 AND label='DKSAFT-2026'"
+sql "INSERT INTO llx_accounting_fiscalyear
+(label,date_start,date_end,statut,entity,datec,fk_user_author)
+VALUES ('DKSAFT-2026','2026-01-01','2026-12-31',0,1,NOW(),1)"
+
 echo "Staging and analyzing generated SAF-T 2.1 import..."
 docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-saft21-import-staging.php \
   /tmp/dolibarr-dk-saft21.xml /tmp/saft21.xsd
