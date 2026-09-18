@@ -58,6 +58,23 @@ class DkSaftFixtureProvider implements DkAccountingDataProviderInterface
         return array();
     }
 
+    public function getTaxCodes($fromDate, $toDate)
+    {
+        return array(
+            array(
+                'taxCode' => 'Salg25',
+                'taxType' => 'VAT',
+                'description' => 'Salgsmoms (udgående moms)',
+                'standardTaxCode' => 'S1',
+                'standardTaxCodeDescription' => 'Momspligtige salg (DK), 25% moms',
+                'effectiveDate' => '2026-01-01',
+                'expirationDate' => '2099-12-31',
+                'taxPercentage' => '25',
+                'countryCode' => 'DK',
+            ),
+        );
+    }
+
     public function getTransactions($fromDate, $toDate)
     {
         return array(
