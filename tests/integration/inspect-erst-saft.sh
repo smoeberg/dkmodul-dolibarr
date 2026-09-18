@@ -4,32 +4,36 @@ set -euo pipefail
 workdir="${1:-/tmp/erst-standard-filformater}"
 rm -rf "$workdir"
 
-git clone --depth 1 https://git.erst.dk/standard-filformater/standard-filformater.git "$workdir"
-
+ERST_COMMIT="ea9a4b5704c7a0e9646b0d3b928a59089d71cf0e"
+git clone https://git.erst.dk/standard-filformater/standard-filformater.git "$workdir"
 cd "$workdir"
+git checkout "$ERST_COMMIT"
+
+test "$(git rev-parse HEAD)" = "$ERST_COMMIT"
 
 echo "ERST_COMMIT=$(git rev-parse HEAD)"
 echo "ERST_COMMIT_DATE=$(git show -s --format=%cI HEAD)"
 
-echo "=== SAF-T/XSD files ==="
-find SAF-T/XSD -maxdepth 1 -type f -printf '%f\n' | sort
+schema="SAF-T/XSD/Danish_SAF-T_Financial_Schema_v_2_1.xsd"
+example="SAF-T/XML_examples/SAF-T v. 2.1.xml"
 
-echo "=== version markers in XSD filenames/content ==="
-for file in SAF-T/XSD/*; do
-  [ -f "$file" ] || continue
-  echo "--- $file"
-  grep -Eo 'version="[0-9.]+"|Version[^<]{0,40}[0-9]+\.[0-9]+|v_[0-9]+_[0-9]+' "$file" | head -20 || true
-done
+test -f "$schema"
+test -f "$example"
 
-echo "=== top-level SAF-T element names ==="
-for file in SAF-T/XSD/*.xml SAF-T/XSD/*.xsd; do
-  [ -f "$file" ] || continue
-  echo "--- $file"
-  grep -E '<(xs|xsd):element name="(AuditFile|Header|MasterFiles|GeneralLedgerEntries|SourceDocuments)"' "$file" | head -20 || true
-done
+echo "=== SAF-T 2.1 namespace/root ==="
+grep -E 'targetNamespace=|<xs:element name="AuditFile"' "$schema" | head -10
 
-echo "=== SAF-T changelog candidates ==="
-find SAF-T -maxdepth 2 -type f \( -iname '*change*' -o -iname '*readme*' -o -iname '*version*' \) -print | sort
+echo "=== Header example ==="
+sed -n '1,220p' "SAF-T/XML_examples/Header.xml"
 
-echo "=== XML examples ==="
-find SAF-T/XML_examples -maxdepth 1 -type f -printf '%f\n' 2>/dev/null | sort || true
+echo "=== MasterFiles example (first 320 lines) ==="
+sed -n '1,320p' "SAF-T/XML_examples/MasterFiles.xml"
+
+echo "=== GeneralLedgerEntries example (first 420 lines) ==="
+sed -n '1,420p' "SAF-T/XML_examples/GeneralLedgerEntries.xml"
+
+echo "=== Full 2.1 example structural tags ==="
+grep -E '<(/)?(AuditFile|Header|MasterFiles|GeneralLedgerAccounts|Account|GeneralLedgerEntries|Journal|Transaction|Line|DebitLine|CreditLine|TaxInformation|SourceDocuments)([ >])' "$example" | head -250
+
+echo "=== 2.1 schema required top-level sections ==="
+grep -n -E '<xs:element name="(Header|MasterFiles|GeneralLedgerEntries|SourceDocuments)"' "$schema" | head -30
