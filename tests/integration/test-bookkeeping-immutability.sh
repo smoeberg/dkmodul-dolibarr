@@ -219,4 +219,24 @@ $validator->validateXml(file_get_contents("/tmp/dolibarr-dk-saft21.xml"), "/tmp/
 echo "Real Dolibarr SAF-T 2.1 validates against official ERST XSD\n";
 '
 
-echo "Dolibarr DK accounting + SAF-T integration tests passed"
+echo "Preparing local accounts for SAF-T import mapping analysis..."
+pcg_version="$(sql "SELECT fk_pcg_version FROM llx_accounting_account WHERE entity=1 AND account_number='3000' ORDER BY rowid LIMIT 1")"
+test -n "$pcg_version"
+
+if [ "$(sql "SELECT COUNT(*) FROM llx_accounting_account WHERE entity=1 AND account_number='1000' AND active=1")" = "0" ]; then
+  sql "INSERT INTO llx_accounting_account
+  (entity,datec,fk_pcg_version,pcg_type,account_number,label,fk_user_author,active)
+  VALUES (1,NOW(),'${pcg_version}','ASSET','1000','Imported test asset',1,1)"
+fi
+
+if [ "$(sql "SELECT COUNT(*) FROM llx_accounting_account WHERE entity=1 AND account_number='2600' AND active=1")" = "0" ]; then
+  sql "INSERT INTO llx_accounting_account
+  (entity,datec,fk_pcg_version,pcg_type,account_number,label,fk_user_author,active)
+  VALUES (1,NOW(),'${pcg_version}','LIABILITY','2600','Imported test VAT liability',1,1)"
+fi
+
+echo "Staging and analyzing generated SAF-T 2.1 import..."
+docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-saft21-import-staging.php \
+  /tmp/dolibarr-dk-saft21.xml /tmp/saft21.xsd
+
+echo "Dolibarr DK accounting + SAF-T export/import staging integration tests passed"
