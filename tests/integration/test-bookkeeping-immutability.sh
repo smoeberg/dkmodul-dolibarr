@@ -1,0 +1,175 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "$0")"
+
+cleanup() {
+  docker compose down -v --remove-orphans >/dev/null 2>&1 || true
+}
+trap cleanup EXIT
+
+docker compose up -d
+
+echo "Waiting for Dolibarr accounting table..."
+for _ in $(seq 1 120); do
+  if docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='dolidb' AND table_name='llx_accounting_bookkeeping'" 2>/dev/null | grep -q '^1$'; then
+    break
+  fi
+  sleep 2
+done
+
+if ! docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='dolidb' AND table_name='llx_accounting_bookkeeping'" | grep -q '^1$'; then
+  echo "Dolibarr database initialization did not finish"
+  docker compose logs dolibarr
+  exit 1
+fi
+
+echo "Waiting for Dolibarr installation lock..."
+for _ in $(seq 1 60); do
+  if docker compose exec -T dolibarr test -f /var/www/documents/install.lock; then
+    break
+  fi
+  sleep 2
+done
+docker compose exec -T dolibarr test -f /var/www/documents/install.lock
+
+echo "Verifying real Dolibarr module activation..."
+module_enabled="$(docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "SELECT value FROM llx_const WHERE name='MAIN_MODULE_DKMODUL' AND entity=1 ORDER BY rowid DESC LIMIT 1")"
+test "$module_enabled" = "1"
+
+for table in llx_dk_audit_event llx_dk_correction llx_dk_bookkeeping_origin llx_dk_standard_account llx_dk_account_mapping llx_dk_standard_vat_code llx_dk_vat_mapping; do
+  table_count="$(docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='dolidb' AND table_name='$table'")"
+  test "$table_count" = "1"
+done
+
+trigger_count="$(docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_schema='dolidb' AND trigger_name LIKE 'llx_dk_%'")"
+test "$trigger_count" = "5"
+
+sql() {
+  docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "$1"
+}
+
+expect_failure() {
+  local statement="$1"
+  if sql "$statement" >/tmp/dkmodul-expected-failure.log 2>&1; then
+    echo "Expected statement to fail but it succeeded: $statement"
+    exit 1
+  fi
+  if ! grep -q "DK compliance" /tmp/dkmodul-expected-failure.log; then
+    cat /tmp/dkmodul-expected-failure.log
+    echo "Statement failed, but not because of the DK compliance guard"
+    exit 1
+  fi
+}
+
+echo "Creating unlocked test entry..."
+sql "INSERT INTO llx_accounting_bookkeeping
+(entity,piece_num,doc_date,doc_type,doc_ref,fk_doc,fk_docdet,numero_compte,label_compte,debit,credit,fk_user_author,date_creation,code_journal)
+VALUES (1,990001,'2031-01-01','dk_test','DK-TEST-1',0,0,'1000','DK test',100.00,0.00,1,NOW(),'OD')"
+
+rowid="$(sql "SELECT rowid FROM llx_accounting_bookkeeping WHERE piece_num=990001 AND entity=1")"
+
+origin_count="$(sql "SELECT COUNT(*) FROM llx_dk_bookkeeping_origin WHERE bookkeeping_rowid=${rowid} AND fk_user_author=1 AND origin_type='insert'")"
+test "$origin_count" = "1"
+
+sql "UPDATE llx_accounting_bookkeeping SET debit=125.00 WHERE rowid=${rowid}"
+test "$(sql "SELECT COUNT(*) FROM llx_accounting_bookkeeping WHERE rowid=${rowid} AND ABS(debit-125.00) < 0.000001")" = "1"
+
+sql "UPDATE llx_accounting_bookkeeping SET date_validated=NOW() WHERE rowid=${rowid}"
+
+expect_failure "UPDATE llx_accounting_bookkeeping SET debit=130.00 WHERE rowid=${rowid}"
+expect_failure "UPDATE llx_accounting_bookkeeping SET doc_date=DATE_SUB(doc_date, INTERVAL 1 DAY) WHERE rowid=${rowid}"
+expect_failure "UPDATE llx_accounting_bookkeeping SET numero_compte='2000' WHERE rowid=${rowid}"
+expect_failure "UPDATE llx_accounting_bookkeeping SET lettering_code='A' WHERE rowid=${rowid}"
+expect_failure "UPDATE llx_accounting_bookkeeping SET date_validated=NULL WHERE rowid=${rowid}"
+expect_failure "DELETE FROM llx_accounting_bookkeeping WHERE rowid=${rowid}"
+
+origin_rowid="$(sql "SELECT rowid FROM llx_dk_bookkeeping_origin WHERE bookkeeping_rowid=${rowid}")"
+expect_failure "UPDATE llx_dk_bookkeeping_origin SET fk_user_author=99 WHERE rowid=${origin_rowid}"
+expect_failure "DELETE FROM llx_dk_bookkeeping_origin WHERE rowid=${origin_rowid}"
+
+sql "UPDATE llx_accounting_bookkeeping SET date_export=NOW() WHERE rowid=${rowid}"
+test -n "$(sql "SELECT date_export FROM llx_accounting_bookkeeping WHERE rowid=${rowid}")"
+
+echo "DK bookkeeping database immutability integration test passed"
+
+echo "Creating balanced bookkeeping transaction for canonical adapter..."
+sql "INSERT INTO llx_accounting_bookkeeping
+(entity,ref,piece_num,doc_date,doc_type,doc_ref,fk_doc,fk_docdet,numero_compte,label_compte,label_operation,debit,credit,fk_user_author,date_creation,code_journal,date_validated)
+VALUES
+(1,'DK-990002',990002,'2026-09-18','dk_test','DK-CANONICAL-1',0,0,'1000','Cash','Canonical debit',250.00,0.00,1,NOW(),'OD',NOW()),
+(1,'DK-990002',990002,'2026-09-18','dk_test','DK-CANONICAL-1',0,0,'3000','Revenue','Canonical credit',0.00,250.00,1,NOW(),'OD',NOW())"
+
+docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-canonical-provider.php
+
+echo "Configuring strict SAF-T mapping fixture on real Dolibarr database..."
+
+set_const() {
+  local name="$1"
+  local value="$2"
+  sql "DELETE FROM llx_const WHERE name='${name}' AND entity=1"
+  sql "INSERT INTO llx_const (name,value,type,visible,note,entity) VALUES ('${name}','${value}','chaine',0,'Dolibarr DK integration test',1)"
+}
+
+set_const MAIN_INFO_SOCIETE_NOM "Dolibarr DK Test ApS"
+set_const MAIN_INFO_SIREN "12345678"
+set_const MAIN_INFO_SOCIETE_ADDRESS "Testvej 1"
+set_const MAIN_INFO_SOCIETE_ZIP "8000"
+set_const MAIN_INFO_SOCIETE_TOWN "Aarhus C"
+set_const MAIN_INFO_SOCIETE_TEL "70112233"
+set_const MAIN_INFO_SOCIETE_MAIL "test@example.invalid"
+set_const MAIN_MONNAIE "DKK"
+
+dk_country_id="$(sql "SELECT rowid FROM llx_c_country WHERE code='DK' LIMIT 1")"
+test -n "$dk_country_id"
+
+sql "DELETE FROM llx_bank_account WHERE ref='DKTEST'"
+sql "INSERT INTO llx_bank_account
+(ref,label,entity,fk_user_author,iban_prefix,bic,fk_pays,courant,clos,rappro,currency_code,account_number)
+VALUES ('DKTEST','DK Test Bank',1,1,'DK5000400440116243','DABADKKK',${dk_country_id},1,0,1,'DKK','1000')"
+
+sql "DELETE FROM llx_dk_account_mapping WHERE entity=1 AND source_account IN ('1000','3000')"
+sql "DELETE FROM llx_dk_standard_account WHERE standard_version='20260101' AND account_code IN ('1000','3000')"
+sql "INSERT INTO llx_dk_standard_account
+(standard_version,valid_from,account_code,account_type,label,source_hash,date_imported)
+VALUES
+('20260101','2026-01-01','1000','Asset','Test bank account',REPEAT('0',64),NOW()),
+('20260101','2026-01-01','3000','Sale','Test revenue account',REPEAT('0',64),NOW())"
+sql "INSERT INTO llx_dk_account_mapping
+(entity,source_account,standard_version,standard_account,valid_from,valid_to,fk_user_author,date_creation)
+VALUES
+(1,'1000','20260101','1000','2026-01-01',NULL,1,NOW()),
+(1,'3000','20260101','3000','2026-01-01',NULL,1,NOW())"
+
+# Isolate the VAT catalogue so strict mapping can be proven deterministically.
+sql "DELETE FROM llx_c_tva WHERE fk_pays=${dk_country_id}"
+sql "INSERT INTO llx_c_tva
+(entity,fk_pays,code,type_vat,taux,note,active)
+VALUES (1,${dk_country_id},'DKTEST25',0,25,'Integration test sales VAT',1)"
+
+sql "DELETE FROM llx_dk_vat_mapping WHERE entity=1 AND source_tax_code='DKTEST25'"
+sql "DELETE FROM llx_dk_standard_vat_code WHERE standard_version='20260101' AND tax_code='S1'"
+sql "INSERT INTO llx_dk_standard_vat_code
+(standard_version,valid_from,tax_code,label,tax_percentage,country_code,source_hash,date_imported)
+VALUES ('20260101','2026-01-01','S1','Momspligtige salg (DK), 25% moms',25,'DK',REPEAT('0',64),NOW())"
+sql "INSERT INTO llx_dk_vat_mapping
+(entity,source_tax_code,standard_version,standard_tax_code,valid_from,valid_to,fk_user_author,date_creation)
+VALUES (1,'DKTEST25','20260101','S1','2026-01-01',NULL,1,NOW())"
+
+echo "Generating strict SAF-T 2.1 from Dolibarr provider..."
+docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-saft21-dolibarr-provider.php /tmp/dolibarr-dk-saft21.xml
+
+echo "Validating Dolibarr-generated SAF-T against pinned official ERST XSD..."
+rm -rf /tmp/erst-standard-filformater
+git clone -q https://git.erst.dk/standard-filformater/standard-filformater.git /tmp/erst-standard-filformater
+git -C /tmp/erst-standard-filformater checkout -q ea9a4b5704c7a0e9646b0d3b928a59089d71cf0e
+docker compose cp "/tmp/erst-standard-filformater/SAF-T/XSD/Danish_SAF-T_Financial_Schema_v_2_1.xsd" dolibarr:/tmp/saft21.xsd
+
+docker compose exec -T dolibarr php -r '
+require "/var/www/html/custom/dkmodul/class/Saft/SaftValidator.php";
+$validator = new DkSaftValidator();
+$validator->validateXml(file_get_contents("/tmp/dolibarr-dk-saft21.xml"), "/tmp/saft21.xsd");
+echo "Real Dolibarr SAF-T 2.1 validates against official ERST XSD\n";
+'
+
+echo "Dolibarr DK accounting + SAF-T integration tests passed"

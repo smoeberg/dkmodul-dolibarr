@@ -1,0 +1,29 @@
+{
+  "File info": {
+    "Document name": "Standardkontoplan",
+    "Valid from date": "2026-01-01",
+    "csv source file": "fixture.csv"
+  },
+  "Kontoplan": [
+    {
+      "kontotype": "hovedkonto",
+      "kontonummer": 1000,
+      "navn": "RESULTATOPGØRELSE"
+    },
+    {
+      "kontotype": "gruppekonto",
+      "kontonummer": 1001,
+      "navn": "Nettoomsætning",
+      "konti": [
+        {
+          "kontonummer": 1010,
+          "navn": "Salg af varer og ydelser"
+        },
+        {
+          "kontonummer": 1050,
+          "navn": "Salg af varer udland, EU"
+        }
+      ]
+    }
+  ]
+}

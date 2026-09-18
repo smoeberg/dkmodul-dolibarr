@@ -1,0 +1,26 @@
+name: saft-upstream
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  validate-official-saft:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: dom, libxml
+
+      - name: Fetch and verify pinned official ERST SAF-T upstream
+        run: bash tests/integration/inspect-erst-saft.sh
+
+      - name: Generate SAF-T 2.1 and validate against official ERST XSD
+        run: |
+          php tests/integration/validate-saft21.php \
+            "/tmp/erst-standard-filformater/SAF-T/XSD/Danish_SAF-T_Financial_Schema_v_2_1.xsd"
