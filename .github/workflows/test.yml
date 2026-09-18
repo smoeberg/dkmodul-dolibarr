@@ -25,5 +25,5 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - name: Dolibarr 24.0.1 / MariaDB integration test
+      - name: Dolibarr 24.0.0 / MariaDB integration test
         run: bash tests/integration/test-bookkeeping-immutability.sh
