@@ -38,9 +38,9 @@ class modDkmodul extends DolibarrModules
         $this->conflictwith = array();
 
         $this->langfiles = array();
-        $this->phpmin = array(8, 1);
-        // Minimum supported Dolibarr version remains provisional until compatibility CI is established.
-        $this->need_dolibarr_version = array(22, 0);
+        $this->phpmin = array(8, 2);
+        // Initial registered product baseline: Dolibarr 24.0.x.
+        $this->need_dolibarr_version = array(24, 0);
 
         $this->const = array(
             1 => array('DKMODUL_COMPLIANCE_MODE', 'yesno', '1', 'Enable Danish compliance mode', 0, 'current', 1),
@@ -74,11 +74,34 @@ class modDkmodul extends DolibarrModules
     public function init($options = '')
     {
         $sql = array();
-        return $this->_init($sql, $options);
+        $result = $this->_init($sql, $options);
+        if ($result <= 0) {
+            return $result;
+        }
+
+        require_once dirname(__DIR__, 2).'/class/Compliance/DatabaseGuardInstaller.php';
+
+        try {
+            $installer = new DkDatabaseGuardInstaller($this->db);
+            return $installer->install();
+        } catch (Throwable $e) {
+            $this->error = $e->getMessage();
+            return -1;
+        }
     }
 
     public function remove($options = '')
     {
+        require_once dirname(__DIR__, 2).'/class/Compliance/DatabaseGuardInstaller.php';
+
+        try {
+            $installer = new DkDatabaseGuardInstaller($this->db);
+            $installer->drop();
+        } catch (Throwable $e) {
+            $this->error = $e->getMessage();
+            return -1;
+        }
+
         $sql = array();
         return $this->_remove($sql, $options);
     }
