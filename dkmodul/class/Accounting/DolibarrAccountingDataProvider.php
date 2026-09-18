@@ -24,7 +24,7 @@ class DkDolibarrAccountingDataProvider implements DkAccountingDataProviderInterf
 
     public function getCompanyContext()
     {
-        global $mysoc;
+        global $mysoc, $conf;
 
         if (!function_exists('getDolGlobalString')) {
             throw new RuntimeException('Dolibarr runtime is required to read company context');
@@ -33,20 +33,38 @@ class DkDolibarrAccountingDataProvider implements DkAccountingDataProviderInterf
         return array(
             'id' => (string) $this->entity,
             'name' => getDolGlobalString('MAIN_INFO_SOCIETE_NOM'),
-            'address' => getDolGlobalString('MAIN_INFO_SOCIETE_ADDRESS'),
-            'postalCode' => getDolGlobalString('MAIN_INFO_SOCIETE_ZIP'),
-            'city' => getDolGlobalString('MAIN_INFO_SOCIETE_TOWN'),
-            'countryCode' => isset($mysoc->country_code) ? (string) $mysoc->country_code : '',
             'registrationNumber' => getDolGlobalString('MAIN_INFO_SIREN'),
+            'taxRegistrationNumber' => getDolGlobalString('MAIN_INFO_TVAINTRA'),
+            'currencyCode' => isset($conf->currency) ? (string) $conf->currency : getDolGlobalString('MAIN_MONNAIE'),
+            'regionCode' => getDolGlobalString('MAIN_INFO_SOCIETE_REGION'),
+            'address' => array(
+                // SAF-T StreetName explicitly permits house number in the same field.
+                'streetName' => getDolGlobalString('MAIN_INFO_SOCIETE_ADDRESS'),
+                'postalCode' => getDolGlobalString('MAIN_INFO_SOCIETE_ZIP'),
+                'city' => getDolGlobalString('MAIN_INFO_SOCIETE_TOWN'),
+                'region' => getDolGlobalString('MAIN_INFO_SOCIETE_REGION'),
+                'countryCode' => isset($mysoc->country_code) ? (string) $mysoc->country_code : '',
+            ),
+            'phone' => getDolGlobalString('MAIN_INFO_SOCIETE_TEL'),
+            'email' => getDolGlobalString('MAIN_INFO_SOCIETE_MAIL'),
+            'bankAccounts' => $this->getCompanyBankAccounts(),
         );
     }
 
     public function getAccounts($fromDate, $toDate)
     {
-        $sql = 'SELECT DISTINCT b.numero_compte AS account_code, b.label_compte AS account_label';
+        $fromDate = $fromDate !== null && $fromDate !== '' ? $this->normalizeDate($fromDate) : null;
+        $toDate = $toDate !== null && $toDate !== '' ? $this->normalizeDate($toDate) : null;
+
+        $sql = 'SELECT b.numero_compte AS account_code,';
+        $sql .= ' COALESCE(MAX(NULLIF(aa.label, \'\')), MAX(b.label_compte)) AS account_label,';
+        $sql .= ' MAX(aa.pcg_type) AS account_type, MIN(aa.datec) AS account_creation_date';
         $sql .= ' FROM '.$this->db->prefix().'accounting_bookkeeping b';
+        $sql .= ' LEFT JOIN '.$this->db->prefix().'accounting_account aa';
+        $sql .= ' ON aa.entity = b.entity AND aa.account_number = b.numero_compte';
         $sql .= ' WHERE b.entity = '.$this->entity;
         $sql .= $this->dateRangeSql('b.doc_date', $fromDate, $toDate);
+        $sql .= ' GROUP BY b.numero_compte';
         $sql .= ' ORDER BY b.numero_compte ASC';
 
         $resql = $this->db->query($sql);
@@ -56,9 +74,16 @@ class DkDolibarrAccountingDataProvider implements DkAccountingDataProviderInterf
 
         $accounts = array();
         while ($row = $this->db->fetch_object($resql)) {
+            $accountCode = (string) $row->account_code;
+            $balances = $this->getAccountBalances($accountCode, $fromDate, $toDate);
+
             $accounts[] = array(
-                'accountCode' => (string) $row->account_code,
+                'accountCode' => $accountCode,
                 'label' => (string) $row->account_label,
+                'accountType' => $row->account_type !== null ? (string) $row->account_type : 'OTHER',
+                'creationDate' => $row->account_creation_date !== null ? (string) $row->account_creation_date : null,
+                'openingBalance' => $balances['opening'],
+                'closingBalance' => $balances['closing'],
             );
         }
 
@@ -95,7 +120,7 @@ class DkDolibarrAccountingDataProvider implements DkAccountingDataProviderInterf
         $sql = 'SELECT b.rowid, b.ref, b.piece_num, b.doc_date, b.doc_type, b.doc_ref,';
         $sql .= ' b.subledger_account, b.numero_compte, b.label_operation, b.debit, b.credit,';
         $sql .= ' b.multicurrency_amount, b.multicurrency_code, b.fk_user_author,';
-        $sql .= ' b.code_journal, b.date_creation, b.date_validated';
+        $sql .= ' b.code_journal, b.journal_label, b.date_creation, b.date_validated';
         $sql .= ' FROM '.$this->db->prefix().'accounting_bookkeeping b';
         $sql .= ' WHERE b.entity = '.$this->entity;
         $sql .= $this->dateRangeSql('b.doc_date', $fromDate, $toDate);
@@ -131,6 +156,7 @@ class DkDolibarrAccountingDataProvider implements DkAccountingDataProviderInterf
 
         $first = $rows[0];
         $journal = (string) $first->code_journal;
+        $journalDescription = (string) $first->journal_label;
         $docDate = (string) $first->doc_date;
         $actorId = (int) $first->fk_user_author;
         $docType = (string) $first->doc_type;
@@ -142,6 +168,7 @@ class DkDolibarrAccountingDataProvider implements DkAccountingDataProviderInterf
         $lines = array();
         foreach ($rows as $row) {
             $this->assertSame($pieceNum, 'code_journal', $journal, (string) $row->code_journal);
+            $this->assertSame($pieceNum, 'journal_label', $journalDescription, (string) $row->journal_label);
             $this->assertSame($pieceNum, 'doc_date', $docDate, (string) $row->doc_date);
             $this->assertSame($pieceNum, 'fk_user_author', (string) $actorId, (string) ((int) $row->fk_user_author));
             $this->assertSame($pieceNum, 'doc_type', $docType, (string) $row->doc_type);
@@ -183,6 +210,7 @@ class DkDolibarrAccountingDataProvider implements DkAccountingDataProviderInterf
             'transactionId' => $ref !== '' ? $ref : (string) $pieceNum,
             'sourcePieceNumber' => $pieceNum,
             'journalCode' => $journal,
+            'journalDescription' => $journalDescription !== '' ? $journalDescription : $journal,
             'transactionDate' => $docDate,
             'registrationDateTime' => $registration,
             'validatedAt' => $validatedAt !== '' ? $validatedAt : null,
@@ -192,6 +220,71 @@ class DkDolibarrAccountingDataProvider implements DkAccountingDataProviderInterf
             'description' => (string) $first->label_operation,
             'lines' => $lines,
         ));
+    }
+
+    private function getCompanyBankAccounts()
+    {
+        $sql = 'SELECT iban_prefix, bic, number, code_banque, code_guichet, currency_code, account_number';
+        $sql .= ' FROM '.$this->db->prefix().'bank_account';
+        $sql .= ' WHERE entity = '.$this->entity.' AND clos = 0';
+        $sql .= ' ORDER BY rowid ASC';
+
+        $resql = $this->db->query($sql);
+        if (!$resql) {
+            throw new RuntimeException('Unable to load company bank accounts: '.$this->db->lasterror());
+        }
+
+        $accounts = array();
+
+        while ($row = $this->db->fetch_object($resql)) {
+            $iban = trim((string) $row->iban_prefix);
+            $number = trim((string) $row->number);
+            $sortCode = trim((string) $row->code_banque.(string) $row->code_guichet);
+
+            if ($iban === '' && ($number === '' || $sortCode === '')) {
+                continue;
+            }
+
+            $accounts[] = array(
+                'iban' => $iban !== '' ? $iban : null,
+                'number' => $number !== '' ? $number : null,
+                'sortCode' => $sortCode !== '' ? $sortCode : null,
+                'bic' => trim((string) $row->bic),
+                'currencyCode' => trim((string) $row->currency_code),
+                'accountId' => trim((string) $row->account_number),
+            );
+        }
+
+        return $accounts;
+    }
+
+    private function getAccountBalances($accountCode, $fromDate, $toDate)
+    {
+        $openingExpression = '0';
+        if ($fromDate !== null) {
+            $openingExpression = "SUM(CASE WHEN doc_date < '".$this->db->escape($fromDate)."' THEN debit - credit ELSE 0 END)";
+        }
+
+        $closingExpression = 'SUM(debit - credit)';
+        $sql = 'SELECT '.$openingExpression.' AS opening_balance, '.$closingExpression.' AS closing_balance';
+        $sql .= ' FROM '.$this->db->prefix().'accounting_bookkeeping';
+        $sql .= ' WHERE entity = '.$this->entity;
+        $sql .= " AND numero_compte = '".$this->db->escape($accountCode)."'";
+        if ($toDate !== null) {
+            $sql .= " AND doc_date <= '".$this->db->escape($toDate)."'";
+        }
+
+        $resql = $this->db->query($sql);
+        if (!$resql) {
+            throw new RuntimeException('Unable to calculate canonical account balances: '.$this->db->lasterror());
+        }
+
+        $row = $this->db->fetch_object($resql);
+
+        return array(
+            'opening' => $this->dbDecimal($row && $row->opening_balance !== null ? $row->opening_balance : '0'),
+            'closing' => $this->dbDecimal($row && $row->closing_balance !== null ? $row->closing_balance : '0'),
+        );
     }
 
     private function dateRangeSql($column, $fromDate, $toDate)
