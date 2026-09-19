@@ -3,19 +3,19 @@
 require_once __DIR__.'/Decimal.php';
 require_once __DIR__.'/TaxInformation.php';
 
-class DkCanonicalLine
+final readonly class DkCanonicalLine
 {
-    public $lineId;
-    public $accountCode;
-    public $debit;
-    public $credit;
-    public $partyId;
-    public $taxCode;
-    public $taxInformation = array();
-    public $currencyCode;
-    public $currencyAmount;
-    public $description;
-    public $sourceDocumentRef;
+    public string $lineId;
+    public string $accountCode;
+    public string $debit;
+    public string $credit;
+    public ?string $partyId;
+    public ?string $taxCode;
+    public array $taxInformation;
+    public ?string $currencyCode;
+    public ?string $currencyAmount;
+    public ?string $description;
+    public ?string $sourceDocumentRef;
 
     public function __construct(array $data)
     {
@@ -26,18 +26,20 @@ class DkCanonicalLine
         $this->partyId = isset($data['partyId']) ? (string) $data['partyId'] : null;
         $this->taxCode = isset($data['taxCode']) ? (string) $data['taxCode'] : null;
 
+        $taxInformation = array();
         foreach (($data['taxInformation'] ?? array()) as $tax) {
-            $this->taxInformation[] = $tax instanceof DkCanonicalTaxInformation
+            $taxInformation[] = $tax instanceof DkCanonicalTaxInformation
                 ? $tax
                 : new DkCanonicalTaxInformation((array) $tax);
         }
 
         // Backward-compatible single-code input for callers not yet migrated.
-        if ($this->taxCode !== null && $this->taxCode !== '' && count($this->taxInformation) === 0) {
-            $this->taxInformation[] = new DkCanonicalTaxInformation(array(
+        if ($this->taxCode !== null && $this->taxCode !== '' && count($taxInformation) === 0) {
+            $taxInformation[] = new DkCanonicalTaxInformation(array(
                 'taxCode' => $this->taxCode,
             ));
         }
+        $this->taxInformation = $taxInformation;
 
         $this->currencyCode = isset($data['currencyCode']) ? (string) $data['currencyCode'] : null;
         $this->currencyAmount = isset($data['currencyAmount'])

@@ -1,6 +1,10 @@
 <?php
 
 require_once __DIR__.'/Canonical/AccountingDataProviderInterface.php';
+require_once __DIR__.'/Canonical/CompanyContext.php';
+require_once __DIR__.'/Canonical/Account.php';
+require_once __DIR__.'/Canonical/Party.php';
+require_once __DIR__.'/Canonical/TaxCode.php';
 require_once __DIR__.'/Canonical/Transaction.php';
 require_once __DIR__.'/DolibarrTaxInformationResolver.php';
 
@@ -31,7 +35,7 @@ class DkDolibarrAccountingDataProvider implements DkAccountingDataProviderInterf
             throw new RuntimeException('Dolibarr runtime is required to read company context');
         }
 
-        return array(
+        return new DkCanonicalCompanyContext(array(
             'id' => (string) $this->entity,
             'name' => getDolGlobalString('MAIN_INFO_SOCIETE_NOM'),
             'registrationNumber' => getDolGlobalString('MAIN_INFO_SIREN'),
@@ -49,7 +53,7 @@ class DkDolibarrAccountingDataProvider implements DkAccountingDataProviderInterf
             'phone' => getDolGlobalString('MAIN_INFO_SOCIETE_TEL'),
             'email' => getDolGlobalString('MAIN_INFO_SOCIETE_MAIL'),
             'bankAccounts' => $this->getCompanyBankAccounts(),
-        );
+        ));
     }
 
     public function getAccounts($fromDate, $toDate)
@@ -78,14 +82,14 @@ class DkDolibarrAccountingDataProvider implements DkAccountingDataProviderInterf
             $accountCode = (string) $row->account_code;
             $balances = $this->getAccountBalances($accountCode, $fromDate, $toDate);
 
-            $accounts[] = array(
+            $accounts[] = new DkCanonicalAccount(array(
                 'accountCode' => $accountCode,
                 'label' => (string) $row->account_label,
                 'accountType' => $row->account_type !== null ? (string) $row->account_type : 'OTHER',
                 'creationDate' => $row->account_creation_date !== null ? (string) $row->account_creation_date : null,
                 'openingBalance' => $balances['opening'],
                 'closingBalance' => $balances['closing'],
-            );
+            ));
         }
 
         return $accounts;
@@ -107,10 +111,10 @@ class DkDolibarrAccountingDataProvider implements DkAccountingDataProviderInterf
 
         $parties = array();
         while ($row = $this->db->fetch_object($resql)) {
-            $parties[] = array(
+            $parties[] = new DkCanonicalParty(array(
                 'partyId' => (string) $row->party_id,
                 'label' => (string) $row->party_label,
-            );
+            ));
         }
 
         return $parties;
@@ -140,7 +144,7 @@ class DkDolibarrAccountingDataProvider implements DkAccountingDataProviderInterf
 
         $taxCodes = array();
         while ($row = $this->db->fetch_object($resql)) {
-            $taxCodes[] = array(
+            $taxCodes[] = new DkCanonicalTaxCode(array(
                 'taxCode' => (string) $row->code,
                 'taxType' => 'VAT',
                 'description' => trim((string) $row->note) !== '' ? (string) $row->note : 'VAT '.$row->taux.'%',
@@ -151,7 +155,7 @@ class DkDolibarrAccountingDataProvider implements DkAccountingDataProviderInterf
                 'taxPercentage' => $this->dbDecimal($row->taux),
                 'countryCode' => (string) $row->country_code,
                 'sourceVatType' => (int) $row->type_vat,
-            );
+            ));
         }
 
         return $taxCodes;

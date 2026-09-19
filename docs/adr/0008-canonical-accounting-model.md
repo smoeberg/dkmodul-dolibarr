@@ -40,6 +40,27 @@ Initial core objects:
 - tax/VAT codes,
 - correction relations.
 
+For the first SAF-T 2.1 boundary, the executable canonical projection is:
+
+- `DkCanonicalCompanyContext`,
+- `DkCanonicalAccount`,
+- `DkCanonicalParty`,
+- `DkCanonicalTaxCode`,
+- `DkCanonicalTransaction`,
+- `DkCanonicalLine`,
+- `DkCanonicalTaxInformation`.
+
+The provider interface may grow with fiscal-period, document, payment and bank
+transaction projections when a consumer needs them. They are deliberately not
+represented by speculative DTOs before that point. Account and VAT mapping stay
+in dedicated dated mapping services because they are Danish output policy, not
+source accounting facts.
+
+All canonical records are immutable after construction. Master-data records use
+an array-readable immutable record contract for mapper ergonomics; transactions,
+lines and tax facts use readonly typed properties. The SAF-T exporter rejects a
+provider that returns legacy arrays or other non-canonical objects.
+
 ## Monetary values
 
 Amounts are represented as decimal strings, not PHP floats.

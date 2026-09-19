@@ -13,6 +13,23 @@ require '/var/www/html/custom/dkmodul/class/Saft/V21/Saft21Exporter.php';
 $output = $argv[1] ?? '/tmp/dolibarr-dk-saft21.xml';
 
 $provider = new DkDolibarrAccountingDataProvider($db, 1);
+$projectionSets = array(
+    array(array($provider->getCompanyContext()), DkCanonicalCompanyContext::class, 'company context'),
+    array($provider->getAccounts('2026-01-01', '2026-12-31'), DkCanonicalAccount::class, 'account'),
+    array($provider->getParties('2026-01-01', '2026-12-31'), DkCanonicalParty::class, 'party'),
+    array($provider->getTaxCodes('2026-01-01', '2026-12-31'), DkCanonicalTaxCode::class, 'tax code'),
+    array($provider->getTransactions('2026-01-01', '2026-12-31'), DkCanonicalTransaction::class, 'transaction'),
+);
+foreach ($projectionSets as $set) {
+    $expectedClass = $set[1];
+    foreach ($set[0] as $record) {
+        if (!$record instanceof $expectedClass) {
+            fwrite(STDERR, 'Dolibarr provider returned a non-canonical '.$set[2]."\n");
+            exit(1);
+        }
+    }
+}
+
 $accountMappings = new DkAccountMappingService($db);
 $vatMappings = new DkVatMappingService($db);
 $exporter = new DkSaft21Exporter($provider, $accountMappings, $vatMappings);

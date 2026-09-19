@@ -1,6 +1,10 @@
 <?php
 
 require_once __DIR__.'/../../Accounting/Canonical/AccountingDataProviderInterface.php';
+require_once __DIR__.'/../../Accounting/Canonical/CompanyContext.php';
+require_once __DIR__.'/../../Accounting/Canonical/Account.php';
+require_once __DIR__.'/../../Accounting/Canonical/TaxCode.php';
+require_once __DIR__.'/../../Accounting/Canonical/Transaction.php';
 require_once __DIR__.'/../../Accounting/Canonical/Decimal.php';
 require_once __DIR__.'/../SchemaRegistry.php';
 
@@ -30,6 +34,7 @@ class DkSaft21Exporter
         $accounts = $this->provider->getAccounts($fromDate, $toDate);
         $taxCodes = $this->provider->getTaxCodes($fromDate, $toDate);
         $transactions = $this->provider->getTransactions($fromDate, $toDate);
+        $this->assertCanonicalProjection($company, $accounts, $taxCodes, $transactions);
 
         $defaultCurrency = $this->requiredValue(
             isset($options['defaultCurrency']) ? $options['defaultCurrency'] : ($company['currencyCode'] ?? null),
@@ -49,7 +54,29 @@ class DkSaft21Exporter
         return $doc->saveXML();
     }
 
-    private function appendHeader(DOMDocument $doc, DOMElement $root, array $company, $fromDate, $toDate, $defaultCurrency, array $options)
+    private function assertCanonicalProjection($company, array $accounts, array $taxCodes, array $transactions)
+    {
+        if (!$company instanceof DkCanonicalCompanyContext) {
+            throw new UnexpectedValueException('Accounting provider must return canonical company context');
+        }
+
+        $sets = array(
+            array($accounts, DkCanonicalAccount::class, 'account'),
+            array($taxCodes, DkCanonicalTaxCode::class, 'tax code'),
+            array($transactions, DkCanonicalTransaction::class, 'transaction'),
+        );
+
+        foreach ($sets as $set) {
+            $expectedClass = $set[1];
+            foreach ($set[0] as $record) {
+                if (!$record instanceof $expectedClass) {
+                    throw new UnexpectedValueException('Accounting provider returned a non-canonical '.$set[2]);
+                }
+            }
+        }
+    }
+
+    private function appendHeader(DOMDocument $doc, DOMElement $root, DkCanonicalCompanyContext $company, $fromDate, $toDate, $defaultCurrency, array $options)
     {
         $header = $this->element($doc, $root, 'Header');
 
@@ -249,6 +276,8 @@ class DkSaft21Exporter
                 || (bool) $options['strictStandardTaxMapping'];
             $standardTaxCode = trim((string) ($taxCode['standardTaxCode'] ?? ''));
             $standardDescription = trim((string) ($taxCode['standardTaxCodeDescription'] ?? ''));
+            $effectiveDate = $taxCode['effectiveDate'] ?? null;
+            $expirationDate = $taxCode['expirationDate'] ?? null;
 
             if ($standardTaxCode === '' && $this->vatMappingService !== null) {
                 $company = $this->provider->getCompanyContext();
@@ -263,11 +292,11 @@ class DkSaft21Exporter
                     if ($standardDescription === '' && !empty($mapping['description'])) {
                         $standardDescription = (string) $mapping['description'];
                     }
-                    if (empty($taxCode['effectiveDate']) && !empty($mapping['effectiveDate'])) {
-                        $taxCode['effectiveDate'] = (string) $mapping['effectiveDate'];
+                    if (empty($effectiveDate) && !empty($mapping['effectiveDate'])) {
+                        $effectiveDate = (string) $mapping['effectiveDate'];
                     }
-                    if (empty($taxCode['expirationDate']) && !empty($mapping['expirationDate'])) {
-                        $taxCode['expirationDate'] = (string) $mapping['expirationDate'];
+                    if (empty($expirationDate) && !empty($mapping['expirationDate'])) {
+                        $expirationDate = (string) $mapping['expirationDate'];
                     }
                 }
             }
@@ -280,12 +309,12 @@ class DkSaft21Exporter
                 $this->element($doc, $details, 'StandardTaxCode', $standardTaxCode);
             }
 
-            if (empty($taxCode['effectiveDate'])) {
+            if (empty($effectiveDate)) {
                 throw new InvalidArgumentException('Missing effective date for VAT mapping '.$localCode);
             }
-            $this->element($doc, $details, 'EffectiveDate', $taxCode['effectiveDate']);
-            if (!empty($taxCode['expirationDate'])) {
-                $this->element($doc, $details, 'ExpirationDate', $taxCode['expirationDate']);
+            $this->element($doc, $details, 'EffectiveDate', $effectiveDate);
+            if (!empty($expirationDate)) {
+                $this->element($doc, $details, 'ExpirationDate', $expirationDate);
             }
 
             $this->element(

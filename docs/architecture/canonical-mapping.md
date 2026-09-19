@@ -2,6 +2,10 @@
 
 Initial baseline: Dolibarr 24.0.x.
 
+The adapter returns immutable canonical DTOs. The SAF-T exporter validates this
+boundary before generating XML and therefore has no dependency on Dolibarr SQL
+or Dolibarr business objects.
+
 | Canonical field | Dolibarr source |
 |---|---|
 | transactionId | `accounting_bookkeeping.ref`, fallback `piece_num` |
@@ -21,6 +25,17 @@ Initial baseline: Dolibarr 24.0.x.
 | currencyCode | `multicurrency_code` |
 | currencyAmount | `multicurrency_amount` |
 | description | `label_operation` |
+
+Master data is mapped to `DkCanonicalCompanyContext`, `DkCanonicalAccount`,
+`DkCanonicalParty` and `DkCanonicalTaxCode`. Ledger rows are grouped into
+`DkCanonicalTransaction` with immutable `DkCanonicalLine` and
+`DkCanonicalTaxInformation` children.
+
+The current provider boundary includes only concepts consumed by SAF-T 2.1 or
+the existing compliance checks. Fiscal-year/period selection is expressed by
+the provider date range. Documents are represented by source references and
+provenance on lines. Standalone payment and bank-transaction DTOs are deferred
+until a reporting or reconciliation consumer requires them.
 
 ## Consistency rules
 

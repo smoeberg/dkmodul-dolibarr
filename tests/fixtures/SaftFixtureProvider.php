@@ -1,13 +1,16 @@
 <?php
 
 require_once __DIR__.'/../../dkmodul/class/Accounting/Canonical/AccountingDataProviderInterface.php';
+require_once __DIR__.'/../../dkmodul/class/Accounting/Canonical/CompanyContext.php';
+require_once __DIR__.'/../../dkmodul/class/Accounting/Canonical/Account.php';
+require_once __DIR__.'/../../dkmodul/class/Accounting/Canonical/TaxCode.php';
 require_once __DIR__.'/../../dkmodul/class/Accounting/Canonical/Transaction.php';
 
 class DkSaftFixtureProvider implements DkAccountingDataProviderInterface
 {
     public function getCompanyContext()
     {
-        return array(
+        return new DkCanonicalCompanyContext(array(
             'id' => '1',
             'name' => 'Dolibarr DK Test ApS',
             'registrationNumber' => '12345678',
@@ -28,36 +31,36 @@ class DkSaftFixtureProvider implements DkAccountingDataProviderInterface
                     'accountId' => '5500',
                 ),
             ),
-        );
+        ));
     }
 
     public function getAccounts($fromDate, $toDate)
     {
         return array(
-            array(
+            new DkCanonicalAccount(array(
                 'accountCode' => '5500',
                 'label' => 'Bank',
                 'accountType' => 'ASSET',
                 'openingBalance' => '0',
                 'closingBalance' => '312.5',
                 'standardAccountId' => '5500',
-            ),
-            array(
+            )),
+            new DkCanonicalAccount(array(
                 'accountCode' => '1010',
                 'label' => 'Salg af varer og ydelser',
                 'accountType' => 'INCOME',
                 'openingBalance' => '0',
                 'closingBalance' => '-250',
                 'standardAccountId' => '1010',
-            ),
-            array(
+            )),
+            new DkCanonicalAccount(array(
                 'accountCode' => '2600',
                 'label' => 'Salgsmoms',
                 'accountType' => 'LIABILITY',
                 'openingBalance' => '0',
                 'closingBalance' => '-62.5',
                 'standardAccountId' => '2600',
-            ),
+            )),
         );
     }
 
@@ -69,7 +72,7 @@ class DkSaftFixtureProvider implements DkAccountingDataProviderInterface
     public function getTaxCodes($fromDate, $toDate)
     {
         return array(
-            array(
+            new DkCanonicalTaxCode(array(
                 'taxCode' => 'Salg25',
                 'taxType' => 'VAT',
                 'description' => 'Salgsmoms (udgående moms)',
@@ -79,7 +82,7 @@ class DkSaftFixtureProvider implements DkAccountingDataProviderInterface
                 'expirationDate' => '2099-12-31',
                 'taxPercentage' => '25',
                 'countryCode' => 'DK',
-            ),
+            )),
         );
     }
 
