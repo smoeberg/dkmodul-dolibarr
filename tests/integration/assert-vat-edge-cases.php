@@ -17,7 +17,7 @@ foreach ($transactions as $transaction) {
     }
 }
 
-foreach (array(990004, 990005, 990006) as $piece) {
+foreach (array(991004, 991005, 991006) as $piece) {
     if (!isset($byPiece[$piece])) {
         fwrite(STDERR, "Expected VAT edge-case transaction {$piece} not found\n");
         exit(1);
@@ -33,7 +33,7 @@ $findLine = static function ($transaction, $account) {
     return null;
 };
 
-$supplierLine = $findLine($byPiece[990004], '4000');
+$supplierLine = $findLine($byPiece[991004], '4000');
 if ($supplierLine === null || count($supplierLine->taxInformation) !== 1) {
     fwrite(STDERR, "Supplier expense line VAT provenance missing\n");
     exit(1);
@@ -48,14 +48,14 @@ if ($supplierTax->taxCode !== 'DKBUY25'
 }
 
 foreach (array('2000', '4450') as $account) {
-    $line = $findLine($byPiece[990004], $account);
+    $line = $findLine($byPiece[991004], $account);
     if ($line === null || count($line->taxInformation) !== 0) {
         fwrite(STDERR, "Supplier control line {$account} must not receive source VAT provenance\n");
         exit(1);
     }
 }
 
-$zeroLine = $findLine($byPiece[990005], '3000');
+$zeroLine = $findLine($byPiece[991005], '3000');
 if ($zeroLine === null || count($zeroLine->taxInformation) !== 1) {
     fwrite(STDERR, "Zero-rate revenue VAT provenance missing\n");
     exit(1);
@@ -69,7 +69,7 @@ if ($zeroTax->taxCode !== 'DKSALE0'
     exit(1);
 }
 
-$creditLine = $findLine($byPiece[990006], '3000');
+$creditLine = $findLine($byPiece[991006], '3000');
 if ($creditLine === null || count($creditLine->taxInformation) !== 1) {
     fwrite(STDERR, "Credit-note revenue VAT provenance missing\n");
     exit(1);

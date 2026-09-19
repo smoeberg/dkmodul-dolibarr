@@ -231,8 +231,9 @@ Valideringsresultat og artefakthashes er append-only og AuditLedger-koblede.
 
 `DK-EINV-002` er `PARTIAL`, fordi staging, teknisk validering, mapping til
 leverandør, kladdeoprettelse og eksplicit forretningsgodkendelse via Dolibarrs
-validerings-API nu er dækket. Et fuldt brugerflow og kontrolleret overførsel til
-hovedbogen mangler fortsat.
+validerings-API samt kontrolleret, balanceret overførsel til hovedbogen nu er
+dækket. Et fuldt brugerflow samt credit notes, fremmed valuta og lokale afgifter
+mangler fortsat.
 
 Testevidens: `tests/integration/assert-oioubl-inbound-staging.php` og
 `tests/integration/test-bookkeeping-immutability.sh`.
@@ -248,5 +249,14 @@ Valideringsevidensen er append-only og retry er idempotent. Dokumentvalideringen
 overfører bevidst ikke poster til `accounting_bookkeeping`; denne grænse er
 beskrevet i ADR-0018.
 
+Efter dokumentvalideringen kan en særskilt autoriseret handling overføre fakturaen
+til et eksplicit købsjournal. Leverandør-, købskonto- og momskontomapping kommer
+fra Dolibarrs native accountingfelter og skal være komplette og entydige.
+Bevægelsen kontrolleres i øre, genlæses efter oprettelse gennem
+`BookKeeping::createStd()` og låses først, når alle linjer har samme piece number
+og debit er lig credit og fakturatotalen. Posting-evidens og bogføringslinjer er
+derefter immutable; grænsen er beskrevet i ADR-0019.
+
 Testevidens: `tests/integration/assert-oioubl-inbound-supplier-draft.php` og
 `tests/integration/assert-oioubl-inbound-supplier-validation.php`.
+Posting dækkes af `tests/integration/assert-oioubl-inbound-supplier-posting.php`.

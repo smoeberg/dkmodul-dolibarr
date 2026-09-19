@@ -43,7 +43,7 @@ echo "Verifying real Dolibarr module activation..."
 module_enabled="$(docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "SELECT value FROM llx_const WHERE name='MAIN_MODULE_DKMODUL' AND entity=1 ORDER BY rowid DESC LIMIT 1")"
 test "$module_enabled" = "1"
 
-for table in llx_dk_audit_event llx_dk_correction llx_dk_bookkeeping_origin llx_dk_document_archive llx_dk_einvoice_delivery llx_dk_einvoice_transport_event llx_dk_einvoice_inbound llx_dk_einvoice_inbound_validation llx_dk_einvoice_inbound_draft llx_dk_einvoice_inbound_supplier_validation llx_dk_standard_account llx_dk_account_mapping llx_dk_standard_vat_code llx_dk_vat_mapping; do
+for table in llx_dk_audit_event llx_dk_correction llx_dk_bookkeeping_origin llx_dk_document_archive llx_dk_einvoice_delivery llx_dk_einvoice_transport_event llx_dk_einvoice_inbound llx_dk_einvoice_inbound_validation llx_dk_einvoice_inbound_draft llx_dk_einvoice_inbound_supplier_validation llx_dk_einvoice_inbound_posting llx_dk_standard_account llx_dk_account_mapping llx_dk_standard_vat_code llx_dk_vat_mapping; do
   table_count="$(docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='dolidb' AND table_name='$table'")"
   test "$table_count" = "1"
 done
@@ -51,7 +51,7 @@ done
 test "$(docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='dolidb' AND table_name='llx_dk_correction_link'")" = "0"
 
 trigger_count="$(docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_schema='dolidb' AND trigger_name LIKE 'llx_dk_%'")"
-test "$trigger_count" = "21"
+test "$trigger_count" = "23"
 
 sql() {
   docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "$1"
@@ -196,6 +196,9 @@ expect_failure "UPDATE llx_dk_einvoice_inbound_validation SET invoice_id='change
 expect_failure "DELETE FROM llx_dk_einvoice_inbound_validation WHERE rowid=${inbound_validation_rowid}"
 
 echo "Approving validated inbound OIOUBL into supplier invoice draft..."
+sql "DELETE FROM llx_const WHERE name='MAIN_MONNAIE' AND entity=1"
+sql "INSERT INTO llx_const (name,value,type,visible,note,entity)
+VALUES ('MAIN_MONNAIE','DKK','chaine',0,'Dolibarr DK integration test',1)"
 sql "INSERT INTO llx_societe
 (nom,entity,status,code_fournisseur,fk_pays,fk_stcomm,client,fournisseur,datec,address,zip,town,siren,email)
 VALUES ('Inbound OIOUBL Supplier',1,1,'DKINBOUND',(SELECT rowid FROM llx_c_country WHERE code='DK' LIMIT 1),0,0,1,NOW(),'Testvej 1','8000','Aarhus C','12345678','supplier@example.invalid')"
@@ -211,6 +214,49 @@ inbound_supplier_validation_rowid="$(sql "SELECT rowid FROM llx_dk_einvoice_inbo
 test -n "$inbound_supplier_validation_rowid"
 expect_failure "UPDATE llx_dk_einvoice_inbound_supplier_validation SET fk_user_validator=2 WHERE rowid=${inbound_supplier_validation_rowid}"
 expect_failure "DELETE FROM llx_dk_einvoice_inbound_supplier_validation WHERE rowid=${inbound_supplier_validation_rowid}"
+
+echo "Configuring explicit native mappings for inbound supplier posting..."
+sql "DELETE FROM llx_accounting_fiscalyear WHERE entity=1 AND label='DKSAFT-2026'"
+sql "INSERT INTO llx_accounting_fiscalyear
+(label,date_start,date_end,statut,entity,datec,fk_user_author)
+VALUES ('DKSAFT-2026','2026-01-01','2026-12-31',0,1,NOW(),1)"
+posting_pcg_version="$(sql "SELECT fk_pcg_version FROM llx_accounting_account WHERE entity=1 AND active=1 ORDER BY rowid LIMIT 1")"
+test -n "$posting_pcg_version"
+for account in 2000 4000 4450; do
+  if [ "$(sql "SELECT COUNT(*) FROM llx_accounting_account WHERE entity=1 AND account_number='${account}' AND active=1")" = "0" ]; then
+    type="OTHER"
+    label="Integration account ${account}"
+    if [ "$account" = "4000" ]; then type="EXPENSE"; label="Purchases"; fi
+    if [ "$account" = "2000" ]; then type="LIABILITY"; label="Supplier payable"; fi
+    if [ "$account" = "4450" ]; then type="ASSET"; label="Purchase VAT"; fi
+    sql "INSERT INTO llx_accounting_account
+    (entity,datec,fk_pcg_version,pcg_type,account_number,label,fk_user_author,active)
+    VALUES (1,NOW(),'${posting_pcg_version}','${type}','${account}','${label}',1,1)"
+  fi
+done
+inbound_supplier_id="$(sql "SELECT rowid FROM llx_societe WHERE entity=1 AND code_fournisseur='DKINBOUND' ORDER BY rowid DESC LIMIT 1")"
+inbound_supplier_invoice_id="$(sql "SELECT supplier_invoice_rowid FROM llx_dk_einvoice_inbound_draft WHERE entity=1 ORDER BY rowid DESC LIMIT 1")"
+inbound_expense_account_id="$(sql "SELECT rowid FROM llx_accounting_account WHERE entity=1 AND account_number='4000' AND active=1 ORDER BY rowid LIMIT 1")"
+dk_posting_country_id="$(sql "SELECT rowid FROM llx_c_country WHERE code='DK' LIMIT 1")"
+sql "UPDATE llx_societe SET accountancy_code_supplier_general='2000',code_compta_fournisseur='DKINBOUND' WHERE rowid=${inbound_supplier_id}"
+sql "UPDATE llx_facture_fourn_det SET fk_code_ventilation=${inbound_expense_account_id},vat_src_code='DKBUY25' WHERE fk_facture_fourn=${inbound_supplier_invoice_id}"
+sql "DELETE FROM llx_c_tva WHERE entity=1 AND fk_pays=${dk_posting_country_id} AND code='DKBUY25'"
+sql "INSERT INTO llx_c_tva (entity,fk_pays,code,type_vat,taux,note,active,accountancy_code_buy)
+VALUES (1,${dk_posting_country_id},'DKBUY25',2,25,'Inbound posting test VAT',1,'4450')"
+if [ "$(sql "SELECT COUNT(*) FROM llx_accounting_journal WHERE entity=1 AND nature=3 AND active=1")" = "0" ]; then
+  sql "INSERT INTO llx_accounting_journal (entity,code,label,nature,active) VALUES (1,'KO','Purchases',3,1)"
+fi
+
+echo "Posting validated inbound supplier invoice as balanced immutable movement..."
+docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-oioubl-inbound-supplier-posting.php
+inbound_posting_rowid="$(sql "SELECT rowid FROM llx_dk_einvoice_inbound_posting WHERE entity=1 ORDER BY rowid DESC LIMIT 1")"
+inbound_posting_bookkeeping_rowid="$(sql "SELECT rowid FROM llx_accounting_bookkeeping WHERE entity=1 AND doc_type='supplier_invoice' AND fk_doc=${inbound_supplier_invoice_id} ORDER BY rowid LIMIT 1")"
+test -n "$inbound_posting_rowid"
+test -n "$inbound_posting_bookkeeping_rowid"
+expect_failure "UPDATE llx_accounting_bookkeeping SET debit=debit+1 WHERE rowid=${inbound_posting_bookkeeping_rowid}"
+expect_failure "DELETE FROM llx_accounting_bookkeeping WHERE rowid=${inbound_posting_bookkeeping_rowid}"
+expect_failure "UPDATE llx_dk_einvoice_inbound_posting SET line_count=99 WHERE rowid=${inbound_posting_rowid}"
+expect_failure "DELETE FROM llx_dk_einvoice_inbound_posting WHERE rowid=${inbound_posting_rowid}"
 
 echo "Configuring strict SAF-T mapping fixture on real Dolibarr database..."
 
@@ -333,9 +379,9 @@ VALUES (${supplier_invoice_id},'Supplier VAT test','DKBUY25',25,1,200.00,200.00,
 sql "INSERT INTO llx_accounting_bookkeeping
 (entity,ref,piece_num,doc_date,doc_type,doc_ref,fk_doc,fk_docdet,thirdparty_code,subledger_account,subledger_label,numero_compte,label_compte,label_operation,debit,credit,fk_user_author,date_creation,code_journal,journal_label,date_validated)
 VALUES
-(1,'DK-990004',990004,'2026-09-18','supplier_invoice','SUP-1',${supplier_invoice_id},0,'DKVATSUP','DKVATSUP','DK VAT Supplier','4000','Purchases','Supplier purchase',200.00,0.00,1,NOW(),'KO','Purchases',NOW()),
-(1,'DK-990004',990004,'2026-09-18','supplier_invoice','SUP-1',${supplier_invoice_id},0,'DKVATSUP','','','4450','Purchase VAT','Purchase VAT',50.00,0.00,1,NOW(),'KO','Purchases',NOW()),
-(1,'DK-990004',990004,'2026-09-18','supplier_invoice','SUP-1',${supplier_invoice_id},0,'DKVATSUP','DKVATSUP','DK VAT Supplier','2000','Supplier payable','Supplier payable',0.00,250.00,1,NOW(),'KO','Purchases',NOW())"
+(1,'DK-991004',991004,'2026-09-18','supplier_invoice','SUP-1',${supplier_invoice_id},0,'DKVATSUP','DKVATSUP','DK VAT Supplier','4000','Purchases','Supplier purchase',200.00,0.00,1,NOW(),'KO','Purchases',NOW()),
+(1,'DK-991004',991004,'2026-09-18','supplier_invoice','SUP-1',${supplier_invoice_id},0,'DKVATSUP','','','4450','Purchase VAT','Purchase VAT',50.00,0.00,1,NOW(),'KO','Purchases',NOW()),
+(1,'DK-991004',991004,'2026-09-18','supplier_invoice','SUP-1',${supplier_invoice_id},0,'DKVATSUP','DKVATSUP','DK VAT Supplier','2000','Supplier payable','Supplier payable',0.00,250.00,1,NOW(),'KO','Purchases',NOW())"
 
 sql "INSERT INTO llx_facture
 (ref,entity,type,fk_soc,datec,datef,total_tva,total_ht,total_ttc,fk_statut,fk_user_author,fk_cond_reglement)
@@ -349,8 +395,8 @@ VALUES (${zero_invoice_id},'Zero VAT sale','Zero VAT sale','DKSALE0',0,1,100.00,
 sql "INSERT INTO llx_accounting_bookkeeping
 (entity,ref,piece_num,doc_date,doc_type,doc_ref,fk_doc,fk_docdet,thirdparty_code,subledger_account,subledger_label,numero_compte,label_compte,label_operation,debit,credit,fk_user_author,date_creation,code_journal,journal_label,date_validated)
 VALUES
-(1,'DK-990005',990005,'2026-09-18','customer_invoice','DKZERO-1',${zero_invoice_id},0,'DKVATCUST','DKVATCUST','DK VAT Customer','1000','Receivables','Zero-rate receivable',100.00,0.00,1,NOW(),'VT','Sales',NOW()),
-(1,'DK-990005',990005,'2026-09-18','customer_invoice','DKZERO-1',${zero_invoice_id},0,'DKVATCUST','','','3000','Revenue','Zero-rate sale',0.00,100.00,1,NOW(),'VT','Sales',NOW())"
+(1,'DK-991005',991005,'2026-09-18','customer_invoice','DKZERO-1',${zero_invoice_id},0,'DKVATCUST','DKVATCUST','DK VAT Customer','1000','Receivables','Zero-rate receivable',100.00,0.00,1,NOW(),'VT','Sales',NOW()),
+(1,'DK-991005',991005,'2026-09-18','customer_invoice','DKZERO-1',${zero_invoice_id},0,'DKVATCUST','','','3000','Revenue','Zero-rate sale',0.00,100.00,1,NOW(),'VT','Sales',NOW())"
 
 sql "INSERT INTO llx_facture
 (ref,entity,type,fk_soc,datec,datef,total_tva,total_ht,total_ttc,fk_statut,fk_user_author,fk_cond_reglement)
@@ -364,9 +410,9 @@ VALUES (${credit_invoice_id},'Credit note VAT','Credit note VAT','DKTEST25',25,1
 sql "INSERT INTO llx_accounting_bookkeeping
 (entity,ref,piece_num,doc_date,doc_type,doc_ref,fk_doc,fk_docdet,thirdparty_code,subledger_account,subledger_label,numero_compte,label_compte,label_operation,debit,credit,fk_user_author,date_creation,code_journal,journal_label,date_validated)
 VALUES
-(1,'DK-990006',990006,'2026-09-18','customer_invoice','DKCREDIT-1',${credit_invoice_id},0,'DKVATCUST','DKVATCUST','DK VAT Customer','1000','Receivables','Credit-note receivable',0.00,125.00,1,NOW(),'VT','Sales',NOW()),
-(1,'DK-990006',990006,'2026-09-18','customer_invoice','DKCREDIT-1',${credit_invoice_id},0,'DKVATCUST','','','3000','Revenue','Credit-note revenue',100.00,0.00,1,NOW(),'VT','Sales',NOW()),
-(1,'DK-990006',990006,'2026-09-18','customer_invoice','DKCREDIT-1',${credit_invoice_id},0,'DKVATCUST','','','2600','Sales VAT','Credit-note VAT',25.00,0.00,1,NOW(),'VT','Sales',NOW())"
+(1,'DK-991006',991006,'2026-09-18','customer_invoice','DKCREDIT-1',${credit_invoice_id},0,'DKVATCUST','DKVATCUST','DK VAT Customer','1000','Receivables','Credit-note receivable',0.00,125.00,1,NOW(),'VT','Sales',NOW()),
+(1,'DK-991006',991006,'2026-09-18','customer_invoice','DKCREDIT-1',${credit_invoice_id},0,'DKVATCUST','','','3000','Revenue','Credit-note revenue',100.00,0.00,1,NOW(),'VT','Sales',NOW()),
+(1,'DK-991006',991006,'2026-09-18','customer_invoice','DKCREDIT-1',${credit_invoice_id},0,'DKVATCUST','','','2600','Sales VAT','Credit-note VAT',25.00,0.00,1,NOW(),'VT','Sales',NOW())"
 
 docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-vat-edge-cases.php
 
