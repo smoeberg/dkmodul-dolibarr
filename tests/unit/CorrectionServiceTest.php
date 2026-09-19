@@ -29,4 +29,22 @@ foreach ($cases as $case) {
     assert($failed === true);
 }
 
+$user = (object) array('id' => 1);
+$reverseCases = array(
+    array(0, 10, 'reason', $user),
+    array(1, 0, 'reason', $user),
+    array(1, 10, '', $user),
+    array(1, 10, 'reason', (object) array()),
+);
+
+foreach ($reverseCases as $case) {
+    $failed = false;
+    try {
+        $service->reverse(...$case);
+    } catch (InvalidArgumentException $e) {
+        $failed = true;
+    }
+    assert($failed === true);
+}
+
 echo "CorrectionService validation tests passed\n";
