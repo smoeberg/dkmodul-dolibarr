@@ -56,7 +56,7 @@ Som udgangspunkt er følgende ikke dækket af compliance-garantien:
 ## Første runtime-baseline
 
 - Dolibarr 24.0.x
-- CI/integration Docker pin: 24.0.0
+- CI/integration Docker pin: 24.0.1
 - PHP 8.2
 - MariaDB 11.4
 - managed cloud
