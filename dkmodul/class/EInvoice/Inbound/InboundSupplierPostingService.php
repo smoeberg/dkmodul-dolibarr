@@ -1,6 +1,7 @@
 <?php
 
 require_once dirname(__DIR__, 2).'/Audit/AuditLedger.php';
+require_once DOL_DOCUMENT_ROOT.'/core/lib/date.lib.php';
 
 final class DkInboundSupplierPostingService
 {
