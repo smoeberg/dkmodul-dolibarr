@@ -22,7 +22,7 @@ final class DkDolibarrOutboundInvoiceProvider
     public function getInvoice(int $invoiceId, string $customerEndpointId, string $customerEndpointScheme = 'GLN'): DkCanonicalInvoice
     {
         $sql = 'SELECT f.rowid,f.ref,f.datef,f.date_lim_reglement,f.total_ht,f.total_tva,f.total_ttc,';
-        $sql .= ' f.multicurrency_code,s.nom,s.address,s.zip,s.town,s.idprof2,s.email,c.code AS country_code';
+        $sql .= ' f.multicurrency_code,s.nom,s.address,s.zip,s.town,s.siren,s.email,c.code AS country_code';
         $sql .= ' FROM '.$this->db->prefix().'facture f';
         $sql .= ' INNER JOIN '.$this->db->prefix().'societe s ON s.rowid=f.fk_soc AND s.entity=f.entity';
         $sql .= ' LEFT JOIN '.$this->db->prefix().'c_country c ON c.rowid=s.fk_pays';
@@ -56,7 +56,7 @@ final class DkDolibarrOutboundInvoiceProvider
 
         $issueDate = substr((string) $invoice->datef, 0, 10);
         $dueDate = $invoice->date_lim_reglement ? substr((string) $invoice->date_lim_reglement, 0, 10) : $issueDate;
-        $customerCompanyId = $this->dkCompanyId((string) $invoice->idprof2);
+        $customerCompanyId = $this->dkCompanyId((string) $invoice->siren);
         $currency = trim((string) $invoice->multicurrency_code);
         if ($currency === '') {
             $currency = trim((string) ($this->supplier['currencyCode'] ?? 'DKK')) ?: 'DKK';

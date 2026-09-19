@@ -130,7 +130,7 @@ fi
 test -n "$revenue_account_rowid"
 
 sql "INSERT INTO llx_societe
-(nom,entity,status,code_client,fk_pays,fk_stcomm,client,fournisseur,datec,address,zip,town,idprof2,email)
+(nom,entity,status,code_client,fk_pays,fk_stcomm,client,fournisseur,datec,address,zip,town,siren,email)
 VALUES ('DK VAT Customer',1,1,'DKVATCUST',(SELECT rowid FROM llx_c_country WHERE code='DK' LIMIT 1),0,1,0,NOW(),'Kundevej 2','2100','København','87654321','customer@example.invalid')"
 customer_id="$(sql "SELECT rowid FROM llx_societe WHERE code_client='DKVATCUST' ORDER BY rowid DESC LIMIT 1")"
 test -n "$customer_id"
