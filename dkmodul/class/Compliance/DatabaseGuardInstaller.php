@@ -23,6 +23,8 @@ class DkDatabaseGuardInstaller
             $this->insertProvenanceTriggerSql(),
             $this->provenanceUpdateGuardSql(),
             $this->provenanceDeleteGuardSql(),
+            $this->auditUpdateGuardSql(),
+            $this->auditDeleteGuardSql(),
         );
 
         foreach ($sqlStatements as $sql) {
@@ -116,6 +118,28 @@ class DkDatabaseGuardInstaller
             .'END';
     }
 
+    public function auditUpdateGuardSql()
+    {
+        $audit = $this->db->prefix().'dk_audit_event';
+
+        return 'CREATE TRIGGER '.$this->auditUpdateGuardName()
+            .' BEFORE UPDATE ON '.$audit
+            .' FOR EACH ROW BEGIN '
+            ."SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'DK compliance: audit events are append-only'; "
+            .'END';
+    }
+
+    public function auditDeleteGuardSql()
+    {
+        $audit = $this->db->prefix().'dk_audit_event';
+
+        return 'CREATE TRIGGER '.$this->auditDeleteGuardName()
+            .' BEFORE DELETE ON '.$audit
+            .' FOR EACH ROW BEGIN '
+            ."SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'DK compliance: audit events cannot be deleted'; "
+            .'END';
+    }
+
     public function backfillProvenance()
     {
         $bookkeeping = $this->db->prefix().'accounting_bookkeeping';
@@ -164,6 +188,8 @@ class DkDatabaseGuardInstaller
             $this->insertProvenanceTriggerName(),
             $this->provenanceUpdateGuardName(),
             $this->provenanceDeleteGuardName(),
+            $this->auditUpdateGuardName(),
+            $this->auditDeleteGuardName(),
         );
     }
 
@@ -190,6 +216,16 @@ class DkDatabaseGuardInstaller
     private function provenanceDeleteGuardName()
     {
         return $this->db->prefix().'dk_bookkeeping_origin_bd';
+    }
+
+    private function auditUpdateGuardName()
+    {
+        return $this->db->prefix().'dk_audit_event_bu';
+    }
+
+    private function auditDeleteGuardName()
+    {
+        return $this->db->prefix().'dk_audit_event_bd';
     }
 
     private function assertSupportedDatabase()
