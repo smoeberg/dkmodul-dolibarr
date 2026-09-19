@@ -35,6 +35,8 @@ class DkDatabaseGuardInstaller
             $this->inboundDeleteGuardSql(),
             $this->inboundValidationUpdateGuardSql(),
             $this->inboundValidationDeleteGuardSql(),
+            $this->inboundDraftUpdateGuardSql(),
+            $this->inboundDraftDeleteGuardSql(),
         );
 
         foreach ($sqlStatements as $sql) {
@@ -212,6 +214,16 @@ class DkDatabaseGuardInstaller
         return $this->appendOnlyGuardSql($this->inboundValidationDeleteGuardName(), $this->db->prefix().'dk_einvoice_inbound_validation', 'DELETE', 'inbound validation evidence cannot be deleted');
     }
 
+    public function inboundDraftUpdateGuardSql()
+    {
+        return $this->appendOnlyGuardSql($this->inboundDraftUpdateGuardName(), $this->db->prefix().'dk_einvoice_inbound_draft', 'UPDATE', 'inbound supplier draft provenance is immutable');
+    }
+
+    public function inboundDraftDeleteGuardSql()
+    {
+        return $this->appendOnlyGuardSql($this->inboundDraftDeleteGuardName(), $this->db->prefix().'dk_einvoice_inbound_draft', 'DELETE', 'inbound supplier draft provenance cannot be deleted');
+    }
+
     private function appendOnlyGuardSql(string $name, string $table, string $operation, string $message): string
     {
         return 'CREATE TRIGGER '.$name.' BEFORE '.$operation.' ON '.$table
@@ -280,6 +292,8 @@ class DkDatabaseGuardInstaller
             $this->inboundDeleteGuardName(),
             $this->inboundValidationUpdateGuardName(),
             $this->inboundValidationDeleteGuardName(),
+            $this->inboundDraftUpdateGuardName(),
+            $this->inboundDraftDeleteGuardName(),
         );
     }
 
@@ -366,6 +380,16 @@ class DkDatabaseGuardInstaller
     private function inboundValidationDeleteGuardName()
     {
         return $this->db->prefix().'dk_einvoice_inbound_validation_bd';
+    }
+
+    private function inboundDraftUpdateGuardName()
+    {
+        return $this->db->prefix().'dk_einvoice_inbound_draft_bu';
+    }
+
+    private function inboundDraftDeleteGuardName()
+    {
+        return $this->db->prefix().'dk_einvoice_inbound_draft_bd';
     }
 
     private function assertSupportedDatabase()

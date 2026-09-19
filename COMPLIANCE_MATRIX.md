@@ -230,7 +230,15 @@ Schematron-validering udtrækkes faktura-, endpoint- og beløbsidentitet.
 Valideringsresultat og artefakthashes er append-only og AuditLedger-koblede.
 
 `DK-EINV-002` er `PARTIAL`, fordi staging og validering er dækket, mens mapping
-til leverandør, godkendelsesflow, Dolibarr-leverandørfaktura og bogføring mangler.
+til leverandør, kladdeoprettelse og eksplicit godkendelse nu er dækket. Validering
+af kladden, et fuldt godkendelsesflow og bogføring mangler fortsat.
 
 Testevidens: `tests/integration/assert-oioubl-inbound-staging.php` og
 `tests/integration/test-bookkeeping-immutability.sh`.
+
+En valideret inbound faktura kan matches entydigt til en aktiv leverandør via
+dansk CVR og efter eksplicit aktørgodkendelse oprettes som Dolibarr-
+leverandørfakturakladde gennem standard-API'et. Immutable provenance forbinder
+staging, leverandør og kladde; retry genbruger samme kladde, og der bogføres ikke.
+
+Testevidens: `tests/integration/assert-oioubl-inbound-supplier-draft.php`.
