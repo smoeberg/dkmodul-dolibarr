@@ -229,9 +229,10 @@ samme identitet med andre bytes afvises. Først efter officiel XSD- og
 Schematron-validering udtrækkes faktura-, endpoint- og beløbsidentitet.
 Valideringsresultat og artefakthashes er append-only og AuditLedger-koblede.
 
-`DK-EINV-002` er `PARTIAL`, fordi staging og validering er dækket, mens mapping
-til leverandør, kladdeoprettelse og eksplicit godkendelse nu er dækket. Validering
-af kladden, et fuldt godkendelsesflow og bogføring mangler fortsat.
+`DK-EINV-002` er `PARTIAL`, fordi staging, teknisk validering, mapping til
+leverandør, kladdeoprettelse og eksplicit forretningsgodkendelse via Dolibarrs
+validerings-API nu er dækket. Et fuldt brugerflow og kontrolleret overførsel til
+hovedbogen mangler fortsat.
 
 Testevidens: `tests/integration/assert-oioubl-inbound-staging.php` og
 `tests/integration/test-bookkeeping-immutability.sh`.
@@ -241,4 +242,11 @@ dansk CVR og efter eksplicit aktørgodkendelse oprettes som Dolibarr-
 leverandørfakturakladde gennem standard-API'et. Immutable provenance forbinder
 staging, leverandør og kladde; retry genbruger samme kladde, og der bogføres ikke.
 
-Testevidens: `tests/integration/assert-oioubl-inbound-supplier-draft.php`.
+En separat, autoriseret handling genkontrollerer de arkiverede bytes, CVR,
+reference, total, entity og kladdestatus, før Dolibarr validerer fakturaen.
+Valideringsevidensen er append-only og retry er idempotent. Dokumentvalideringen
+overfører bevidst ikke poster til `accounting_bookkeeping`; denne grænse er
+beskrevet i ADR-0018.
+
+Testevidens: `tests/integration/assert-oioubl-inbound-supplier-draft.php` og
+`tests/integration/assert-oioubl-inbound-supplier-validation.php`.
