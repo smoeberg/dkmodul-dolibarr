@@ -37,7 +37,7 @@ echo "Verifying real Dolibarr module activation..."
 module_enabled="$(docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "SELECT value FROM llx_const WHERE name='MAIN_MODULE_DKMODUL' AND entity=1 ORDER BY rowid DESC LIMIT 1")"
 test "$module_enabled" = "1"
 
-for table in llx_dk_audit_event llx_dk_correction llx_dk_bookkeeping_origin llx_dk_standard_account llx_dk_account_mapping llx_dk_standard_vat_code llx_dk_vat_mapping; do
+for table in llx_dk_audit_event llx_dk_correction llx_dk_bookkeeping_origin llx_dk_document_archive llx_dk_standard_account llx_dk_account_mapping llx_dk_standard_vat_code llx_dk_vat_mapping; do
   table_count="$(docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='dolidb' AND table_name='$table'")"
   test "$table_count" = "1"
 done
@@ -45,7 +45,7 @@ done
 test "$(docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='dolidb' AND table_name='llx_dk_correction_link'")" = "0"
 
 trigger_count="$(docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_schema='dolidb' AND trigger_name LIKE 'llx_dk_%'")"
-test "$trigger_count" = "7"
+test "$trigger_count" = "9"
 
 sql() {
   docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "$1"
@@ -94,6 +94,14 @@ sql "UPDATE llx_accounting_bookkeeping SET date_export=NOW() WHERE rowid=${rowid
 test -n "$(sql "SELECT date_export FROM llx_accounting_bookkeeping WHERE rowid=${rowid}")"
 
 echo "DK bookkeeping database immutability integration test passed"
+
+echo "Archiving immutable digital bookkeeping evidence..."
+docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-document-archive.php
+document_rowid="$(sql "SELECT rowid FROM llx_dk_document_archive WHERE entity=1 AND bookkeeping_rowid=${rowid} ORDER BY rowid DESC LIMIT 1")"
+test -n "$document_rowid"
+expect_failure "UPDATE llx_dk_document_archive SET original_name='changed.pdf' WHERE rowid=${document_rowid}"
+expect_failure "DELETE FROM llx_dk_document_archive WHERE rowid=${document_rowid}"
+test "$(sql "SELECT COUNT(*) FROM llx_dk_document_archive WHERE rowid=${document_rowid} AND retain_until='2036-12-31'")" = "1"
 
 echo "Creating balanced bookkeeping transaction for canonical adapter..."
 sql "INSERT INTO llx_accounting_bookkeeping

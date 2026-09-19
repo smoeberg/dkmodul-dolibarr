@@ -1,0 +1,21 @@
+CREATE TABLE llx_dk_document_archive (
+    rowid BIGINT AUTO_INCREMENT PRIMARY KEY,
+    entity INTEGER NOT NULL DEFAULT 1,
+    document_uuid VARCHAR(36) NOT NULL,
+    bookkeeping_rowid BIGINT NOT NULL,
+    source_type VARCHAR(64) NOT NULL,
+    source_id BIGINT NOT NULL DEFAULT 0,
+    original_name VARCHAR(255) NOT NULL,
+    mime_type VARCHAR(127) NOT NULL,
+    storage_key VARCHAR(500) NOT NULL,
+    content_hash CHAR(64) NOT NULL,
+    byte_size BIGINT NOT NULL,
+    fiscal_year_end DATE NOT NULL,
+    retain_until DATE NOT NULL,
+    fk_user_author BIGINT NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL,
+    UNIQUE KEY uk_dk_document_uuid (document_uuid),
+    UNIQUE KEY uk_dk_document_link_hash (entity, bookkeeping_rowid, content_hash),
+    KEY idx_dk_document_bookkeeping (entity, bookkeeping_rowid),
+    KEY idx_dk_document_retention (entity, retain_until)
+) ENGINE=InnoDB;

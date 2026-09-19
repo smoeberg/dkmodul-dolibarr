@@ -25,6 +25,8 @@ class DkDatabaseGuardInstaller
             $this->provenanceDeleteGuardSql(),
             $this->auditUpdateGuardSql(),
             $this->auditDeleteGuardSql(),
+            $this->documentUpdateGuardSql(),
+            $this->documentDeleteGuardSql(),
         );
 
         foreach ($sqlStatements as $sql) {
@@ -140,6 +142,28 @@ class DkDatabaseGuardInstaller
             .'END';
     }
 
+    public function documentUpdateGuardSql()
+    {
+        $documents = $this->db->prefix().'dk_document_archive';
+
+        return 'CREATE TRIGGER '.$this->documentUpdateGuardName()
+            .' BEFORE UPDATE ON '.$documents
+            .' FOR EACH ROW BEGIN '
+            ."SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'DK compliance: archived document metadata is immutable'; "
+            .'END';
+    }
+
+    public function documentDeleteGuardSql()
+    {
+        $documents = $this->db->prefix().'dk_document_archive';
+
+        return 'CREATE TRIGGER '.$this->documentDeleteGuardName()
+            .' BEFORE DELETE ON '.$documents
+            .' FOR EACH ROW BEGIN '
+            ."SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'DK compliance: archived documents cannot be deleted'; "
+            .'END';
+    }
+
     public function backfillProvenance()
     {
         $bookkeeping = $this->db->prefix().'accounting_bookkeeping';
@@ -190,6 +214,8 @@ class DkDatabaseGuardInstaller
             $this->provenanceDeleteGuardName(),
             $this->auditUpdateGuardName(),
             $this->auditDeleteGuardName(),
+            $this->documentUpdateGuardName(),
+            $this->documentDeleteGuardName(),
         );
     }
 
@@ -226,6 +252,16 @@ class DkDatabaseGuardInstaller
     private function auditDeleteGuardName()
     {
         return $this->db->prefix().'dk_audit_event_bd';
+    }
+
+    private function documentUpdateGuardName()
+    {
+        return $this->db->prefix().'dk_document_archive_bu';
+    }
+
+    private function documentDeleteGuardName()
+    {
+        return $this->db->prefix().'dk_document_archive_bd';
     }
 
     private function assertSupportedDatabase()
