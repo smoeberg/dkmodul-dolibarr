@@ -157,7 +157,7 @@ $roundTripXml = $exporter->export('2026-01-01', '2026-12-31', array(
     'createdDate' => '2026-09-18',
     'softwareCompanyName' => 'Dolibarr DK',
     'softwareId' => 'Dolibarr DK',
-    'softwareVersion' => 'import-roundtrip-test',
+    'softwareVersion' => 'import-roundtrip',
     'taxEntity' => '12345678',
     'userId' => 'integration-test',
 ));
