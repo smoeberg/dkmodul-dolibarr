@@ -42,6 +42,8 @@ for table in llx_dk_audit_event llx_dk_correction llx_dk_bookkeeping_origin llx_
   test "$table_count" = "1"
 done
 
+test "$(docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='dolidb' AND table_name='llx_dk_correction_link'")" = "0"
+
 trigger_count="$(docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_schema='dolidb' AND trigger_name LIKE 'llx_dk_%'")"
 test "$trigger_count" = "5"
 
@@ -351,6 +353,9 @@ sql "DELETE FROM llx_accounting_fiscalyear WHERE entity=1 AND label='DKSAFT-2026
 sql "INSERT INTO llx_accounting_fiscalyear
 (label,date_start,date_end,statut,entity,datec,fk_user_author)
 VALUES ('DKSAFT-2026','2026-01-01','2026-12-31',0,1,NOW(),1)"
+
+echo "Creating controlled correction reversal..."
+docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-correction-workflow.php
 
 echo "Staging and analyzing generated SAF-T 2.1 import..."
 docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-saft21-import-staging.php \
