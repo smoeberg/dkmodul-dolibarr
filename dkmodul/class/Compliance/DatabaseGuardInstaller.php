@@ -39,6 +39,8 @@ class DkDatabaseGuardInstaller
             $this->inboundDraftDeleteGuardSql(),
             $this->inboundSupplierValidationUpdateGuardSql(),
             $this->inboundSupplierValidationDeleteGuardSql(),
+            $this->inboundPostingUpdateGuardSql(),
+            $this->inboundPostingDeleteGuardSql(),
         );
 
         foreach ($sqlStatements as $sql) {
@@ -236,6 +238,16 @@ class DkDatabaseGuardInstaller
         return $this->appendOnlyGuardSql($this->inboundSupplierValidationDeleteGuardName(), $this->db->prefix().'dk_einvoice_inbound_supplier_validation', 'DELETE', 'supplier invoice validation evidence cannot be deleted');
     }
 
+    public function inboundPostingUpdateGuardSql()
+    {
+        return $this->appendOnlyGuardSql($this->inboundPostingUpdateGuardName(), $this->db->prefix().'dk_einvoice_inbound_posting', 'UPDATE', 'inbound supplier posting evidence is immutable');
+    }
+
+    public function inboundPostingDeleteGuardSql()
+    {
+        return $this->appendOnlyGuardSql($this->inboundPostingDeleteGuardName(), $this->db->prefix().'dk_einvoice_inbound_posting', 'DELETE', 'inbound supplier posting evidence cannot be deleted');
+    }
+
     private function appendOnlyGuardSql(string $name, string $table, string $operation, string $message): string
     {
         return 'CREATE TRIGGER '.$name.' BEFORE '.$operation.' ON '.$table
@@ -308,6 +320,8 @@ class DkDatabaseGuardInstaller
             $this->inboundDraftDeleteGuardName(),
             $this->inboundSupplierValidationUpdateGuardName(),
             $this->inboundSupplierValidationDeleteGuardName(),
+            $this->inboundPostingUpdateGuardName(),
+            $this->inboundPostingDeleteGuardName(),
         );
     }
 
@@ -414,6 +428,16 @@ class DkDatabaseGuardInstaller
     private function inboundSupplierValidationDeleteGuardName()
     {
         return $this->db->prefix().'dk_einvoice_inbound_supplier_validation_bd';
+    }
+
+    private function inboundPostingUpdateGuardName()
+    {
+        return $this->db->prefix().'dk_einvoice_inbound_posting_bu';
+    }
+
+    private function inboundPostingDeleteGuardName()
+    {
+        return $this->db->prefix().'dk_einvoice_inbound_posting_bd';
     }
 
     private function assertSupportedDatabase()

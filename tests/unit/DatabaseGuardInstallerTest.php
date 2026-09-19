@@ -34,6 +34,8 @@ $inboundDraftUpdateSql = $installer->inboundDraftUpdateGuardSql();
 $inboundDraftDeleteSql = $installer->inboundDraftDeleteGuardSql();
 $inboundSupplierValidationUpdateSql = $installer->inboundSupplierValidationUpdateGuardSql();
 $inboundSupplierValidationDeleteSql = $installer->inboundSupplierValidationDeleteGuardSql();
+$inboundPostingUpdateSql = $installer->inboundPostingUpdateGuardSql();
+$inboundPostingDeleteSql = $installer->inboundPostingDeleteGuardSql();
 
 assert(strpos($updateSql, 'BEFORE UPDATE ON llx_accounting_bookkeeping') !== false);
 assert(strpos($updateSql, 'OLD.date_validated IS NOT NULL') !== false);
@@ -82,5 +84,7 @@ assert(strpos($inboundDraftUpdateSql, 'provenance is immutable') !== false);
 assert(strpos($inboundDraftDeleteSql, 'BEFORE DELETE ON llx_dk_einvoice_inbound_draft') !== false);
 assert(strpos($inboundSupplierValidationUpdateSql, 'BEFORE UPDATE ON llx_dk_einvoice_inbound_supplier_validation') !== false);
 assert(strpos($inboundSupplierValidationDeleteSql, 'BEFORE DELETE ON llx_dk_einvoice_inbound_supplier_validation') !== false);
+assert(strpos($inboundPostingUpdateSql, 'BEFORE UPDATE ON llx_dk_einvoice_inbound_posting') !== false);
+assert(strpos($inboundPostingDeleteSql, 'BEFORE DELETE ON llx_dk_einvoice_inbound_posting') !== false);
 
 echo "DatabaseGuardInstaller tests passed\n";
