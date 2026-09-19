@@ -8,12 +8,10 @@ The target correction model is:
 original validated movement
         |
         v
-reversal movement
-        |
-        +---- optional replacement movement
+correction movement(s)
         |
         v
-dk_correction_link
+dk_correction
         |
         v
 audit event
@@ -21,16 +19,20 @@ audit event
 
 ## Compliance relation
 
-`dk_correction_link` records:
+`dk_correction` records one typed relation per correction movement:
 
 - original piece number,
-- reversal piece number,
-- optional replacement piece number,
+- correction piece number,
+- relation type (`reversal`, `adjustment` or `replacement`),
 - correction reason,
 - author,
 - timestamp.
 
-The actual construction of balanced reversal lines will be implemented in the accounting adapter after the canonical accounting model is in place.
+`DkCorrectionService::reverse()` locks and reads the validated original, creates
+new opposite debit/credit rows through Dolibarr's `BookKeeping` API, validates
+the new piece, persists the relation and appends the audit event in one outer
+database transaction. `record()` registers an already-created adjustment or
+replacement through the same relation and audit model.
 
 ## Rules
 
@@ -39,4 +41,5 @@ The actual construction of balanced reversal lines will be implemented in the ac
 - reversal must negate the original economic values,
 - replacement, if any, is a separate new movement,
 - reason is mandatory,
-- relation creation is audit logged.
+- relation creation is audit logged,
+- a piece can only be reversed once through the controlled workflow.
