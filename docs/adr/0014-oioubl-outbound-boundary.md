@@ -16,7 +16,8 @@ The first outbound slice uses this boundary:
 2. It creates immutable `DkCanonicalInvoice`, party and line objects.
 3. `DkOioUblInvoiceGenerator` maps only canonical objects to OIOUBL 2.02 XML.
 4. `DkOioUblValidator` applies the official UBL 2.1 XSD and compiled OIOUBL
-   Invoice Schematron.
+   Invoice Schematron through Saxon-HE, because the official stylesheet uses
+   XSLT 2.0 features that PHP/libxslt does not support.
 5. The exact validated XML bytes are stored through the immutable document
    archive and linked to the corresponding bookkeeping movement.
 
