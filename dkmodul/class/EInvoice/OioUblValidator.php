@@ -24,6 +24,9 @@ final class DkOioUblValidator
     /** Official compiled Schematron XSL returns Error elements for violations. */
     public function validateSchematron(string $xml, string $xsltPath): void
     {
+        if (!class_exists('XSLTProcessor')) {
+            throw new RuntimeException('OIOUBL Schematron validation requires the PHP XSL extension');
+        }
         $xmlDom = new DOMDocument();
         $xslDom = new DOMDocument();
         if (!$xmlDom->loadXML($xml, LIBXML_NONET) || !$xslDom->load($xsltPath, LIBXML_NONET)) {

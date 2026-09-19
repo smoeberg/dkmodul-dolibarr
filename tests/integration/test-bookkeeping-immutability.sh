@@ -33,6 +33,12 @@ for _ in $(seq 1 60); do
 done
 docker compose exec -T dolibarr test -f /var/www/documents/install.lock
 
+echo "Ensuring OIOUBL Schematron runtime dependency..."
+if ! docker compose exec -T dolibarr php -m | grep -qi '^xsl$'; then
+  docker compose exec -T dolibarr sh -c 'apt-get update -qq && apt-get install -y -qq --no-install-recommends libxslt1-dev >/dev/null && docker-php-ext-install xsl >/dev/null && rm -rf /var/lib/apt/lists/*'
+fi
+docker compose exec -T dolibarr php -r 'exit(class_exists("XSLTProcessor") ? 0 : 1);'
+
 echo "Verifying real Dolibarr module activation..."
 module_enabled="$(docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "SELECT value FROM llx_const WHERE name='MAIN_MODULE_DKMODUL' AND entity=1 ORDER BY rowid DESC LIMIT 1")"
 test "$module_enabled" = "1"
