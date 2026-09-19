@@ -44,12 +44,21 @@ $checks = array(
     'string(/saf:AuditFile/saf:Header/saf:Company/saf:CVR)' => '12345678',
     'string(/saf:AuditFile/saf:Header/saf:DefaultCurrencyCode)' => 'DKK',
     'string(/saf:AuditFile/saf:MasterFiles/saf:GeneralLedgerAccounts/saf:VersionOfStandardAccount)' => '20260101',
-    'string(/saf:AuditFile/saf:MasterFiles/saf:TaxTable/saf:TaxTableEntry/saf:TaxCodeDetails/saf:StandardTaxCode)' => 'S1',
-    'string(/saf:AuditFile/saf:GeneralLedgerEntries/saf:NumberOfEntries)' => '5',
+    'string(/saf:AuditFile/saf:MasterFiles/saf:TaxTable/saf:TaxTableEntry/saf:TaxCodeDetails[saf:TaxCode="DKTEST25"]/saf:StandardTaxCode)' => 'S1',
+    'string(/saf:AuditFile/saf:GeneralLedgerEntries/saf:NumberOfEntries)' => '13',
     'string(/saf:AuditFile/saf:GeneralLedgerEntries/saf:Journal/saf:Transaction[saf:TransactionID="DK-990003"]/saf:Line[saf:AccountID="3000"]/saf:TaxInformation/saf:TaxCode)' => 'DKTEST25',
     'string(/saf:AuditFile/saf:GeneralLedgerEntries/saf:Journal/saf:Transaction[saf:TransactionID="DK-990003"]/saf:Line[saf:AccountID="3000"]/saf:TaxInformation/saf:StandardTaxCode)' => 'S1',
     'string(/saf:AuditFile/saf:GeneralLedgerEntries/saf:Journal/saf:Transaction[saf:TransactionID="DK-990003"]/saf:Line[saf:AccountID="3000"]/saf:TaxInformation/saf:TaxBase)' => '250.00000000',
     'string(/saf:AuditFile/saf:GeneralLedgerEntries/saf:Journal/saf:Transaction[saf:TransactionID="DK-990003"]/saf:Line[saf:AccountID="3000"]/saf:TaxInformation/saf:TaxAmount/saf:Amount)' => '62.50000000',
+    'string(/saf:AuditFile/saf:GeneralLedgerEntries/saf:Journal/saf:Transaction[saf:TransactionID="DK-990004"]/saf:Line[saf:AccountID="4000"]/saf:TaxInformation/saf:TaxCode)' => 'DKBUY25',
+    'string(/saf:AuditFile/saf:GeneralLedgerEntries/saf:Journal/saf:Transaction[saf:TransactionID="DK-990004"]/saf:Line[saf:AccountID="4000"]/saf:TaxInformation/saf:TaxBase)' => '200.00000000',
+    'string(/saf:AuditFile/saf:GeneralLedgerEntries/saf:Journal/saf:Transaction[saf:TransactionID="DK-990004"]/saf:Line[saf:AccountID="4000"]/saf:TaxInformation/saf:TaxAmount/saf:Amount)' => '50.00000000',
+    'string(/saf:AuditFile/saf:GeneralLedgerEntries/saf:Journal/saf:Transaction[saf:TransactionID="DK-990005"]/saf:Line[saf:AccountID="3000"]/saf:TaxInformation/saf:TaxCode)' => 'DKSALE0',
+    'string(/saf:AuditFile/saf:GeneralLedgerEntries/saf:Journal/saf:Transaction[saf:TransactionID="DK-990005"]/saf:Line[saf:AccountID="3000"]/saf:TaxInformation/saf:TaxPercentage)' => '0.00000000',
+    'string(/saf:AuditFile/saf:GeneralLedgerEntries/saf:Journal/saf:Transaction[saf:TransactionID="DK-990005"]/saf:Line[saf:AccountID="3000"]/saf:TaxInformation/saf:TaxAmount/saf:Amount)' => '0.00000000',
+    'string(/saf:AuditFile/saf:GeneralLedgerEntries/saf:Journal/saf:Transaction[saf:TransactionID="DK-990006"]/saf:Line[saf:AccountID="3000"]/saf:TaxInformation/saf:TaxCode)' => 'DKTEST25',
+    'string(/saf:AuditFile/saf:GeneralLedgerEntries/saf:Journal/saf:Transaction[saf:TransactionID="DK-990006"]/saf:Line[saf:AccountID="3000"]/saf:TaxInformation/saf:TaxBase)' => '-100.00000000',
+    'string(/saf:AuditFile/saf:GeneralLedgerEntries/saf:Journal/saf:Transaction[saf:TransactionID="DK-990006"]/saf:Line[saf:AccountID="3000"]/saf:TaxInformation/saf:TaxAmount/saf:Amount)' => '-25.00000000',
 );
 
 foreach ($checks as $query => $expected) {

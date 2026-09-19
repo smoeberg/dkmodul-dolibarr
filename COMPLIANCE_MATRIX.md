@@ -26,9 +26,9 @@ Statuskoder:
 | DK-SAFT-002 | SAF-T 2.1 kan importeres | SAF-T Importer + staging | CT-SAFT-002 | PARTIAL |
 | DK-SAFT-003 | SAF-T 2.1-output valideres mod officiel XSD | SAF-T Validator | CT-SAFT-003 | DONE |
 | DK-SAFT-004 | SAF-T implementation er versionsstyret | SchemaRegistry + pinned ERST upstream | CT-SAFT-004 | DONE |
-| DK-BANK-001 | Banktransaktioner kan importeres | Bank | CT-BANK-001 | TODO |
-| DK-BANK-002 | Bankposter kan afstemmes | Bank | CT-BANK-002 | TODO |
-| DK-BANK-003 | Ikke-afstemte differencer fremgår tydeligt | Bank | CT-BANK-003 | TODO |
+| DK-BANK-001 | Banktransaktioner kan importeres | bankconnect: CamtParser | CT-BANK-001 | PARTIAL |
+| DK-BANK-002 | Bankposter kan afstemmes | bankconnect: ReconciliationEngine + MistralMatcher | CT-BANK-002 | PARTIAL |
+| DK-BANK-003 | Ikke-afstemte differencer fremgår tydeligt | bankconnect: UI (afstemningsskærm) | CT-BANK-003 | TODO |
 | DK-EINV-001 | OIOUBL faktura kan sendes | EInvoice | CT-EINV-001 | TODO |
 | DK-EINV-002 | OIOUBL faktura kan modtages | EInvoice | CT-EINV-002 | TODO |
 | DK-EINV-003 | OIOUBL kreditnota kan sendes/modtages | EInvoice | CT-EINV-003 | TODO |
@@ -82,8 +82,9 @@ Følgende automatiserede beviser er nu grønne på Dolibarr 24.0.1:
 
 `DK-SAFT-003` og `DK-SAFT-004` er derfor teknisk testet og markeret `DONE`.
 Det betyder ikke, at den samlede SAF-T-compliance er færdig: `DK-SAFT-001` forbliver
-`PARTIAL`, indtil hele det relevante eksportscope er dækket, og SAF-T import
-(`DK-SAFT-002`) er fortsat ikke implementeret.
+`PARTIAL`, indtil hele det relevante eksportscope er dækket. SAF-T import
+(`DK-SAFT-002`) er implementeret for det beskrevne scope, men forbliver `PARTIAL`,
+indtil hele det relevante imports scope er dækket.
 
 VAT-mapping/provenance (`DK-VAT-001`) forbliver `PARTIAL`, fordi kunde- og
 leverandørfakturaer er de første implementerede kilder; øvrige momsrelevante
@@ -98,10 +99,9 @@ dokumenttyper skal vurderes og testes separat.
 - `tests/integration/test-bookkeeping-immutability.sh`
 - ERST upstream commit: `ea9a4b5704c7a0e9646b0d3b928a59089d71cf0e`
 
-
 ## Aktuel evidens for SAF-T import-slicen
 
-Følgende er implementeret på `feature/saft-2.1-import`:
+Følgende er implementeret og testet på Dolibarr 24.0.1:
 
 - SAF-T 2.1 valideres mod den pinned officielle ERST-XSD før parsing,
 - Header, GeneralLedgerAccounts, TaxTable og GeneralLedgerEntries parses,
@@ -111,6 +111,31 @@ Følgende er implementeret på `feature/saft-2.1-import`:
 - deklareret NumberOfEntries, TotalDebit og TotalCredit kontrolleres mod faktisk indhold,
 - importerede filer stages med SHA-256, så identiske filer ikke kan stages to gange,
 - importerede konti analyseres mod lokale konti og effective-dated standardkontomapping,
-- uafklarede eller tvetydige kontomappings blokerer Apply.
+- uafklarede eller tvetydige kontomappings blokerer Apply,
+- Apply bogfører atomisk gennem Dolibarrs bogførings-API,
+- importerede posteringer låses og får database- og audit-proveniens,
+- genanvendelse af samme import blokeres,
+- importerede momskoder bevares gennem roundtrip eksport og officiel XSD-validering.
 
-`DK-SAFT-002` forbliver `PARTIAL`, indtil det eksplicitte Apply-trin er implementeret og testet mod en rigtig Dolibarr 24.0.1-runtime.
+`DK-SAFT-002` forbliver `PARTIAL`, indtil hele det relevante imports scope er dækket.
+
+## Bank-afstemnings-slice (bankconnect)
+
+Modulet er implementeret som selvstændigt Dolibarr-modul i
+[smoeberg/bankconnect](https://github.com/smoeberg/bankconnect), CI-verificeret
+(php -l + 21 unit tests, 59 assertions).
+
+- `DK-BANK-001` → PARTIAL: camt.053/054-parsing implementeret og testet
+  (`CamtParserTest`). Import via bank-PSD2/gateway er ikke tilsluttet endnu.
+- `DK-BANK-002` → PARTIAL: regelbaseret matching (reference → beløb →
+  datovindue) + Mistral AI fallback implementeret og testet
+  (`ReconciliationEngineTest`, `MistralMatcherTest`). Bokføring sker først
+  efter menneskelig godkendelse.
+- `DK-BANK-003` → TODO: afstemningsskærm (UI) mangler.
+
+Testevidens: `tests/unit/` i bankconnect-repoet; CI-workflow
+`.github/workflows/test.yml` på push/PR.
+
+GDPR-kontrol: MistralMatcher saniterer CPR-numre og lange numeriske koder
+frem afkald på sende følsomme data til AI, og logger kun metrikker (hash,
+latency, antal) - aldrig statement-tekst.
