@@ -29,6 +29,12 @@ Supported relation types initially:
 
 The original transaction remains unchanged.
 
+The authoritative implementation is `Accounting/CorrectionService.php` backed
+by `llx_dk_correction`. A reversal is created through Dolibarr's bookkeeping
+API and the new rows, relation and hash-chained audit event commit atomically.
+The earlier alternative `dk_correction_link` triplet model was removed to avoid
+two incompatible correction models and duplicate PHP class names.
+
 ## Consequences
 
 - correction history is queryable without parsing labels;
@@ -36,3 +42,5 @@ The original transaction remains unchanged.
 - the compliance UI can navigate original -> correction(s);
 - controlled DK correction workflows must record this relation when generating new postings;
 - raw upstream extourne remains usable only after it is integrated with this relation model or disabled in compliance mode.
+- each controlled original piece can have at most one reversal; adjustments and
+  replacements are represented by separate typed relation rows.
