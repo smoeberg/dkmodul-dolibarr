@@ -11,6 +11,7 @@ final readonly class DkCanonicalInvoice
     public string $issueDate;
     public string $dueDate;
     public string $currencyCode;
+    public string $orderReference;
     public DkCanonicalInvoiceParty $supplier;
     public DkCanonicalInvoiceParty $customer;
     public array $lines;
@@ -21,11 +22,12 @@ final readonly class DkCanonicalInvoice
     public string $paymentMeansCode;
     public string $paymentId;
     public string $bankAccount;
+    public string $bankRegistrationNumber;
 
     public function __construct(array $data)
     {
         $this->sourceInvoiceId = (int) ($data['sourceInvoiceId'] ?? 0);
-        foreach (array('invoiceId', 'uuid', 'issueDate', 'dueDate', 'currencyCode', 'paymentMeansCode', 'paymentId', 'bankAccount') as $field) {
+        foreach (array('invoiceId', 'uuid', 'issueDate', 'dueDate', 'currencyCode', 'orderReference', 'paymentMeansCode', 'paymentId', 'bankAccount', 'bankRegistrationNumber') as $field) {
             $value = trim((string) ($data[$field] ?? ''));
             if ($value === '') {
                 throw new InvalidArgumentException('Canonical invoice requires '.$field);

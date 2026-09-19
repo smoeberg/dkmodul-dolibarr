@@ -42,6 +42,9 @@ final class DkOioUblInvoiceGenerator
         $type->setAttribute('listID', 'urn:oioubl:codelist:invoicetypecode-1.1');
         $this->cbc($doc, $root, 'DocumentCurrencyCode', $invoice->currencyCode);
 
+        $order = $this->cac($doc, $root, 'OrderReference');
+        $this->cbc($doc, $order, 'ID', $invoice->orderReference);
+
         $this->appendParty($doc, $root, 'AccountingSupplierParty', $invoice->supplier, true);
         $this->appendParty($doc, $root, 'AccountingCustomerParty', $invoice->customer, false);
 
@@ -55,6 +58,8 @@ final class DkOioUblInvoiceGenerator
         $account = $this->cac($doc, $payment, 'PayeeFinancialAccount');
         $this->cbc($doc, $account, 'ID', $invoice->bankAccount);
         $this->cbc($doc, $account, 'PaymentNote', $invoice->paymentId);
+        $branch = $this->cac($doc, $account, 'FinancialInstitutionBranch');
+        $this->cbc($doc, $branch, 'ID', $invoice->bankRegistrationNumber);
 
         $terms = $this->cac($doc, $root, 'PaymentTerms');
         $this->cbc($doc, $terms, 'ID', '1');
@@ -108,6 +113,7 @@ final class DkOioUblInvoiceGenerator
         $format->setAttribute('listAgencyID', '320');
         $format->setAttribute('listID', 'urn:oioubl:codelist:addressformatcode-1.1');
         $this->cbc($doc, $address, 'StreetName', $party->street);
+        $this->cbc($doc, $address, 'BuildingNumber', $party->buildingNumber);
         $this->cbc($doc, $address, 'CityName', $party->city);
         $this->cbc($doc, $address, 'PostalZone', $party->postalCode);
         $country = $this->cac($doc, $address, 'Country');

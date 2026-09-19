@@ -19,7 +19,7 @@ final class DkDolibarrOutboundInvoiceProvider
         $this->supplier = $supplier;
     }
 
-    public function getInvoice(int $invoiceId, string $customerEndpointId, string $customerEndpointScheme = 'GLN'): DkCanonicalInvoice
+    public function getInvoice(int $invoiceId, string $customerEndpointId, string $customerEndpointScheme, string $orderReference): DkCanonicalInvoice
     {
         $sql = 'SELECT f.rowid,f.ref,f.datef,f.date_lim_reglement,f.total_ht,f.total_tva,f.total_ttc,';
         $sql .= ' f.multicurrency_code,s.nom,s.address,s.zip,s.town,s.siren,s.email,c.code AS country_code';
@@ -61,6 +61,7 @@ final class DkDolibarrOutboundInvoiceProvider
         if ($currency === '') {
             $currency = trim((string) ($this->supplier['currencyCode'] ?? 'DKK')) ?: 'DKK';
         }
+        [$customerStreet, $customerBuildingNumber] = $this->structuredAddress((string) $invoice->address);
 
         return new DkCanonicalInvoice(array(
             'sourceInvoiceId' => (int) $invoice->rowid,
@@ -69,13 +70,15 @@ final class DkDolibarrOutboundInvoiceProvider
             'issueDate' => $issueDate,
             'dueDate' => $dueDate,
             'currencyCode' => $currency,
+            'orderReference' => trim($orderReference),
             'supplier' => $this->supplier,
             'customer' => array(
                 'endpointId' => trim($customerEndpointId),
                 'endpointScheme' => trim($customerEndpointScheme),
                 'registrationName' => (string) $invoice->nom,
                 'companyId' => $customerCompanyId,
-                'street' => (string) $invoice->address,
+                'street' => $customerStreet,
+                'buildingNumber' => $customerBuildingNumber,
                 'city' => (string) $invoice->town,
                 'postalCode' => (string) $invoice->zip,
                 'countryCode' => trim((string) $invoice->country_code) ?: 'DK',
@@ -89,7 +92,17 @@ final class DkDolibarrOutboundInvoiceProvider
             'paymentMeansCode' => (string) ($this->supplier['paymentMeansCode'] ?? '42'),
             'paymentId' => (string) $invoice->ref,
             'bankAccount' => (string) ($this->supplier['bankAccount'] ?? ''),
+            'bankRegistrationNumber' => (string) ($this->supplier['bankRegistrationNumber'] ?? ''),
         ));
+    }
+
+    private function structuredAddress(string $address): array
+    {
+        $address = trim($address);
+        if (!preg_match('/^(.+?)\s+([0-9]+[A-Za-z]?)$/u', $address, $matches)) {
+            throw new InvalidArgumentException('A structured Danish address must end with a building number');
+        }
+        return array(trim($matches[1]), $matches[2]);
     }
 
     private function dkCompanyId(string $value): string

@@ -17,11 +17,11 @@ if (!$source) throw new RuntimeException('OIOUBL source invoice is missing');
 $provider = new DkDolibarrOutboundInvoiceProvider($db, 1, array(
     'endpointId' => 'DK12345678', 'endpointScheme' => 'DK:CVR',
     'registrationName' => 'Dolibarr DK Test ApS', 'companyId' => 'DK12345678',
-    'street' => 'Testvej 1', 'city' => 'Aarhus C', 'postalCode' => '8000', 'countryCode' => 'DK',
+    'street' => 'Testvej', 'buildingNumber' => '1', 'city' => 'Aarhus C', 'postalCode' => '8000', 'countryCode' => 'DK',
     'contactName' => 'Integration Test', 'email' => 'test@example.invalid',
-    'currencyCode' => 'DKK', 'paymentMeansCode' => '42', 'bankAccount' => 'DK5000400440116243',
+    'currencyCode' => 'DKK', 'paymentMeansCode' => '42', 'bankAccount' => '440116243', 'bankRegistrationNumber' => '0040',
 ));
-$invoice = $provider->getInvoice((int) $source->rowid, '5790001968502', 'GLN');
+$invoice = $provider->getInvoice((int) $source->rowid, '5790001968502', 'GLN', 'PO-990003');
 $xml = (new DkOioUblInvoiceGenerator())->generate($invoice);
 
 $validator = new DkOioUblValidator();

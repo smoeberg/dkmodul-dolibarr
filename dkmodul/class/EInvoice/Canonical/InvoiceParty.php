@@ -7,6 +7,7 @@ final readonly class DkCanonicalInvoiceParty
     public string $registrationName;
     public string $companyId;
     public string $street;
+    public string $buildingNumber;
     public string $city;
     public string $postalCode;
     public string $countryCode;
@@ -15,7 +16,7 @@ final readonly class DkCanonicalInvoiceParty
 
     public function __construct(array $data)
     {
-        foreach (array('endpointId', 'endpointScheme', 'registrationName', 'companyId', 'street', 'city', 'postalCode', 'countryCode') as $field) {
+        foreach (array('endpointId', 'endpointScheme', 'registrationName', 'companyId', 'street', 'buildingNumber', 'city', 'postalCode', 'countryCode') as $field) {
             $value = trim((string) ($data[$field] ?? ''));
             if ($value === '') {
                 throw new InvalidArgumentException('Canonical invoice party requires '.$field);
