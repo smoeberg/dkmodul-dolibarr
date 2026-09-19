@@ -72,7 +72,6 @@ final class DkOioUblInvoiceGenerator
 
         $monetary = $this->cac($doc, $root, 'LegalMonetaryTotal');
         $this->amount($doc, $monetary, 'LineExtensionAmount', $invoice->taxExclusiveAmount, $invoice->currencyCode);
-        $this->amount($doc, $monetary, 'TaxExclusiveAmount', $invoice->taxExclusiveAmount, $invoice->currencyCode);
         $this->amount($doc, $monetary, 'TaxInclusiveAmount', $invoice->taxInclusiveAmount, $invoice->currencyCode);
         $this->amount($doc, $monetary, 'PayableAmount', $invoice->payableAmount, $invoice->currencyCode);
 
