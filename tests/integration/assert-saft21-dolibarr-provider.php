@@ -62,7 +62,7 @@ $checks = array(
     'string(/saf:AuditFile/saf:Header/saf:DefaultCurrencyCode)' => 'DKK',
     'string(/saf:AuditFile/saf:MasterFiles/saf:GeneralLedgerAccounts/saf:VersionOfStandardAccount)' => '20260101',
     'string(/saf:AuditFile/saf:MasterFiles/saf:TaxTable/saf:TaxTableEntry/saf:TaxCodeDetails[saf:TaxCode="DKTEST25"]/saf:StandardTaxCode)' => 'S1',
-    'string(/saf:AuditFile/saf:GeneralLedgerEntries/saf:NumberOfEntries)' => '13',
+    'string(/saf:AuditFile/saf:GeneralLedgerEntries/saf:NumberOfEntries)' => '16',
     'string(/saf:AuditFile/saf:GeneralLedgerEntries/saf:Journal/saf:Transaction[saf:TransactionID="DK-990003"]/saf:Line[saf:AccountID="3000"]/saf:TaxInformation/saf:TaxCode)' => 'DKTEST25',
     'string(/saf:AuditFile/saf:GeneralLedgerEntries/saf:Journal/saf:Transaction[saf:TransactionID="DK-990003"]/saf:Line[saf:AccountID="3000"]/saf:TaxInformation/saf:StandardTaxCode)' => 'S1',
     'string(/saf:AuditFile/saf:GeneralLedgerEntries/saf:Journal/saf:Transaction[saf:TransactionID="DK-990003"]/saf:Line[saf:AccountID="3000"]/saf:TaxInformation/saf:TaxBase)' => '250.00000000',
