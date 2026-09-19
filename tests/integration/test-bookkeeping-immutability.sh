@@ -196,6 +196,9 @@ expect_failure "UPDATE llx_dk_einvoice_inbound_validation SET invoice_id='change
 expect_failure "DELETE FROM llx_dk_einvoice_inbound_validation WHERE rowid=${inbound_validation_rowid}"
 
 echo "Approving validated inbound OIOUBL into supplier invoice draft..."
+sql "DELETE FROM llx_const WHERE name='MAIN_MONNAIE' AND entity=1"
+sql "INSERT INTO llx_const (name,value,type,visible,note,entity)
+VALUES ('MAIN_MONNAIE','DKK','chaine',0,'Dolibarr DK integration test',1)"
 sql "INSERT INTO llx_societe
 (nom,entity,status,code_fournisseur,fk_pays,fk_stcomm,client,fournisseur,datec,address,zip,town,siren,email)
 VALUES ('Inbound OIOUBL Supplier',1,1,'DKINBOUND',(SELECT rowid FROM llx_c_country WHERE code='DK' LIMIT 1),0,0,1,NOW(),'Testvej 1','8000','Aarhus C','12345678','supplier@example.invalid')"
