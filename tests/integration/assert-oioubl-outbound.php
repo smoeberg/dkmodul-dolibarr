@@ -26,17 +26,22 @@ $xml = (new DkOioUblInvoiceGenerator())->generate($invoice);
 
 $validator = new DkOioUblValidator();
 $validator->validateXsd($xml, '/tmp/oioubl-schema/maindoc/UBL-Invoice-2.1.xsd');
-$validator->validateSchematron($xml, '/tmp/OIOUBL_Invoice_Schematron.xsl');
+$xmlPath = '/tmp/DKVAT-1.xml';
+$reportPath = '/tmp/OIOUBL_Invoice_Schematron_Result.xml';
+file_put_contents($xmlPath, $xml);
+if (!is_file($reportPath)) {
+    echo "OIOUBL XSD candidate ready for Schematron\n";
+    exit(0);
+}
+$validator->validateSchematronResult((string) file_get_contents($reportPath));
 
 $resql = $db->query("SELECT rowid FROM ".$db->prefix()."accounting_bookkeeping WHERE entity=1 AND piece_num=990003 ORDER BY rowid LIMIT 1");
 $bookkeeping = $resql ? $db->fetch_object($resql) : false;
 if (!$bookkeeping) throw new RuntimeException('OIOUBL bookkeeping link is missing');
 
-$path = '/tmp/DKVAT-1.xml';
-file_put_contents($path, $xml);
 $archived = (new DkDocumentArchiveService($db, '/var/www/documents/dkmodul/archive'))->archive(
     1, (int) $bookkeeping->rowid, 'oioubl_invoice', (int) $source->rowid,
-    $path, 'DKVAT-1.xml', '2026-12-31', 1, 'application/xml'
+    $xmlPath, 'DKVAT-1.xml', '2026-12-31', 1, 'application/xml'
 );
 
 $dom = new DOMDocument();

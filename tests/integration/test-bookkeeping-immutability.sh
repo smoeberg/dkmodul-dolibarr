@@ -167,6 +167,11 @@ git -C /tmp/erst-openebusiness-common checkout -q 223694e79eb4dbf0895640b35484ab
 docker compose cp /tmp/erst-openebusiness-common/resources/Schemas/UBL_v2.1 dolibarr:/tmp/oioubl-schema
 docker compose cp /tmp/erst-openebusiness-common/resources/Schematrons/OIOUBL/OIOUBL_Invoice_Schematron.xsl dolibarr:/tmp/OIOUBL_Invoice_Schematron.xsl
 docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-oioubl-outbound.php
+docker compose exec -T dolibarr java -jar /usr/share/java/Saxon-HE.jar \
+  -s:/tmp/DKVAT-1.xml \
+  -xsl:/tmp/OIOUBL_Invoice_Schematron.xsl \
+  -o:/tmp/OIOUBL_Invoice_Schematron_Result.xml
+docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-oioubl-outbound.php
 
 echo "Configuring strict SAF-T mapping fixture on real Dolibarr database..."
 

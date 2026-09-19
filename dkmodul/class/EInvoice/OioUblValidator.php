@@ -21,44 +21,13 @@ final class DkOioUblValidator
         libxml_use_internal_errors($previous);
     }
 
-    /** Official compiled Schematron XSLT 2.0 returns Error elements for violations. */
-    public function validateSchematron(string $xml, string $xsltPath, string $saxonJar = '/usr/share/java/Saxon-HE.jar'): void
+    /** Validate the XML report produced by applying the official compiled Schematron. */
+    public function validateSchematronResult(string $resultXml): void
     {
-        if (!is_file($xsltPath) || !is_file($saxonJar)) {
-            throw new RuntimeException('OIOUBL Schematron validation requires the official XSLT and Saxon-HE');
+        $result = new DOMDocument();
+        if (!$result->loadXML($resultXml, LIBXML_NONET)) {
+            throw new InvalidArgumentException('Official OIOUBL Schematron returned invalid XML');
         }
-
-        $inputPath = tempnam(sys_get_temp_dir(), 'dk-oioubl-in-');
-        $outputPath = tempnam(sys_get_temp_dir(), 'dk-oioubl-out-');
-        if ($inputPath === false || $outputPath === false || file_put_contents($inputPath, $xml) === false) {
-            throw new RuntimeException('Unable to prepare OIOUBL Schematron validation');
-        }
-
-        try {
-            $command = array('java', '-jar', $saxonJar, '-s:'.$inputPath, '-xsl:'.$xsltPath, '-o:'.$outputPath);
-            $pipes = array();
-            $process = proc_open($command, array(1 => array('pipe', 'w'), 2 => array('pipe', 'w')), $pipes);
-            if (!is_resource($process)) {
-                throw new RuntimeException('Unable to start Saxon-HE for OIOUBL Schematron validation');
-            }
-            $stdout = stream_get_contents($pipes[1]);
-            $stderr = stream_get_contents($pipes[2]);
-            fclose($pipes[1]);
-            fclose($pipes[2]);
-            $exitCode = proc_close($process);
-            if ($exitCode !== 0) {
-                throw new RuntimeException('Unable to execute official OIOUBL Schematron: '.trim($stderr ?: $stdout));
-            }
-
-            $result = new DOMDocument();
-            if (!$result->load($outputPath, LIBXML_NONET)) {
-                throw new RuntimeException('Official OIOUBL Schematron returned invalid XML');
-            }
-        } finally {
-            @unlink($inputPath);
-            @unlink($outputPath);
-        }
-
         $errors = $result->getElementsByTagName('Error');
         if ($errors->length > 0) {
             $messages = array();
