@@ -13,6 +13,7 @@ CREATE TABLE llx_dk_audit_event (
     payload_json LONGTEXT NULL,
     metadata_json LONGTEXT NULL,
     UNIQUE KEY uk_dk_audit_event_uuid (event_uuid),
+    UNIQUE KEY uk_dk_audit_previous_hash (entity, previous_hash),
     KEY idx_dk_audit_event_entity_rowid (entity, rowid),
     KEY idx_dk_audit_event_object (object_type, object_id)
 ) ENGINE=InnoDB;

@@ -18,6 +18,8 @@ $deleteSql = $installer->deleteTriggerSql();
 $originSql = $installer->insertProvenanceTriggerSql();
 $originUpdateSql = $installer->provenanceUpdateGuardSql();
 $originDeleteSql = $installer->provenanceDeleteGuardSql();
+$auditUpdateSql = $installer->auditUpdateGuardSql();
+$auditDeleteSql = $installer->auditDeleteGuardSql();
 
 assert(strpos($updateSql, 'BEFORE UPDATE ON llx_accounting_bookkeeping') !== false);
 assert(strpos($updateSql, 'OLD.date_validated IS NOT NULL') !== false);
@@ -39,5 +41,10 @@ assert(strpos($originSql, 'SHA2(') !== false);
 
 assert(strpos($originUpdateSql, 'BEFORE UPDATE ON llx_dk_bookkeeping_origin') !== false);
 assert(strpos($originDeleteSql, 'BEFORE DELETE ON llx_dk_bookkeeping_origin') !== false);
+
+assert(strpos($auditUpdateSql, 'BEFORE UPDATE ON llx_dk_audit_event') !== false);
+assert(strpos($auditUpdateSql, 'append-only') !== false);
+assert(strpos($auditDeleteSql, 'BEFORE DELETE ON llx_dk_audit_event') !== false);
+assert(strpos($auditDeleteSql, 'cannot be deleted') !== false);
 
 echo "DatabaseGuardInstaller tests passed\n";

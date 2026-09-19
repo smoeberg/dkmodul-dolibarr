@@ -154,3 +154,17 @@ latency, antal) - aldrig statement-tekst.
 
 Testevidens: `tests/integration/assert-correction-workflow.php` og
 `tests/integration/test-bookkeeping-immutability.sh`.
+
+## Audit ledger-integritet
+
+Audit events er databasebeskyttet mod UPDATE og DELETE, og en unik
+`(entity, previous_hash)`-nøgle forhindrer parallelle kædeforgreninger.
+Integrationstesten afviser direkte manipulation og en dublet forgænger, hvorefter
+`DkAuditLedger::verifyChain()` verificerer hele kæden.
+
+`DK-AUD-001` forbliver `PARTIAL`, indtil alle compliance-relevante write-paths
+udsender de nødvendige events, og den operationelle kontrol/rapportering er
+defineret.
+
+Testevidens: `tests/integration/assert-audit-ledger.php` og
+`tests/integration/test-bookkeeping-immutability.sh`.

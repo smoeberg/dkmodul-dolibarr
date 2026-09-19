@@ -102,7 +102,7 @@ class DkAuditLedger
     private function getLastHash($entity)
     {
         $sql = 'SELECT event_hash FROM '.$this->db->prefix().'dk_audit_event';
-        $sql .= ' WHERE entity = '.((int) $entity).' ORDER BY rowid DESC LIMIT 1';
+        $sql .= ' WHERE entity = '.((int) $entity).' ORDER BY rowid DESC LIMIT 1 FOR UPDATE';
 
         $resql = $this->db->query($sql);
         if (!$resql) {

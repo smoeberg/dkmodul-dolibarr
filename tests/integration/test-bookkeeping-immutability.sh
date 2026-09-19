@@ -45,7 +45,7 @@ done
 test "$(docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='dolidb' AND table_name='llx_dk_correction_link'")" = "0"
 
 trigger_count="$(docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_schema='dolidb' AND trigger_name LIKE 'llx_dk_%'")"
-test "$trigger_count" = "5"
+test "$trigger_count" = "7"
 
 sql() {
   docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "$1"
@@ -360,5 +360,21 @@ docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-correction-wor
 echo "Staging and analyzing generated SAF-T 2.1 import..."
 docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-saft21-import-staging.php \
   /tmp/dolibarr-dk-saft21.xml /tmp/saft21.xsd
+
+echo "Verifying append-only audit chain..."
+audit_rowid="$(sql "SELECT rowid FROM llx_dk_audit_event WHERE entity=1 ORDER BY rowid LIMIT 1")"
+test -n "$audit_rowid"
+expect_failure "UPDATE llx_dk_audit_event SET payload_json='{}' WHERE rowid=${audit_rowid}"
+expect_failure "DELETE FROM llx_dk_audit_event WHERE rowid=${audit_rowid}"
+
+last_previous_hash="$(sql "SELECT previous_hash FROM llx_dk_audit_event WHERE entity=1 ORDER BY rowid DESC LIMIT 1")"
+if sql "INSERT INTO llx_dk_audit_event
+(entity,event_uuid,event_type,object_type,object_id,actor_id,created_at,previous_hash,payload_hash,event_hash,payload_json,metadata_json)
+VALUES (1,UUID(),'dk.audit.fork-test','audit',0,1,NOW(),'${last_previous_hash}',REPEAT('0',64),REPEAT('1',64),'{}','{}')" >/tmp/dkmodul-audit-fork.log 2>&1; then
+  echo "Audit ledger accepted a duplicate chain predecessor"
+  exit 1
+fi
+
+docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-audit-ledger.php
 
 echo "Dolibarr DK accounting + SAF-T export/import staging integration tests passed"
