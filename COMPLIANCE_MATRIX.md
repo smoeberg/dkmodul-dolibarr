@@ -17,8 +17,8 @@ Statuskoder:
 | DK-ACC-006 | Bogførte transaktioner kan ikke ændres | DB Guard + PostingGuard | CT-ACC-006 | DONE |
 | DK-ACC-007 | Bogførte transaktioner kan ikke slettes | DB Guard + PostingGuard | CT-ACC-007 | DONE |
 | DK-ACC-008 | Rettelser sker sporbar via ny/modgående postering | CorrectionService | CT-ACC-008 | DONE |
-| DK-DOC-001 | Digitale bilag kan knyttes til bogføringen | Documents | CT-DOC-001 | TODO |
-| DK-DOC-002 | Bilag og bogføringsdata kan opbevares iht. retentionkrav | Runtime | CT-DOC-002 | TODO |
+| DK-DOC-001 | Digitale bilag kan knyttes til bogføringen | Documents | CT-DOC-001 | DONE |
+| DK-DOC-002 | Bilag og bogføringsdata kan opbevares iht. retentionkrav | Runtime | CT-DOC-002 | PARTIAL |
 | DK-AUD-001 | Compliance-relevant audit trail er append-only/logisk uforanderlig | AuditLedger | CT-AUD-001 | PARTIAL |
 | DK-COA-001 | Understøttelse af offentlig standardkontoplan eller mapping | AccountMapping | CT-COA-001 | PARTIAL |
 | DK-VAT-001 | Understøttelse/mapping af relevante momskoder | VatMapping + VAT provenance | CT-VAT-001 | PARTIAL |
@@ -182,4 +182,19 @@ Testevidens: `tests/integration/assert-audit-ledger.php` og
   applikationstriggers og med `notrigger=1`.
 
 Testevidens: `tests/integration/assert-core-bookkeeping-evidence.php` og
+`tests/integration/test-bookkeeping-immutability.sh`.
+
+## Digitale bilag og retention
+
+`DK-DOC-001` er dækket af et content-addressed dokumentarkiv, der knytter de
+arkiverede bytes entydigt til en eksisterende bogføringsrække. SHA-256, størrelse,
+kildereference, aktør og opbevaringsfrist registreres, og arkiveringen skrives til
+det hash-kædede audit ledger. Metadata afviser UPDATE og DELETE på databaseniveau,
+og arkivets bytes kan efterfølgende verificeres mod hash og størrelse.
+
+`DK-DOC-002` er `PARTIAL`: applikationslaget beregner fem år fra regnskabsårets
+udgang og tilbyder ingen slettevej, men deployment-evidens for backup, restore,
+redundans og adgang efter abonnementsophør hører til den endnu åbne runtime-slice.
+
+Testevidens: `tests/integration/assert-document-archive.php` og
 `tests/integration/test-bookkeeping-immutability.sh`.

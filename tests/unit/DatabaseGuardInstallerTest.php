@@ -20,6 +20,8 @@ $originUpdateSql = $installer->provenanceUpdateGuardSql();
 $originDeleteSql = $installer->provenanceDeleteGuardSql();
 $auditUpdateSql = $installer->auditUpdateGuardSql();
 $auditDeleteSql = $installer->auditDeleteGuardSql();
+$documentUpdateSql = $installer->documentUpdateGuardSql();
+$documentDeleteSql = $installer->documentDeleteGuardSql();
 
 assert(strpos($updateSql, 'BEFORE UPDATE ON llx_accounting_bookkeeping') !== false);
 assert(strpos($updateSql, 'OLD.date_validated IS NOT NULL') !== false);
@@ -46,5 +48,10 @@ assert(strpos($auditUpdateSql, 'BEFORE UPDATE ON llx_dk_audit_event') !== false)
 assert(strpos($auditUpdateSql, 'append-only') !== false);
 assert(strpos($auditDeleteSql, 'BEFORE DELETE ON llx_dk_audit_event') !== false);
 assert(strpos($auditDeleteSql, 'cannot be deleted') !== false);
+
+assert(strpos($documentUpdateSql, 'BEFORE UPDATE ON llx_dk_document_archive') !== false);
+assert(strpos($documentUpdateSql, 'metadata is immutable') !== false);
+assert(strpos($documentDeleteSql, 'BEFORE DELETE ON llx_dk_document_archive') !== false);
+assert(strpos($documentDeleteSql, 'cannot be deleted') !== false);
 
 echo "DatabaseGuardInstaller tests passed\n";
