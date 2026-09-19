@@ -26,6 +26,10 @@ $deliveryUpdateSql = $installer->deliveryUpdateGuardSql();
 $deliveryDeleteSql = $installer->deliveryDeleteGuardSql();
 $transportEventUpdateSql = $installer->transportEventUpdateGuardSql();
 $transportEventDeleteSql = $installer->transportEventDeleteGuardSql();
+$inboundUpdateSql = $installer->inboundUpdateGuardSql();
+$inboundDeleteSql = $installer->inboundDeleteGuardSql();
+$inboundValidationUpdateSql = $installer->inboundValidationUpdateGuardSql();
+$inboundValidationDeleteSql = $installer->inboundValidationDeleteGuardSql();
 
 assert(strpos($updateSql, 'BEFORE UPDATE ON llx_accounting_bookkeeping') !== false);
 assert(strpos($updateSql, 'OLD.date_validated IS NOT NULL') !== false);
@@ -63,5 +67,11 @@ assert(strpos($deliveryDeleteSql, 'BEFORE DELETE ON llx_dk_einvoice_delivery') !
 assert(strpos($transportEventUpdateSql, 'BEFORE UPDATE ON llx_dk_einvoice_transport_event') !== false);
 assert(strpos($transportEventUpdateSql, 'append-only') !== false);
 assert(strpos($transportEventDeleteSql, 'BEFORE DELETE ON llx_dk_einvoice_transport_event') !== false);
+
+assert(strpos($inboundUpdateSql, 'BEFORE UPDATE ON llx_dk_einvoice_inbound') !== false);
+assert(strpos($inboundDeleteSql, 'BEFORE DELETE ON llx_dk_einvoice_inbound') !== false);
+assert(strpos($inboundValidationUpdateSql, 'BEFORE UPDATE ON llx_dk_einvoice_inbound_validation') !== false);
+assert(strpos($inboundValidationUpdateSql, 'evidence is immutable') !== false);
+assert(strpos($inboundValidationDeleteSql, 'BEFORE DELETE ON llx_dk_einvoice_inbound_validation') !== false);
 
 echo "DatabaseGuardInstaller tests passed\n";
