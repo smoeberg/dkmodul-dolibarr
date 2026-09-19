@@ -9,11 +9,11 @@ Statuskoder:
 
 | ID | Krav | Komponent | Test-ID | Status |
 |---|---|---|---|---|
-| DK-ACC-001 | Transaktionsdato registreres | Accounting | CT-ACC-001 | TODO |
-| DK-ACC-002 | Beløb, tekst og bilagsreference registreres | Accounting | CT-ACC-002 | TODO |
-| DK-ACC-003 | Fortløbende/entydig identifikation af postering | Accounting | CT-ACC-003 | TODO |
-| DK-ACC-004 | Registreringsdato registreres | Audit | CT-ACC-004 | TODO |
-| DK-ACC-005 | Bruger/program bag registrering kan identificeres | Audit | CT-ACC-005 | TODO |
+| DK-ACC-001 | Transaktionsdato registreres | Accounting | CT-ACC-001 | DONE |
+| DK-ACC-002 | Beløb, tekst og bilagsreference registreres | Accounting | CT-ACC-002 | DONE |
+| DK-ACC-003 | Fortløbende/entydig identifikation af postering | Accounting | CT-ACC-003 | DONE |
+| DK-ACC-004 | Registreringsdato registreres | Audit | CT-ACC-004 | DONE |
+| DK-ACC-005 | Bruger/program bag registrering kan identificeres | Audit | CT-ACC-005 | DONE |
 | DK-ACC-006 | Bogførte transaktioner kan ikke ændres | DB Guard + PostingGuard | CT-ACC-006 | DONE |
 | DK-ACC-007 | Bogførte transaktioner kan ikke slettes | DB Guard + PostingGuard | CT-ACC-007 | DONE |
 | DK-ACC-008 | Rettelser sker sporbar via ny/modgående postering | CorrectionService | CT-ACC-008 | DONE |
@@ -167,4 +167,19 @@ udsender de nødvendige events, og den operationelle kontrol/rapportering er
 defineret.
 
 Testevidens: `tests/integration/assert-audit-ledger.php` og
+`tests/integration/test-bookkeeping-immutability.sh`.
+
+## Grundlæggende bogføringsevidens
+
+`DK-ACC-001–005` er testet gennem Dolibarr 24.0.1's `BookKeeping`-API:
+
+- transaktionsdato, beløb, posteringstekst og bilagsreference genlæses fra databasen,
+- en balanceret bevægelse får næste fortløbende `piece_num` og en ikke-tom reference,
+- `date_creation` beviser registreringstidspunktet,
+- `fk_user_author`, databasebrugeren, provenance-hash og audit-event identificerer
+  bruger og write-path,
+- den validerede postering afviser efterfølgende API-opdatering både med normale
+  applikationstriggers og med `notrigger=1`.
+
+Testevidens: `tests/integration/assert-core-bookkeeping-evidence.php` og
 `tests/integration/test-bookkeeping-immutability.sh`.
