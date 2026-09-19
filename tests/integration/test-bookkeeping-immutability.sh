@@ -379,9 +379,9 @@ VALUES (${supplier_invoice_id},'Supplier VAT test','DKBUY25',25,1,200.00,200.00,
 sql "INSERT INTO llx_accounting_bookkeeping
 (entity,ref,piece_num,doc_date,doc_type,doc_ref,fk_doc,fk_docdet,thirdparty_code,subledger_account,subledger_label,numero_compte,label_compte,label_operation,debit,credit,fk_user_author,date_creation,code_journal,journal_label,date_validated)
 VALUES
-(1,'DK-990004',990004,'2026-09-18','supplier_invoice','SUP-1',${supplier_invoice_id},0,'DKVATSUP','DKVATSUP','DK VAT Supplier','4000','Purchases','Supplier purchase',200.00,0.00,1,NOW(),'KO','Purchases',NOW()),
-(1,'DK-990004',990004,'2026-09-18','supplier_invoice','SUP-1',${supplier_invoice_id},0,'DKVATSUP','','','4450','Purchase VAT','Purchase VAT',50.00,0.00,1,NOW(),'KO','Purchases',NOW()),
-(1,'DK-990004',990004,'2026-09-18','supplier_invoice','SUP-1',${supplier_invoice_id},0,'DKVATSUP','DKVATSUP','DK VAT Supplier','2000','Supplier payable','Supplier payable',0.00,250.00,1,NOW(),'KO','Purchases',NOW())"
+(1,'DK-991004',991004,'2026-09-18','supplier_invoice','SUP-1',${supplier_invoice_id},0,'DKVATSUP','DKVATSUP','DK VAT Supplier','4000','Purchases','Supplier purchase',200.00,0.00,1,NOW(),'KO','Purchases',NOW()),
+(1,'DK-991004',991004,'2026-09-18','supplier_invoice','SUP-1',${supplier_invoice_id},0,'DKVATSUP','','','4450','Purchase VAT','Purchase VAT',50.00,0.00,1,NOW(),'KO','Purchases',NOW()),
+(1,'DK-991004',991004,'2026-09-18','supplier_invoice','SUP-1',${supplier_invoice_id},0,'DKVATSUP','DKVATSUP','DK VAT Supplier','2000','Supplier payable','Supplier payable',0.00,250.00,1,NOW(),'KO','Purchases',NOW())"
 
 sql "INSERT INTO llx_facture
 (ref,entity,type,fk_soc,datec,datef,total_tva,total_ht,total_ttc,fk_statut,fk_user_author,fk_cond_reglement)
@@ -395,8 +395,8 @@ VALUES (${zero_invoice_id},'Zero VAT sale','Zero VAT sale','DKSALE0',0,1,100.00,
 sql "INSERT INTO llx_accounting_bookkeeping
 (entity,ref,piece_num,doc_date,doc_type,doc_ref,fk_doc,fk_docdet,thirdparty_code,subledger_account,subledger_label,numero_compte,label_compte,label_operation,debit,credit,fk_user_author,date_creation,code_journal,journal_label,date_validated)
 VALUES
-(1,'DK-990005',990005,'2026-09-18','customer_invoice','DKZERO-1',${zero_invoice_id},0,'DKVATCUST','DKVATCUST','DK VAT Customer','1000','Receivables','Zero-rate receivable',100.00,0.00,1,NOW(),'VT','Sales',NOW()),
-(1,'DK-990005',990005,'2026-09-18','customer_invoice','DKZERO-1',${zero_invoice_id},0,'DKVATCUST','','','3000','Revenue','Zero-rate sale',0.00,100.00,1,NOW(),'VT','Sales',NOW())"
+(1,'DK-991005',991005,'2026-09-18','customer_invoice','DKZERO-1',${zero_invoice_id},0,'DKVATCUST','DKVATCUST','DK VAT Customer','1000','Receivables','Zero-rate receivable',100.00,0.00,1,NOW(),'VT','Sales',NOW()),
+(1,'DK-991005',991005,'2026-09-18','customer_invoice','DKZERO-1',${zero_invoice_id},0,'DKVATCUST','','','3000','Revenue','Zero-rate sale',0.00,100.00,1,NOW(),'VT','Sales',NOW())"
 
 sql "INSERT INTO llx_facture
 (ref,entity,type,fk_soc,datec,datef,total_tva,total_ht,total_ttc,fk_statut,fk_user_author,fk_cond_reglement)
@@ -410,9 +410,9 @@ VALUES (${credit_invoice_id},'Credit note VAT','Credit note VAT','DKTEST25',25,1
 sql "INSERT INTO llx_accounting_bookkeeping
 (entity,ref,piece_num,doc_date,doc_type,doc_ref,fk_doc,fk_docdet,thirdparty_code,subledger_account,subledger_label,numero_compte,label_compte,label_operation,debit,credit,fk_user_author,date_creation,code_journal,journal_label,date_validated)
 VALUES
-(1,'DK-990006',990006,'2026-09-18','customer_invoice','DKCREDIT-1',${credit_invoice_id},0,'DKVATCUST','DKVATCUST','DK VAT Customer','1000','Receivables','Credit-note receivable',0.00,125.00,1,NOW(),'VT','Sales',NOW()),
-(1,'DK-990006',990006,'2026-09-18','customer_invoice','DKCREDIT-1',${credit_invoice_id},0,'DKVATCUST','','','3000','Revenue','Credit-note revenue',100.00,0.00,1,NOW(),'VT','Sales',NOW()),
-(1,'DK-990006',990006,'2026-09-18','customer_invoice','DKCREDIT-1',${credit_invoice_id},0,'DKVATCUST','','','2600','Sales VAT','Credit-note VAT',25.00,0.00,1,NOW(),'VT','Sales',NOW())"
+(1,'DK-991006',991006,'2026-09-18','customer_invoice','DKCREDIT-1',${credit_invoice_id},0,'DKVATCUST','DKVATCUST','DK VAT Customer','1000','Receivables','Credit-note receivable',0.00,125.00,1,NOW(),'VT','Sales',NOW()),
+(1,'DK-991006',991006,'2026-09-18','customer_invoice','DKCREDIT-1',${credit_invoice_id},0,'DKVATCUST','','','3000','Revenue','Credit-note revenue',100.00,0.00,1,NOW(),'VT','Sales',NOW()),
+(1,'DK-991006',991006,'2026-09-18','customer_invoice','DKCREDIT-1',${credit_invoice_id},0,'DKVATCUST','','','2600','Sales VAT','Credit-note VAT',25.00,0.00,1,NOW(),'VT','Sales',NOW())"
 
 docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-vat-edge-cases.php
 
