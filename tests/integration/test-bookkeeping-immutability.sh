@@ -357,6 +357,9 @@ VALUES ('DKSAFT-2026','2026-01-01','2026-12-31',0,1,NOW(),1)"
 echo "Creating controlled correction reversal..."
 docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-correction-workflow.php
 
+echo "Proving DK-ACC-001-005 through the Dolibarr bookkeeping API..."
+docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-core-bookkeeping-evidence.php
+
 echo "Staging and analyzing generated SAF-T 2.1 import..."
 docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-saft21-import-staging.php \
   /tmp/dolibarr-dk-saft21.xml /tmp/saft21.xsd
