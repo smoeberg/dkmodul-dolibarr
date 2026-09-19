@@ -115,7 +115,7 @@ final class DkInboundSupplierPostingService
     private function validatedSource(int $entity, int $validationRowId, bool $lock)
     {
         $sql = 'SELECT v.rowid AS validation_rowid,v.supplier_invoice_rowid,v.supplier_invoice_ref,';
-        $sql .= ' f.ref AS invoice_ref,f.ref_supplier,f.datef,f.date_lim_reglement,f.total_ht,f.total_tva,f.total_ttc,f.total_localtax1,f.total_localtax2,f.multicurrency_code,f.fk_statut,';
+        $sql .= ' f.ref AS invoice_ref,f.ref_supplier,f.datef,f.date_lim_reglement,f.total_ht,f.total_tva,f.total_ttc,f.multicurrency_code,f.fk_statut,';
         $sql .= ' s.rowid AS supplier_rowid,s.nom AS supplier_name,s.code_fournisseur,s.code_compta_fournisseur,s.accountancy_code_supplier_general,s.fk_pays';
         $sql .= ' FROM '.$this->db->prefix().'dk_einvoice_inbound_supplier_validation v';
         $sql .= ' JOIN '.$this->db->prefix().'facture_fourn f ON f.rowid=v.supplier_invoice_rowid AND f.entity=v.entity';
@@ -128,9 +128,6 @@ final class DkInboundSupplierPostingService
         }
         if (trim((string) $row->accountancy_code_supplier_general) === '' || trim((string) $row->code_compta_fournisseur) === '') {
             throw new RuntimeException('Supplier general and subledger accounts must be explicitly configured');
-        }
-        if (abs((float) $row->total_localtax1) > 0.000001 || abs((float) $row->total_localtax2) > 0.000001) {
-            throw new RuntimeException('Inbound posting does not support local taxes');
         }
         $currency = strtoupper(trim((string) $row->multicurrency_code));
         if ($currency !== '' && $currency !== 'DKK') throw new RuntimeException('Inbound posting currently requires DKK');
