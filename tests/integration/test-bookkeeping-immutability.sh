@@ -43,7 +43,7 @@ echo "Verifying real Dolibarr module activation..."
 module_enabled="$(docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "SELECT value FROM llx_const WHERE name='MAIN_MODULE_DKMODUL' AND entity=1 ORDER BY rowid DESC LIMIT 1")"
 test "$module_enabled" = "1"
 
-for table in llx_dk_audit_event llx_dk_correction llx_dk_bookkeeping_origin llx_dk_document_archive llx_dk_standard_account llx_dk_account_mapping llx_dk_standard_vat_code llx_dk_vat_mapping; do
+for table in llx_dk_audit_event llx_dk_correction llx_dk_bookkeeping_origin llx_dk_document_archive llx_dk_einvoice_delivery llx_dk_einvoice_transport_event llx_dk_standard_account llx_dk_account_mapping llx_dk_standard_vat_code llx_dk_vat_mapping; do
   table_count="$(docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='dolidb' AND table_name='$table'")"
   test "$table_count" = "1"
 done
@@ -51,7 +51,7 @@ done
 test "$(docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='dolidb' AND table_name='llx_dk_correction_link'")" = "0"
 
 trigger_count="$(docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_schema='dolidb' AND trigger_name LIKE 'llx_dk_%'")"
-test "$trigger_count" = "9"
+test "$trigger_count" = "13"
 
 sql() {
   docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "$1"
@@ -172,6 +172,17 @@ docker compose exec -T dolibarr java -jar /usr/share/java/Saxon-HE.jar \
   -xsl:/tmp/OIOUBL_Invoice_Schematron.xsl \
   -o:/tmp/OIOUBL_Invoice_Schematron_Result.xml
 docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-oioubl-outbound.php
+
+echo "Dispatching archived OIOUBL through transport boundary..."
+docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-einvoice-transport.php
+delivery_rowid="$(sql "SELECT rowid FROM llx_dk_einvoice_delivery WHERE entity=1 ORDER BY rowid DESC LIMIT 1")"
+transport_event_rowid="$(sql "SELECT rowid FROM llx_dk_einvoice_transport_event WHERE entity=1 AND event_type='accepted' ORDER BY rowid DESC LIMIT 1")"
+test -n "$delivery_rowid"
+test -n "$transport_event_rowid"
+expect_failure "UPDATE llx_dk_einvoice_delivery SET endpoint_id='changed' WHERE rowid=${delivery_rowid}"
+expect_failure "DELETE FROM llx_dk_einvoice_delivery WHERE rowid=${delivery_rowid}"
+expect_failure "UPDATE llx_dk_einvoice_transport_event SET receipt_code='changed' WHERE rowid=${transport_event_rowid}"
+expect_failure "DELETE FROM llx_dk_einvoice_transport_event WHERE rowid=${transport_event_rowid}"
 
 echo "Configuring strict SAF-T mapping fixture on real Dolibarr database..."
 

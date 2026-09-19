@@ -27,6 +27,10 @@ class DkDatabaseGuardInstaller
             $this->auditDeleteGuardSql(),
             $this->documentUpdateGuardSql(),
             $this->documentDeleteGuardSql(),
+            $this->deliveryUpdateGuardSql(),
+            $this->deliveryDeleteGuardSql(),
+            $this->transportEventUpdateGuardSql(),
+            $this->transportEventDeleteGuardSql(),
         );
 
         foreach ($sqlStatements as $sql) {
@@ -164,6 +168,34 @@ class DkDatabaseGuardInstaller
             .'END';
     }
 
+    public function deliveryUpdateGuardSql()
+    {
+        return $this->appendOnlyGuardSql($this->deliveryUpdateGuardName(), $this->db->prefix().'dk_einvoice_delivery', 'UPDATE', 'e-invoice deliveries are immutable');
+    }
+
+    public function deliveryDeleteGuardSql()
+    {
+        return $this->appendOnlyGuardSql($this->deliveryDeleteGuardName(), $this->db->prefix().'dk_einvoice_delivery', 'DELETE', 'e-invoice deliveries cannot be deleted');
+    }
+
+    public function transportEventUpdateGuardSql()
+    {
+        return $this->appendOnlyGuardSql($this->transportEventUpdateGuardName(), $this->db->prefix().'dk_einvoice_transport_event', 'UPDATE', 'e-invoice transport events are append-only');
+    }
+
+    public function transportEventDeleteGuardSql()
+    {
+        return $this->appendOnlyGuardSql($this->transportEventDeleteGuardName(), $this->db->prefix().'dk_einvoice_transport_event', 'DELETE', 'e-invoice transport events cannot be deleted');
+    }
+
+    private function appendOnlyGuardSql(string $name, string $table, string $operation, string $message): string
+    {
+        return 'CREATE TRIGGER '.$name.' BEFORE '.$operation.' ON '.$table
+            .' FOR EACH ROW BEGIN '
+            ."SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'DK compliance: ".$message."'; "
+            .'END';
+    }
+
     public function backfillProvenance()
     {
         $bookkeeping = $this->db->prefix().'accounting_bookkeeping';
@@ -216,6 +248,10 @@ class DkDatabaseGuardInstaller
             $this->auditDeleteGuardName(),
             $this->documentUpdateGuardName(),
             $this->documentDeleteGuardName(),
+            $this->deliveryUpdateGuardName(),
+            $this->deliveryDeleteGuardName(),
+            $this->transportEventUpdateGuardName(),
+            $this->transportEventDeleteGuardName(),
         );
     }
 
@@ -262,6 +298,26 @@ class DkDatabaseGuardInstaller
     private function documentDeleteGuardName()
     {
         return $this->db->prefix().'dk_document_archive_bd';
+    }
+
+    private function deliveryUpdateGuardName()
+    {
+        return $this->db->prefix().'dk_einvoice_delivery_bu';
+    }
+
+    private function deliveryDeleteGuardName()
+    {
+        return $this->db->prefix().'dk_einvoice_delivery_bd';
+    }
+
+    private function transportEventUpdateGuardName()
+    {
+        return $this->db->prefix().'dk_einvoice_transport_event_bu';
+    }
+
+    private function transportEventDeleteGuardName()
+    {
+        return $this->db->prefix().'dk_einvoice_transport_event_bd';
     }
 
     private function assertSupportedDatabase()

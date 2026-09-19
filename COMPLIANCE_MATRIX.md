@@ -206,10 +206,17 @@ fakturemodel og derfra deterministisk til OIOUBL XML. XML'en valideres mod den
 pinnede officielle UBL 2.1-XSD og OIOUBL Invoice Schematron, hvorefter de præcise
 validerede bytes arkiveres med hash, retention og kobling til bogføringen.
 
-`DK-EINV-001` er `PARTIAL`, fordi denne slice beviser generering, validering og
-arkivering, men endnu ikke NemHandel/Peppol-transport eller modtagelseskvittering.
+En transport-neutral outbox sender kun hash-verificerede bytes fra det immutable
+arkiv. Stabil idempotency key for dokument, modtager og transport forhindrer
+dobbeltlevering efter en accepteret kvittering. Forsøg og normaliserede
+providerkvitteringer gemmes som append-only events og kobles til AuditLedger.
+
+`DK-EINV-001` er fortsat `PARTIAL`: den deterministiske adapter i CI beviser
+transportgrænsen og kvitteringskæden, men en live understøttet NemHandel/Peppol-
+connector med credentials, endpoint discovery og operationel overvågning mangler.
 
 Testevidens: `tests/unit/OioUblInvoiceGeneratorTest.php`,
 `tests/integration/assert-oioubl-outbound.php` og
+`tests/integration/assert-einvoice-transport.php` samt
 `tests/integration/test-bookkeeping-immutability.sh`. Officiel ERST-kilde:
 `openebusiness/common@223694e79eb4dbf0895640b35484ab55abae2c42`.
