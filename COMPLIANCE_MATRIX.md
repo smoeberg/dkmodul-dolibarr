@@ -16,7 +16,7 @@ Statuskoder:
 | DK-ACC-005 | Bruger/program bag registrering kan identificeres | Audit | CT-ACC-005 | TODO |
 | DK-ACC-006 | Bogførte transaktioner kan ikke ændres | DB Guard + PostingGuard | CT-ACC-006 | DONE |
 | DK-ACC-007 | Bogførte transaktioner kan ikke slettes | DB Guard + PostingGuard | CT-ACC-007 | DONE |
-| DK-ACC-008 | Rettelser sker sporbar via ny/modgående postering | CorrectionService | CT-ACC-008 | PARTIAL |
+| DK-ACC-008 | Rettelser sker sporbar via ny/modgående postering | CorrectionService | CT-ACC-008 | DONE |
 | DK-DOC-001 | Digitale bilag kan knyttes til bogføringen | Documents | CT-DOC-001 | TODO |
 | DK-DOC-002 | Bilag og bogføringsdata kan opbevares iht. retentionkrav | Runtime | CT-DOC-002 | TODO |
 | DK-AUD-001 | Compliance-relevant audit trail er append-only/logisk uforanderlig | AuditLedger | CT-AUD-001 | PARTIAL |
@@ -139,3 +139,18 @@ Testevidens: `tests/unit/` i bankconnect-repoet; CI-workflow
 GDPR-kontrol: MistralMatcher saniterer CPR-numre og lange numeriske koder
 frem afkald på sende følsomme data til AI, og logger kun metrikker (hash,
 latency, antal) - aldrig statement-tekst.
+
+## Kontrollerede rettelser
+
+`DK-ACC-008` er dækket af et atomisk korrektionsflow på Dolibarr 24.0.1:
+
+- den validerede original låses og forbliver uændret,
+- en balanceret reversal oprettes gennem Dolibarrs bogførings-API,
+- debit og kredit vendes linje for linje,
+- de nye rækker valideres før commit,
+- relationstype, årsag og aktør gemmes i `dk_correction`,
+- et hash-kædet audit-event oprettes i samme transaktion,
+- endnu en reversal af samme original blokeres.
+
+Testevidens: `tests/integration/assert-correction-workflow.php` og
+`tests/integration/test-bookkeeping-immutability.sh`.
