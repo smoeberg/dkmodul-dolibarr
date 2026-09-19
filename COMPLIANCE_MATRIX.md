@@ -30,7 +30,7 @@ Statuskoder:
 | DK-BANK-002 | Bankposter kan afstemmes | bankconnect: ReconciliationEngine + MistralMatcher | CT-BANK-002 | PARTIAL |
 | DK-BANK-003 | Ikke-afstemte differencer fremgår tydeligt | bankconnect: UI (afstemningsskærm) | CT-BANK-003 | TODO |
 | DK-EINV-001 | OIOUBL faktura kan sendes | EInvoice | CT-EINV-001 | PARTIAL |
-| DK-EINV-002 | OIOUBL faktura kan modtages | EInvoice | CT-EINV-002 | TODO |
+| DK-EINV-002 | OIOUBL faktura kan modtages | EInvoice | CT-EINV-002 | PARTIAL |
 | DK-EINV-003 | OIOUBL kreditnota kan sendes/modtages | EInvoice | CT-EINV-003 | TODO |
 | DK-EINV-004 | Relevante OIOUBL-responsmeddelelser understøttes | EInvoice | CT-EINV-004 | TODO |
 | DK-EINV-005 | Peppol BIS faktura kan sendes/modtages | EInvoice | CT-EINV-005 | TODO |
@@ -220,3 +220,17 @@ Testevidens: `tests/unit/OioUblInvoiceGeneratorTest.php`,
 `tests/integration/assert-einvoice-transport.php` samt
 `tests/integration/test-bookkeeping-immutability.sh`. Officiel ERST-kilde:
 `openebusiness/common@223694e79eb4dbf0895640b35484ab55abae2c42`.
+
+## OIOUBL inbound staging
+
+Inbound OIOUBL gemmes byte-identisk i et content-addressed stagingområde før
+fortolkning. Kanalens message ID giver idempotent redelivery, mens genbrug af
+samme identitet med andre bytes afvises. Først efter officiel XSD- og
+Schematron-validering udtrækkes faktura-, endpoint- og beløbsidentitet.
+Valideringsresultat og artefakthashes er append-only og AuditLedger-koblede.
+
+`DK-EINV-002` er `PARTIAL`, fordi staging og validering er dækket, mens mapping
+til leverandør, godkendelsesflow, Dolibarr-leverandørfaktura og bogføring mangler.
+
+Testevidens: `tests/integration/assert-oioubl-inbound-staging.php` og
+`tests/integration/test-bookkeeping-immutability.sh`.

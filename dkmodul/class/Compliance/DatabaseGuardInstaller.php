@@ -31,6 +31,10 @@ class DkDatabaseGuardInstaller
             $this->deliveryDeleteGuardSql(),
             $this->transportEventUpdateGuardSql(),
             $this->transportEventDeleteGuardSql(),
+            $this->inboundUpdateGuardSql(),
+            $this->inboundDeleteGuardSql(),
+            $this->inboundValidationUpdateGuardSql(),
+            $this->inboundValidationDeleteGuardSql(),
         );
 
         foreach ($sqlStatements as $sql) {
@@ -188,6 +192,26 @@ class DkDatabaseGuardInstaller
         return $this->appendOnlyGuardSql($this->transportEventDeleteGuardName(), $this->db->prefix().'dk_einvoice_transport_event', 'DELETE', 'e-invoice transport events cannot be deleted');
     }
 
+    public function inboundUpdateGuardSql()
+    {
+        return $this->appendOnlyGuardSql($this->inboundUpdateGuardName(), $this->db->prefix().'dk_einvoice_inbound', 'UPDATE', 'inbound e-invoices are immutable');
+    }
+
+    public function inboundDeleteGuardSql()
+    {
+        return $this->appendOnlyGuardSql($this->inboundDeleteGuardName(), $this->db->prefix().'dk_einvoice_inbound', 'DELETE', 'inbound e-invoices cannot be deleted');
+    }
+
+    public function inboundValidationUpdateGuardSql()
+    {
+        return $this->appendOnlyGuardSql($this->inboundValidationUpdateGuardName(), $this->db->prefix().'dk_einvoice_inbound_validation', 'UPDATE', 'inbound validation evidence is immutable');
+    }
+
+    public function inboundValidationDeleteGuardSql()
+    {
+        return $this->appendOnlyGuardSql($this->inboundValidationDeleteGuardName(), $this->db->prefix().'dk_einvoice_inbound_validation', 'DELETE', 'inbound validation evidence cannot be deleted');
+    }
+
     private function appendOnlyGuardSql(string $name, string $table, string $operation, string $message): string
     {
         return 'CREATE TRIGGER '.$name.' BEFORE '.$operation.' ON '.$table
@@ -252,6 +276,10 @@ class DkDatabaseGuardInstaller
             $this->deliveryDeleteGuardName(),
             $this->transportEventUpdateGuardName(),
             $this->transportEventDeleteGuardName(),
+            $this->inboundUpdateGuardName(),
+            $this->inboundDeleteGuardName(),
+            $this->inboundValidationUpdateGuardName(),
+            $this->inboundValidationDeleteGuardName(),
         );
     }
 
@@ -318,6 +346,26 @@ class DkDatabaseGuardInstaller
     private function transportEventDeleteGuardName()
     {
         return $this->db->prefix().'dk_einvoice_transport_event_bd';
+    }
+
+    private function inboundUpdateGuardName()
+    {
+        return $this->db->prefix().'dk_einvoice_inbound_bu';
+    }
+
+    private function inboundDeleteGuardName()
+    {
+        return $this->db->prefix().'dk_einvoice_inbound_bd';
+    }
+
+    private function inboundValidationUpdateGuardName()
+    {
+        return $this->db->prefix().'dk_einvoice_inbound_validation_bu';
+    }
+
+    private function inboundValidationDeleteGuardName()
+    {
+        return $this->db->prefix().'dk_einvoice_inbound_validation_bd';
     }
 
     private function assertSupportedDatabase()
