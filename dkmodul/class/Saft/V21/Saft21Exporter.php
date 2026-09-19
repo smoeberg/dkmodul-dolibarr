@@ -420,6 +420,11 @@ class DkSaft21Exporter
     ) {
         $localCode = $this->requiredValue($taxInformation->taxCode, 'Line tax code');
         $mapping = $this->resolveTaxMapping($localCode, $taxCodes, $transactionDate);
+        if (!empty($taxInformation->standardTaxCode)) {
+            // Imported SAF-T may already carry a public standard code.
+            // Preserve that source-provided mapping instead of remapping heuristically.
+            $mapping['standardTaxCode'] = $taxInformation->standardTaxCode;
+        }
 
         $strict = !array_key_exists('strictLineTaxMapping', $options)
             || (bool) $options['strictLineTaxMapping'];

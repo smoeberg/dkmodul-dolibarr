@@ -23,7 +23,7 @@ Statuskoder:
 | DK-COA-001 | Understøttelse af offentlig standardkontoplan eller mapping | AccountMapping | CT-COA-001 | PARTIAL |
 | DK-VAT-001 | Understøttelse/mapping af relevante momskoder | VatMapping + VAT provenance | CT-VAT-001 | PARTIAL |
 | DK-SAFT-001 | SAF-T 2.1 kan eksporteres | SAF-T | CT-SAFT-001 | PARTIAL |
-| DK-SAFT-002 | SAF-T 2.1 kan importeres | SAF-T | CT-SAFT-002 | TODO |
+| DK-SAFT-002 | SAF-T 2.1 kan importeres | SAF-T Importer + staging | CT-SAFT-002 | PARTIAL |
 | DK-SAFT-003 | SAF-T 2.1-output valideres mod officiel XSD | SAF-T Validator | CT-SAFT-003 | DONE |
 | DK-SAFT-004 | SAF-T implementation er versionsstyret | SchemaRegistry + pinned ERST upstream | CT-SAFT-004 | DONE |
 | DK-BANK-001 | Banktransaktioner kan importeres | bankconnect: CamtParser | CT-BANK-001 | PARTIAL |
@@ -82,8 +82,9 @@ Følgende automatiserede beviser er nu grønne på Dolibarr 24.0.1:
 
 `DK-SAFT-003` og `DK-SAFT-004` er derfor teknisk testet og markeret `DONE`.
 Det betyder ikke, at den samlede SAF-T-compliance er færdig: `DK-SAFT-001` forbliver
-`PARTIAL`, indtil hele det relevante eksportscope er dækket, og SAF-T import
-(`DK-SAFT-002`) er fortsat ikke implementeret.
+`PARTIAL`, indtil hele det relevante eksportscope er dækket. SAF-T import
+(`DK-SAFT-002`) er implementeret for det beskrevne scope, men forbliver `PARTIAL`,
+indtil hele det relevante imports scope er dækket.
 
 VAT-mapping/provenance (`DK-VAT-001`) forbliver `PARTIAL`, fordi kunde- og
 leverandørfakturaer er de første implementerede kilder; øvrige momsrelevante
@@ -97,6 +98,26 @@ dokumenttyper skal vurderes og testes separat.
 - `tests/integration/assert-saft21-dolibarr-provider.php`
 - `tests/integration/test-bookkeeping-immutability.sh`
 - ERST upstream commit: `ea9a4b5704c7a0e9646b0d3b928a59089d71cf0e`
+
+## Aktuel evidens for SAF-T import-slicen
+
+Følgende er implementeret og testet på Dolibarr 24.0.1:
+
+- SAF-T 2.1 valideres mod den pinned officielle ERST-XSD før parsing,
+- Header, GeneralLedgerAccounts, TaxTable og GeneralLedgerEntries parses,
+- transaktioner konverteres til den eksisterende canonical accounting model,
+- dublette AccountID, TransactionID og RecordID afvises,
+- transaktioner skal balancere,
+- deklareret NumberOfEntries, TotalDebit og TotalCredit kontrolleres mod faktisk indhold,
+- importerede filer stages med SHA-256, så identiske filer ikke kan stages to gange,
+- importerede konti analyseres mod lokale konti og effective-dated standardkontomapping,
+- uafklarede eller tvetydige kontomappings blokerer Apply,
+- Apply bogfører atomisk gennem Dolibarrs bogførings-API,
+- importerede posteringer låses og får database- og audit-proveniens,
+- genanvendelse af samme import blokeres,
+- importerede momskoder bevares gennem roundtrip eksport og officiel XSD-validering.
+
+`DK-SAFT-002` forbliver `PARTIAL`, indtil hele det relevante imports scope er dækket.
 
 ## Bank-afstemnings-slice (bankconnect)
 

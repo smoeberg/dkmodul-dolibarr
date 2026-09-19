@@ -25,7 +25,7 @@ class DkDolibarrTaxInformationResolver
     /**
      * @return DkCanonicalTaxInformation[]
      */
-    public function resolve($docType, $docId, $accountCode)
+    public function resolve($docType, $docId, $accountCode, $docDetailId = 0)
     {
         $docType = (string) $docType;
         $docId = (int) $docId;
@@ -55,7 +55,64 @@ class DkDolibarrTaxInformationResolver
             );
         }
 
+        if ($docType === 'saft_import') {
+            return $this->resolveImportedSaftLine($docId, (int) $docDetailId);
+        }
+
         return array();
+    }
+
+    private function resolveImportedSaftLine($importId, $stagedLineId)
+    {
+        if ($importId <= 0 || $stagedLineId <= 0) {
+            return array();
+        }
+
+        $sql = 'SELECT l.tax_information_json';
+        $sql .= ' FROM '.$this->db->prefix().'dk_saft_import_line l';
+        $sql .= ' INNER JOIN '.$this->db->prefix().'dk_saft_import_transaction t';
+        $sql .= ' ON t.rowid = l.fk_import_transaction';
+        $sql .= ' INNER JOIN '.$this->db->prefix().'dk_saft_import i';
+        $sql .= ' ON i.rowid = t.fk_import';
+        $sql .= ' WHERE l.rowid = '.((int) $stagedLineId);
+        $sql .= ' AND i.rowid = '.((int) $importId);
+        $sql .= ' AND i.entity = '.$this->entity;
+        $sql .= ' LIMIT 1';
+
+        $resql = $this->db->query($sql);
+        if (!$resql) {
+            throw new RuntimeException('Unable to resolve imported SAF-T tax information: '.$this->db->lasterror());
+        }
+
+        $row = $this->db->fetch_object($resql);
+        if (!$row || trim((string) $row->tax_information_json) === '') {
+            return array();
+        }
+
+        $decoded = json_decode((string) $row->tax_information_json, true);
+        if (!is_array($decoded)) {
+            throw new RuntimeException('Imported SAF-T tax provenance is not valid JSON');
+        }
+
+        $result = array();
+        foreach ($decoded as $item) {
+            if (!is_array($item) || empty($item['taxCode'])) {
+                continue;
+            }
+
+            $result[] = new DkCanonicalTaxInformation(array(
+                'taxType' => $item['taxType'] ?? 'VAT',
+                'taxCode' => $item['taxCode'],
+                'standardTaxCode' => $item['standardTaxCode'] ?? null,
+                'taxPercentage' => $item['taxPercentage'] ?? null,
+                'taxBase' => $item['taxBase'] ?? null,
+                'taxAmount' => $item['taxAmount'] ?? null,
+                'countryCode' => $item['countryCode'] ?? $this->countryCode,
+                'description' => $item['description'] ?? null,
+            ));
+        }
+
+        return $result;
     }
 
     private function resolveInvoice($detailTable, $invoiceForeignKey, $vatAmountColumn, $docId, $accountCode)

@@ -12,6 +12,7 @@ class DkCanonicalTaxInformation
 {
     public $taxType;
     public $taxCode;
+    public $standardTaxCode;
     public $taxPercentage;
     public $taxBase;
     public $taxAmount;
@@ -22,6 +23,9 @@ class DkCanonicalTaxInformation
     {
         $this->taxType = isset($data['taxType']) ? (string) $data['taxType'] : 'VAT';
         $this->taxCode = trim((string) ($data['taxCode'] ?? ''));
+        $this->standardTaxCode = isset($data['standardTaxCode']) && trim((string) $data['standardTaxCode']) !== ''
+            ? trim((string) $data['standardTaxCode'])
+            : null;
         $this->taxPercentage = !array_key_exists('taxPercentage', $data) || $data['taxPercentage'] === null
             ? null
             : DkCanonicalDecimal::normalize($data['taxPercentage']);
