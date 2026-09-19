@@ -15,10 +15,12 @@ $inbound = $resql ? $db->fetch_object($resql) : false;
 
 $service = new DkInboundSupplierDraftService($db, '/var/www/documents/dkmodul/inbound');
 $supplier = $service->resolveSupplier(1, (int) $inbound->inbound_rowid);
+$approver = new User($db);
+if ($approver->fetch(1) <= 0) throw new RuntimeException('Dolibarr approval user is missing');
 $before = $db->query("SELECT COUNT(*) AS total FROM ".$db->prefix()."accounting_bookkeeping WHERE entity=1 AND doc_ref='DKVAT-1'");
 $beforeCount = (int) $db->fetch_object($before)->total;
-$created = $service->approveAndCreateDraft(1, (int) $inbound->inbound_rowid, $supplier['rowid'], (int) $user->id, $user);
-$reused = $service->approveAndCreateDraft(1, (int) $inbound->inbound_rowid, $supplier['rowid'], (int) $user->id, $user);
+$created = $service->approveAndCreateDraft(1, (int) $inbound->inbound_rowid, $supplier['rowid'], 1, $approver);
+$reused = $service->approveAndCreateDraft(1, (int) $inbound->inbound_rowid, $supplier['rowid'], 1, $approver);
 if (!$reused['reused'] || $created['supplierInvoiceRowId'] !== $reused['supplierInvoiceRowId']) throw new RuntimeException('Inbound draft creation is not idempotent');
 
 $resql = $db->query('SELECT fk_statut,total_ht,total_tva,total_ttc,ref_supplier FROM '.$db->prefix().'facture_fourn WHERE rowid='.(int) $created['supplierInvoiceRowId']);
