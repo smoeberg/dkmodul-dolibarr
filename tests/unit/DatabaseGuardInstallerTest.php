@@ -22,6 +22,10 @@ $auditUpdateSql = $installer->auditUpdateGuardSql();
 $auditDeleteSql = $installer->auditDeleteGuardSql();
 $documentUpdateSql = $installer->documentUpdateGuardSql();
 $documentDeleteSql = $installer->documentDeleteGuardSql();
+$deliveryUpdateSql = $installer->deliveryUpdateGuardSql();
+$deliveryDeleteSql = $installer->deliveryDeleteGuardSql();
+$transportEventUpdateSql = $installer->transportEventUpdateGuardSql();
+$transportEventDeleteSql = $installer->transportEventDeleteGuardSql();
 
 assert(strpos($updateSql, 'BEFORE UPDATE ON llx_accounting_bookkeeping') !== false);
 assert(strpos($updateSql, 'OLD.date_validated IS NOT NULL') !== false);
@@ -53,5 +57,11 @@ assert(strpos($documentUpdateSql, 'BEFORE UPDATE ON llx_dk_document_archive') !=
 assert(strpos($documentUpdateSql, 'metadata is immutable') !== false);
 assert(strpos($documentDeleteSql, 'BEFORE DELETE ON llx_dk_document_archive') !== false);
 assert(strpos($documentDeleteSql, 'cannot be deleted') !== false);
+
+assert(strpos($deliveryUpdateSql, 'BEFORE UPDATE ON llx_dk_einvoice_delivery') !== false);
+assert(strpos($deliveryDeleteSql, 'BEFORE DELETE ON llx_dk_einvoice_delivery') !== false);
+assert(strpos($transportEventUpdateSql, 'BEFORE UPDATE ON llx_dk_einvoice_transport_event') !== false);
+assert(strpos($transportEventUpdateSql, 'append-only') !== false);
+assert(strpos($transportEventDeleteSql, 'BEFORE DELETE ON llx_dk_einvoice_transport_event') !== false);
 
 echo "DatabaseGuardInstaller tests passed\n";
