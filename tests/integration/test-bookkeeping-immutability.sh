@@ -43,7 +43,7 @@ echo "Verifying real Dolibarr module activation..."
 module_enabled="$(docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "SELECT value FROM llx_const WHERE name='MAIN_MODULE_DKMODUL' AND entity=1 ORDER BY rowid DESC LIMIT 1")"
 test "$module_enabled" = "1"
 
-for table in llx_dk_audit_event llx_dk_correction llx_dk_bookkeeping_origin llx_dk_document_archive llx_dk_einvoice_delivery llx_dk_einvoice_transport_event llx_dk_einvoice_inbound llx_dk_einvoice_inbound_validation llx_dk_einvoice_inbound_draft llx_dk_standard_account llx_dk_account_mapping llx_dk_standard_vat_code llx_dk_vat_mapping; do
+for table in llx_dk_audit_event llx_dk_correction llx_dk_bookkeeping_origin llx_dk_document_archive llx_dk_einvoice_delivery llx_dk_einvoice_transport_event llx_dk_einvoice_inbound llx_dk_einvoice_inbound_validation llx_dk_einvoice_inbound_draft llx_dk_einvoice_inbound_supplier_validation llx_dk_standard_account llx_dk_account_mapping llx_dk_standard_vat_code llx_dk_vat_mapping; do
   table_count="$(docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='dolidb' AND table_name='$table'")"
   test "$table_count" = "1"
 done
@@ -51,7 +51,7 @@ done
 test "$(docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='dolidb' AND table_name='llx_dk_correction_link'")" = "0"
 
 trigger_count="$(docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_schema='dolidb' AND trigger_name LIKE 'llx_dk_%'")"
-test "$trigger_count" = "19"
+test "$trigger_count" = "21"
 
 sql() {
   docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "$1"
@@ -204,6 +204,13 @@ inbound_draft_rowid="$(sql "SELECT rowid FROM llx_dk_einvoice_inbound_draft WHER
 test -n "$inbound_draft_rowid"
 expect_failure "UPDATE llx_dk_einvoice_inbound_draft SET supplier_invoice_ref='changed' WHERE rowid=${inbound_draft_rowid}"
 expect_failure "DELETE FROM llx_dk_einvoice_inbound_draft WHERE rowid=${inbound_draft_rowid}"
+
+echo "Explicitly validating inbound supplier invoice without ledger transfer..."
+docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-oioubl-inbound-supplier-validation.php
+inbound_supplier_validation_rowid="$(sql "SELECT rowid FROM llx_dk_einvoice_inbound_supplier_validation WHERE entity=1 ORDER BY rowid DESC LIMIT 1")"
+test -n "$inbound_supplier_validation_rowid"
+expect_failure "UPDATE llx_dk_einvoice_inbound_supplier_validation SET fk_user_validator=2 WHERE rowid=${inbound_supplier_validation_rowid}"
+expect_failure "DELETE FROM llx_dk_einvoice_inbound_supplier_validation WHERE rowid=${inbound_supplier_validation_rowid}"
 
 echo "Configuring strict SAF-T mapping fixture on real Dolibarr database..."
 

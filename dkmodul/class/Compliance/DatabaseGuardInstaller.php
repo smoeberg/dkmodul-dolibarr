@@ -37,6 +37,8 @@ class DkDatabaseGuardInstaller
             $this->inboundValidationDeleteGuardSql(),
             $this->inboundDraftUpdateGuardSql(),
             $this->inboundDraftDeleteGuardSql(),
+            $this->inboundSupplierValidationUpdateGuardSql(),
+            $this->inboundSupplierValidationDeleteGuardSql(),
         );
 
         foreach ($sqlStatements as $sql) {
@@ -224,6 +226,16 @@ class DkDatabaseGuardInstaller
         return $this->appendOnlyGuardSql($this->inboundDraftDeleteGuardName(), $this->db->prefix().'dk_einvoice_inbound_draft', 'DELETE', 'inbound supplier draft provenance cannot be deleted');
     }
 
+    public function inboundSupplierValidationUpdateGuardSql()
+    {
+        return $this->appendOnlyGuardSql($this->inboundSupplierValidationUpdateGuardName(), $this->db->prefix().'dk_einvoice_inbound_supplier_validation', 'UPDATE', 'supplier invoice validation evidence is immutable');
+    }
+
+    public function inboundSupplierValidationDeleteGuardSql()
+    {
+        return $this->appendOnlyGuardSql($this->inboundSupplierValidationDeleteGuardName(), $this->db->prefix().'dk_einvoice_inbound_supplier_validation', 'DELETE', 'supplier invoice validation evidence cannot be deleted');
+    }
+
     private function appendOnlyGuardSql(string $name, string $table, string $operation, string $message): string
     {
         return 'CREATE TRIGGER '.$name.' BEFORE '.$operation.' ON '.$table
@@ -294,6 +306,8 @@ class DkDatabaseGuardInstaller
             $this->inboundValidationDeleteGuardName(),
             $this->inboundDraftUpdateGuardName(),
             $this->inboundDraftDeleteGuardName(),
+            $this->inboundSupplierValidationUpdateGuardName(),
+            $this->inboundSupplierValidationDeleteGuardName(),
         );
     }
 
@@ -390,6 +404,16 @@ class DkDatabaseGuardInstaller
     private function inboundDraftDeleteGuardName()
     {
         return $this->db->prefix().'dk_einvoice_inbound_draft_bd';
+    }
+
+    private function inboundSupplierValidationUpdateGuardName()
+    {
+        return $this->db->prefix().'dk_einvoice_inbound_supplier_validation_bu';
+    }
+
+    private function inboundSupplierValidationDeleteGuardName()
+    {
+        return $this->db->prefix().'dk_einvoice_inbound_supplier_validation_bd';
     }
 
     private function assertSupportedDatabase()
