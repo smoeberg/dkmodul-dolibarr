@@ -206,6 +206,117 @@ sql "INSERT INTO llx_dk_vat_mapping
 (entity,source_tax_code,standard_version,standard_tax_code,valid_from,valid_to,fk_user_author,date_creation)
 VALUES (1,'DKTEST25','20260101','S1','2025-12-01',NULL,1,NOW())"
 
+echo "Creating supplier, zero-rate and credit-note VAT provenance fixtures..."
+
+purchase25_code="$(sql "SELECT tax_code FROM llx_dk_standard_vat_code WHERE standard_version='20260101' AND tax_percentage=25 AND (tax_group LIKE 'Køb%' OR tax_type LIKE 'Køb%') ORDER BY tax_code LIMIT 1")"
+test -n "$purchase25_code"
+
+sale0_code="$(sql "SELECT tax_code FROM llx_dk_standard_vat_code WHERE standard_version='20260101' AND tax_percentage=0 AND (tax_group LIKE 'Salg%' OR tax_type LIKE 'Salg%') ORDER BY tax_code LIMIT 1")"
+test -n "$sale0_code"
+
+sql "INSERT INTO llx_c_tva
+(entity,fk_pays,code,type_vat,taux,note,active)
+VALUES
+(1,${dk_country_id},'DKBUY25',0,25,'Integration test purchase VAT',1),
+(1,${dk_country_id},'DKSALE0',0,0,'Integration test zero-rate sales VAT',1)"
+
+sql "DELETE FROM llx_dk_vat_mapping WHERE entity=1 AND source_tax_code IN ('DKBUY25','DKSALE0')"
+sql "INSERT INTO llx_dk_vat_mapping
+(entity,source_tax_code,standard_version,standard_tax_code,valid_from,valid_to,fk_user_author,date_creation)
+VALUES
+(1,'DKBUY25','20260101','${purchase25_code}','2025-12-01',NULL,1,NOW()),
+(1,'DKSALE0','20260101','${sale0_code}','2025-12-01',NULL,1,NOW())"
+
+pcg_version="$(sql "SELECT pcg_version FROM llx_accounting_system WHERE active=1 ORDER BY rowid LIMIT 1")"
+test -n "$pcg_version"
+
+for account in 2000 4000 4450; do
+  existing="$(sql "SELECT rowid FROM llx_accounting_account WHERE entity=1 AND account_number='${account}' ORDER BY rowid LIMIT 1")"
+  if [ -z "$existing" ]; then
+    type="OTHER"
+    label="Integration account ${account}"
+    if [ "$account" = "4000" ]; then type="EXPENSE"; label="Purchases"; fi
+    if [ "$account" = "2000" ]; then type="LIABILITY"; label="Supplier payable"; fi
+    if [ "$account" = "4450" ]; then type="ASSET"; label="Purchase VAT"; fi
+    sql "INSERT INTO llx_accounting_account
+    (entity,datec,fk_pcg_version,pcg_type,account_number,label,fk_user_author,active)
+    VALUES (1,NOW(),'${pcg_version}','${type}','${account}','${label}',1,1)"
+  fi
+done
+
+expense_account_rowid="$(sql "SELECT rowid FROM llx_accounting_account WHERE entity=1 AND account_number='4000' ORDER BY rowid LIMIT 1")"
+test -n "$expense_account_rowid"
+
+sql "INSERT INTO llx_societe
+(nom,entity,status,code_fournisseur,fk_pays,fk_stcomm,client,fournisseur,datec)
+VALUES ('DK VAT Supplier',1,1,'DKVATSUP',${dk_country_id},0,0,1,NOW())"
+supplier_id="$(sql "SELECT rowid FROM llx_societe WHERE code_fournisseur='DKVATSUP' ORDER BY rowid DESC LIMIT 1")"
+test -n "$supplier_id"
+
+sql "INSERT INTO llx_facture_fourn
+(ref,ref_supplier,entity,type,fk_soc,datec,datef,total_tva,total_ht,total_ttc,fk_statut,fk_user_author)
+VALUES ('DKSUP-1','SUP-1',1,0,${supplier_id},NOW(),'2026-09-18',50.00,200.00,250.00,1,1)"
+supplier_invoice_id="$(sql "SELECT rowid FROM llx_facture_fourn WHERE ref='DKSUP-1' AND entity=1 ORDER BY rowid DESC LIMIT 1")"
+
+sql "INSERT INTO llx_facture_fourn_det
+(fk_facture_fourn,description,vat_src_code,tva_tx,qty,pu_ht,total_ht,tva,total_ttc,product_type,fk_code_ventilation)
+VALUES (${supplier_invoice_id},'Supplier VAT test','DKBUY25',25,1,200.00,200.00,50.00,250.00,0,${expense_account_rowid})"
+
+sql "INSERT INTO llx_accounting_bookkeeping
+(entity,ref,piece_num,doc_date,doc_type,doc_ref,fk_doc,fk_docdet,thirdparty_code,subledger_account,subledger_label,numero_compte,label_compte,label_operation,debit,credit,fk_user_author,date_creation,code_journal,journal_label,date_validated)
+VALUES
+(1,'DK-990004',990004,'2026-09-18','supplier_invoice','SUP-1',${supplier_invoice_id},0,'DKVATSUP','DKVATSUP','DK VAT Supplier','4000','Purchases','Supplier purchase',200.00,0.00,1,NOW(),'KO','Purchases',NOW()),
+(1,'DK-990004',990004,'2026-09-18','supplier_invoice','SUP-1',${supplier_invoice_id},0,'DKVATSUP','','','4450','Purchase VAT','Purchase VAT',50.00,0.00,1,NOW(),'KO','Purchases',NOW()),
+(1,'DK-990004',990004,'2026-09-18','supplier_invoice','SUP-1',${supplier_invoice_id},0,'DKVATSUP','DKVATSUP','DK VAT Supplier','2000','Supplier payable','Supplier payable',0.00,250.00,1,NOW(),'KO','Purchases',NOW())"
+
+sql "INSERT INTO llx_facture
+(ref,entity,type,fk_soc,datec,datef,total_tva,total_ht,total_ttc,fk_statut,fk_user_author,fk_cond_reglement)
+VALUES ('DKZERO-1',1,0,${customer_id},NOW(),'2026-09-18',0.00,100.00,100.00,1,1,1)"
+zero_invoice_id="$(sql "SELECT rowid FROM llx_facture WHERE ref='DKZERO-1' AND entity=1 ORDER BY rowid DESC LIMIT 1")"
+
+sql "INSERT INTO llx_facturedet
+(fk_facture,label,description,vat_src_code,tva_tx,qty,subprice,total_ht,total_tva,total_ttc,product_type,fk_code_ventilation)
+VALUES (${zero_invoice_id},'Zero VAT sale','Zero VAT sale','DKSALE0',0,1,100.00,100.00,0.00,100.00,0,${revenue_account_rowid})"
+
+sql "INSERT INTO llx_accounting_bookkeeping
+(entity,ref,piece_num,doc_date,doc_type,doc_ref,fk_doc,fk_docdet,thirdparty_code,subledger_account,subledger_label,numero_compte,label_compte,label_operation,debit,credit,fk_user_author,date_creation,code_journal,journal_label,date_validated)
+VALUES
+(1,'DK-990005',990005,'2026-09-18','customer_invoice','DKZERO-1',${zero_invoice_id},0,'DKVATCUST','DKVATCUST','DK VAT Customer','1000','Receivables','Zero-rate receivable',100.00,0.00,1,NOW(),'VT','Sales',NOW()),
+(1,'DK-990005',990005,'2026-09-18','customer_invoice','DKZERO-1',${zero_invoice_id},0,'DKVATCUST','','','3000','Revenue','Zero-rate sale',0.00,100.00,1,NOW(),'VT','Sales',NOW())"
+
+sql "INSERT INTO llx_facture
+(ref,entity,type,fk_soc,datec,datef,total_tva,total_ht,total_ttc,fk_statut,fk_user_author,fk_cond_reglement)
+VALUES ('DKCREDIT-1',1,2,${customer_id},NOW(),'2026-09-18',-25.00,-100.00,-125.00,1,1,1)"
+credit_invoice_id="$(sql "SELECT rowid FROM llx_facture WHERE ref='DKCREDIT-1' AND entity=1 ORDER BY rowid DESC LIMIT 1")"
+
+sql "INSERT INTO llx_facturedet
+(fk_facture,label,description,vat_src_code,tva_tx,qty,subprice,total_ht,total_tva,total_ttc,product_type,fk_code_ventilation)
+VALUES (${credit_invoice_id},'Credit note VAT','Credit note VAT','DKTEST25',25,1,-100.00,-100.00,-25.00,-125.00,0,${revenue_account_rowid})"
+
+sql "INSERT INTO llx_accounting_bookkeeping
+(entity,ref,piece_num,doc_date,doc_type,doc_ref,fk_doc,fk_docdet,thirdparty_code,subledger_account,subledger_label,numero_compte,label_compte,label_operation,debit,credit,fk_user_author,date_creation,code_journal,journal_label,date_validated)
+VALUES
+(1,'DK-990006',990006,'2026-09-18','customer_invoice','DKCREDIT-1',${credit_invoice_id},0,'DKVATCUST','DKVATCUST','DK VAT Customer','1000','Receivables','Credit-note receivable',0.00,125.00,1,NOW(),'VT','Sales',NOW()),
+(1,'DK-990006',990006,'2026-09-18','customer_invoice','DKCREDIT-1',${credit_invoice_id},0,'DKVATCUST','','','3000','Revenue','Credit-note revenue',100.00,0.00,1,NOW(),'VT','Sales',NOW()),
+(1,'DK-990006',990006,'2026-09-18','customer_invoice','DKCREDIT-1',${credit_invoice_id},0,'DKVATCUST','','','2600','Sales VAT','Credit-note VAT',25.00,0.00,1,NOW(),'VT','Sales',NOW())"
+
+docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-vat-edge-cases.php
+
+sql "DELETE FROM llx_dk_account_mapping WHERE entity=1 AND source_account IN ('2000','4000','4450')"
+sql "DELETE FROM llx_dk_standard_account WHERE standard_version='20260101' AND account_code IN ('2000','4000','4450')"
+sql "INSERT INTO llx_dk_standard_account
+(standard_version,valid_from,account_code,account_type,label,source_hash,date_imported)
+VALUES
+('20260101','2026-01-01','2000','Liability','Test supplier payable',REPEAT('0',64),NOW()),
+('20260101','2026-01-01','4000','Expense','Test purchase expense',REPEAT('0',64),NOW()),
+('20260101','2026-01-01','4450','Asset','Test purchase VAT',REPEAT('0',64),NOW())"
+sql "INSERT INTO llx_dk_account_mapping
+(entity,source_account,standard_version,standard_account,valid_from,valid_to,fk_user_author,date_creation)
+VALUES
+(1,'2000','20260101','2000','2026-01-01',NULL,1,NOW()),
+(1,'4000','20260101','4000','2026-01-01',NULL,1,NOW()),
+(1,'4450','20260101','4450','2026-01-01',NULL,1,NOW())"
+
 echo "Generating strict SAF-T 2.1 from Dolibarr provider..."
 docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-saft21-dolibarr-provider.php /tmp/dolibarr-dk-saft21.xml
 
