@@ -3,21 +3,21 @@
 require_once __DIR__.'/Decimal.php';
 require_once __DIR__.'/Line.php';
 
-class DkCanonicalTransaction
+final readonly class DkCanonicalTransaction
 {
-    public $transactionId;
-    public $sourcePieceNumber;
-    public $journalCode;
-    public $journalDescription;
-    public $transactionDate;
-    public $registrationDateTime;
-    public $validatedAt;
-    public $actor;
-    public $sourceType;
-    public $documentRef;
-    public $description;
-    public $correctionOf;
-    public $lines = array();
+    public string $transactionId;
+    public ?int $sourcePieceNumber;
+    public string $journalCode;
+    public ?string $journalDescription;
+    public string $transactionDate;
+    public string $registrationDateTime;
+    public ?string $validatedAt;
+    public string $actor;
+    public ?string $sourceType;
+    public ?string $documentRef;
+    public ?string $description;
+    public ?string $correctionOf;
+    public array $lines;
 
     public function __construct(array $data)
     {
@@ -36,9 +36,11 @@ class DkCanonicalTransaction
         $this->description = isset($data['description']) ? (string) $data['description'] : null;
         $this->correctionOf = isset($data['correctionOf']) ? (string) $data['correctionOf'] : null;
 
+        $lines = array();
         foreach (($data['lines'] ?? array()) as $line) {
-            $this->lines[] = $line instanceof DkCanonicalLine ? $line : new DkCanonicalLine($line);
+            $lines[] = $line instanceof DkCanonicalLine ? $line : new DkCanonicalLine($line);
         }
+        $this->lines = $lines;
 
         $this->validate();
     }

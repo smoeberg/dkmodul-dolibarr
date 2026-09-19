@@ -8,16 +8,16 @@ require_once __DIR__.'/Decimal.php';
  * This class deliberately stores the source/local VAT code. Mapping to the
  * public Danish StandardTaxCode belongs to the SAF-T mapping layer.
  */
-class DkCanonicalTaxInformation
+final readonly class DkCanonicalTaxInformation
 {
-    public $taxType;
-    public $taxCode;
-    public $standardTaxCode;
-    public $taxPercentage;
-    public $taxBase;
-    public $taxAmount;
-    public $countryCode;
-    public $description;
+    public string $taxType;
+    public string $taxCode;
+    public ?string $standardTaxCode;
+    public ?string $taxPercentage;
+    public ?string $taxBase;
+    public ?string $taxAmount;
+    public ?string $countryCode;
+    public ?string $description;
 
     public function __construct(array $data)
     {
