@@ -29,7 +29,7 @@ Statuskoder:
 | DK-BANK-001 | Banktransaktioner kan importeres | bankconnect: CamtParser | CT-BANK-001 | PARTIAL |
 | DK-BANK-002 | Bankposter kan afstemmes | bankconnect: ReconciliationEngine + MistralMatcher | CT-BANK-002 | PARTIAL |
 | DK-BANK-003 | Ikke-afstemte differencer fremgår tydeligt | bankconnect: UI (afstemningsskærm) | CT-BANK-003 | TODO |
-| DK-EINV-001 | OIOUBL faktura kan sendes | EInvoice | CT-EINV-001 | TODO |
+| DK-EINV-001 | OIOUBL faktura kan sendes | EInvoice | CT-EINV-001 | PARTIAL |
 | DK-EINV-002 | OIOUBL faktura kan modtages | EInvoice | CT-EINV-002 | TODO |
 | DK-EINV-003 | OIOUBL kreditnota kan sendes/modtages | EInvoice | CT-EINV-003 | TODO |
 | DK-EINV-004 | Relevante OIOUBL-responsmeddelelser understøttes | EInvoice | CT-EINV-004 | TODO |
@@ -198,3 +198,18 @@ redundans og adgang efter abonnementsophør hører til den endnu åbne runtime-s
 
 Testevidens: `tests/integration/assert-document-archive.php` og
 `tests/integration/test-bookkeeping-immutability.sh`.
+
+## OIOUBL outbound faktura
+
+En reel Dolibarr-kundefaktura mappes til en immutable, transport-neutral
+fakturemodel og derfra deterministisk til OIOUBL XML. XML'en valideres mod den
+pinnede officielle UBL 2.1-XSD og OIOUBL Invoice Schematron, hvorefter de præcise
+validerede bytes arkiveres med hash, retention og kobling til bogføringen.
+
+`DK-EINV-001` er `PARTIAL`, fordi denne slice beviser generering, validering og
+arkivering, men endnu ikke NemHandel/Peppol-transport eller modtagelseskvittering.
+
+Testevidens: `tests/unit/OioUblInvoiceGeneratorTest.php`,
+`tests/integration/assert-oioubl-outbound.php` og
+`tests/integration/test-bookkeeping-immutability.sh`. Officiel ERST-kilde:
+`openebusiness/common@223694e79eb4dbf0895640b35484ab55abae2c42`.

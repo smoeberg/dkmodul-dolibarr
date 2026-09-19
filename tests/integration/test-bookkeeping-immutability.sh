@@ -130,14 +130,14 @@ fi
 test -n "$revenue_account_rowid"
 
 sql "INSERT INTO llx_societe
-(nom,entity,status,code_client,fk_pays,fk_stcomm,client,fournisseur,datec)
-VALUES ('DK VAT Customer',1,1,'DKVATCUST',0,0,1,0,NOW())"
+(nom,entity,status,code_client,fk_pays,fk_stcomm,client,fournisseur,datec,address,zip,town,idprof2,email)
+VALUES ('DK VAT Customer',1,1,'DKVATCUST',(SELECT rowid FROM llx_c_country WHERE code='DK' LIMIT 1),0,1,0,NOW(),'Kundevej 2','2100','København','87654321','customer@example.invalid')"
 customer_id="$(sql "SELECT rowid FROM llx_societe WHERE code_client='DKVATCUST' ORDER BY rowid DESC LIMIT 1")"
 test -n "$customer_id"
 
 sql "INSERT INTO llx_facture
-(ref,entity,type,fk_soc,datec,datef,total_tva,total_ht,total_ttc,fk_statut,fk_user_author,fk_cond_reglement)
-VALUES ('DKVAT-1',1,0,${customer_id},NOW(),'2026-09-18',62.50,250.00,312.50,1,1,1)"
+(ref,entity,type,fk_soc,datec,datef,date_lim_reglement,total_tva,total_ht,total_ttc,fk_statut,fk_user_author,fk_cond_reglement)
+VALUES ('DKVAT-1',1,0,${customer_id},NOW(),'2026-09-18','2026-10-18',62.50,250.00,312.50,1,1,1)"
 invoice_id="$(sql "SELECT rowid FROM llx_facture WHERE ref='DKVAT-1' AND entity=1 ORDER BY rowid DESC LIMIT 1")"
 test -n "$invoice_id"
 
@@ -153,6 +153,14 @@ VALUES
 (1,'DK-990003',990003,'2026-09-18','customer_invoice','DKVAT-1',${invoice_id},0,'DKVATCUST','','','2600','Sales VAT','Sales VAT',0.00,62.50,1,NOW(),'VT','Sales',NOW())"
 
 docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-tax-provenance.php
+
+echo "Validating and archiving outbound OIOUBL invoice..."
+rm -rf /tmp/erst-openebusiness-common
+git clone -q https://git.erst.dk/openebusiness/common.git /tmp/erst-openebusiness-common
+git -C /tmp/erst-openebusiness-common checkout -q 223694e79eb4dbf0895640b35484ab55abae2c42
+docker compose cp /tmp/erst-openebusiness-common/resources/Schemas/UBL_v2.1 dolibarr:/tmp/oioubl-schema
+docker compose cp /tmp/erst-openebusiness-common/resources/Schematrons/OIOUBL/OIOUBL_Invoice_Schematron.xsl dolibarr:/tmp/OIOUBL_Invoice_Schematron.xsl
+docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-oioubl-outbound.php
 
 echo "Configuring strict SAF-T mapping fixture on real Dolibarr database..."
 
