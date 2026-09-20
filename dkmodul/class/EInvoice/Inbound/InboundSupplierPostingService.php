@@ -25,6 +25,9 @@ final class DkInboundSupplierPostingService
         if (empty($user->admin) && (!method_exists($user, 'hasRight') || !$user->hasRight('accounting', 'bind', 'write'))) {
             throw new RuntimeException('Actor is not authorized to transfer supplier invoices to bookkeeping');
         }
+        if (empty($user->admin) && !$user->hasRight('dkmodul', 'inbound', 'post')) {
+            throw new RuntimeException('Actor is not authorized to post inbound supplier invoices');
+        }
 
         require_once DOL_DOCUMENT_ROOT.'/accountancy/class/bookkeeping.class.php';
         $this->db->begin('DK inbound supplier posting');

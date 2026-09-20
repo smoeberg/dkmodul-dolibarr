@@ -23,6 +23,9 @@ final class DkInboundSupplierValidationService
         if (empty($user->admin) && (!method_exists($user, 'hasRight') || !$user->hasRight('fournisseur', 'facture', 'creer'))) {
             throw new RuntimeException('Actor is not authorized to validate supplier invoices');
         }
+        if (empty($user->admin) && !$user->hasRight('dkmodul', 'inbound', 'validate')) {
+            throw new RuntimeException('Actor is not authorized to validate inbound supplier invoices');
+        }
 
         $this->db->begin();
         try {

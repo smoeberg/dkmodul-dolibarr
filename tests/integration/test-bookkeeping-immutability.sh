@@ -249,6 +249,7 @@ fi
 
 echo "Posting validated inbound supplier invoice as balanced immutable movement..."
 docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-oioubl-inbound-supplier-posting.php
+docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-oioubl-inbound-workflow.php
 inbound_posting_rowid="$(sql "SELECT rowid FROM llx_dk_einvoice_inbound_posting WHERE entity=1 ORDER BY rowid DESC LIMIT 1")"
 inbound_posting_bookkeeping_rowid="$(sql "SELECT rowid FROM llx_accounting_bookkeeping WHERE entity=1 AND doc_type='supplier_invoice' AND fk_doc=${inbound_supplier_invoice_id} ORDER BY rowid LIMIT 1")"
 test -n "$inbound_posting_rowid"
