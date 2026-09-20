@@ -48,6 +48,8 @@ final class DkOioUblInvoiceGenerator
         $this->cbc($doc, $root, 'DocumentCurrencyCode', $invoice->currencyCode);
 
         if ($creditNote) {
+            $order = $this->cac($doc, $root, 'OrderReference');
+            $this->cbc($doc, $order, 'ID', $invoice->orderReference);
             $billing = $this->cac($doc, $root, 'BillingReference');
             $reference = $this->cac($doc, $billing, 'InvoiceDocumentReference');
             $this->cbc($doc, $reference, 'ID', (string) $invoice->creditedInvoiceId);

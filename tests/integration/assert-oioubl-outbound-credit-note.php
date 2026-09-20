@@ -55,6 +55,7 @@ $xp->registerNamespace('c', 'urn:oasis:names:specification:ubl:schema:xsd:Credit
 $xp->registerNamespace('cbc', 'urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2');
 $xp->registerNamespace('cac', 'urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2');
 if ($xp->evaluate('string(/c:CreditNote/cbc:ID)') !== 'DKCR-OUT-1'
+    || $xp->evaluate('string(/c:CreditNote/cac:OrderReference/cbc:ID)') !== 'PO-990003'
     || $xp->evaluate('string(/c:CreditNote/cac:BillingReference/cac:InvoiceDocumentReference/cbc:ID)') !== 'DKVAT-1'
     || $xp->evaluate('string(/c:CreditNote/cac:CreditNoteLine/cbc:LineExtensionAmount)') !== '250.00') {
     throw new RuntimeException('Unexpected outbound OIOUBL credit-note structure');

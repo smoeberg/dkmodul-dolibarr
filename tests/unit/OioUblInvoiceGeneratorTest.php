@@ -45,6 +45,7 @@ $creditXp = new DOMXPath($creditDom);
 $creditXp->registerNamespace('c', 'urn:oasis:names:specification:ubl:schema:xsd:CreditNote-2');
 $creditXp->registerNamespace('cbc', 'urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2');
 $creditXp->registerNamespace('cac', 'urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2');
+assert($creditXp->evaluate('string(/c:CreditNote/cac:OrderReference/cbc:ID)') === 'PO-42');
 assert($creditXp->evaluate('string(/c:CreditNote/cac:BillingReference/cac:InvoiceDocumentReference/cbc:ID)') === 'INV-42');
 assert($creditXp->evaluate('string(/c:CreditNote/cac:CreditNoteLine/cbc:CreditedQuantity)') === '1.00');
 assert($generator->generate($credit) === $creditXml);
