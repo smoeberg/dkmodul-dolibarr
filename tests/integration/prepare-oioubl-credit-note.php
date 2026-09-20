@@ -19,7 +19,7 @@ $set('/doc:CreditNote/cbc:ID', 'DKCR-1');
 $set('/doc:CreditNote/cbc:UUID', 'b9f95e39-60f8-42d2-a4f4-fbb3410f94b4');
 $set('/doc:CreditNote/cbc:IssueDate', '2026-09-20');
 $set('/doc:CreditNote/cac:BillingReference/cac:InvoiceDocumentReference/cbc:ID', 'DKVAT-1');
-$set('/doc:CreditNote/cac:AccountingSupplierParty/cac:Party/cbc:EndpointID', 'DK12345678');
+$set('/doc:CreditNote/cac:AccountingSupplierParty/cac:Party/cbc:EndpointID', '5798009811530');
 $set('/doc:CreditNote/cac:AccountingSupplierParty/cac:Party/cac:PartyLegalEntity/cbc:CompanyID', 'DK12345678');
 $set('/doc:CreditNote/cac:AccountingCustomerParty/cac:Party/cbc:EndpointID', '5790001968502');
 
@@ -40,7 +40,7 @@ $set('/doc:CreditNote/cac:TaxTotal/cbc:TaxAmount', '62.50');
 $set('/doc:CreditNote/cac:TaxTotal/cac:TaxSubtotal/cbc:TaxableAmount', '250.00');
 $set('/doc:CreditNote/cac:TaxTotal/cac:TaxSubtotal/cbc:TaxAmount', '62.50');
 $set('/doc:CreditNote/cac:LegalMonetaryTotal/cbc:LineExtensionAmount', '250.00');
-$set('/doc:CreditNote/cac:LegalMonetaryTotal/cbc:TaxExclusiveAmount', '250.00');
+$set('/doc:CreditNote/cac:LegalMonetaryTotal/cbc:TaxExclusiveAmount', '62.50');
 $set('/doc:CreditNote/cac:LegalMonetaryTotal/cbc:TaxInclusiveAmount', '312.50');
 $set('/doc:CreditNote/cac:LegalMonetaryTotal/cbc:PayableAmount', '312.50');
 
