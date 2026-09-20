@@ -32,7 +32,7 @@ Statuskoder:
 | DK-EINV-001 | OIOUBL faktura kan sendes | EInvoice | CT-EINV-001 | PARTIAL |
 | DK-EINV-002 | OIOUBL faktura kan modtages | EInvoice | CT-EINV-002 | PARTIAL |
 | DK-EINV-003 | OIOUBL kreditnota kan sendes/modtages | EInvoice | CT-EINV-003 | DONE |
-| DK-EINV-004 | Relevante OIOUBL-responsmeddelelser understøttes | EInvoice | CT-EINV-004 | TODO |
+| DK-EINV-004 | Relevante OIOUBL-responsmeddelelser understøttes | EInvoice | CT-EINV-004 | DONE |
 | DK-EINV-005 | Peppol BIS faktura kan sendes/modtages | EInvoice | CT-EINV-005 | TODO |
 | DK-EINV-006 | Peppol BIS kreditnota kan sendes/modtages | EInvoice | CT-EINV-006 | TODO |
 | DK-EINV-007 | Relevante Peppol-responsmeddelelser understøttes | EInvoice | CT-EINV-007 | TODO |
@@ -279,3 +279,13 @@ leveres gennem den idempotente transportgrænse. Sammen med inbound-flowet gør
 dette `DK-EINV-003` til `DONE` for det definerede OIOUBL-scope. Beslutningen er
 beskrevet i ADR-0022 og dækket af
 `tests/integration/assert-oioubl-outbound-credit-note.php`.
+
+OIOUBL `ApplicationResponse` modtages som en separat, officiel XSD- og
+Schematron-valideret evidensstrøm. Afsender/modtager samt dokumentets ID, UUID og
+type skal matche den byte-verificerede arkiverede outbound faktura eller
+kreditnota. Provider-identiteten er idempotent, genbrug med andre bytes afvises,
+og både original XML, valideringshashes, binding og audit-event er immutable.
+Dette adskiller transportkvittering fra teknisk og forretningsmæssig accept eller
+afvisning og gør `DK-EINV-004` til `DONE` for OIOUBL ApplicationResponse-scope.
+Beslutningen er beskrevet i ADR-0023 og dækket af
+`tests/integration/assert-oioubl-application-response.php`.

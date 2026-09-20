@@ -43,7 +43,7 @@ echo "Verifying real Dolibarr module activation..."
 module_enabled="$(docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "SELECT value FROM llx_const WHERE name='MAIN_MODULE_DKMODUL' AND entity=1 ORDER BY rowid DESC LIMIT 1")"
 test "$module_enabled" = "1"
 
-for table in llx_dk_audit_event llx_dk_correction llx_dk_bookkeeping_origin llx_dk_document_archive llx_dk_einvoice_delivery llx_dk_einvoice_transport_event llx_dk_einvoice_inbound llx_dk_einvoice_inbound_validation llx_dk_einvoice_inbound_draft llx_dk_einvoice_inbound_supplier_validation llx_dk_einvoice_inbound_posting llx_dk_standard_account llx_dk_account_mapping llx_dk_standard_vat_code llx_dk_vat_mapping; do
+for table in llx_dk_audit_event llx_dk_correction llx_dk_bookkeeping_origin llx_dk_document_archive llx_dk_einvoice_delivery llx_dk_einvoice_transport_event llx_dk_einvoice_application_response llx_dk_einvoice_inbound llx_dk_einvoice_inbound_validation llx_dk_einvoice_inbound_draft llx_dk_einvoice_inbound_supplier_validation llx_dk_einvoice_inbound_posting llx_dk_standard_account llx_dk_account_mapping llx_dk_standard_vat_code llx_dk_vat_mapping; do
   table_count="$(docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='dolidb' AND table_name='$table'")"
   test "$table_count" = "1"
 done
@@ -51,7 +51,7 @@ done
 test "$(docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='dolidb' AND table_name='llx_dk_correction_link'")" = "0"
 
 trigger_count="$(docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_schema='dolidb' AND trigger_name LIKE 'llx_dk_%'")"
-test "$trigger_count" = "23"
+test "$trigger_count" = "25"
 
 sql() {
   docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "$1"
@@ -168,6 +168,8 @@ docker compose cp /tmp/erst-openebusiness-common/resources/Schemas/UBL_v2.1 doli
 docker compose cp /tmp/erst-openebusiness-common/resources/Schematrons/OIOUBL/OIOUBL_Invoice_Schematron.xsl dolibarr:/tmp/OIOUBL_Invoice_Schematron.xsl
 docker compose cp /tmp/erst-openebusiness-common/resources/Documents/Examples/OIOUBL_CreditNote_v2p1.xml dolibarr:/tmp/OIOUBL_CreditNote_v2p1.xml
 docker compose cp /tmp/erst-openebusiness-common/resources/Schematrons/OIOUBL/OIOUBL_CreditNote_Schematron.xsl dolibarr:/tmp/OIOUBL_CreditNote_Schematron.xsl
+docker compose cp /tmp/erst-openebusiness-common/resources/Documents/Examples/OIOUBL_ApplicationResponse_v2.1.xml dolibarr:/tmp/OIOUBL_ApplicationResponse_v2.1.xml
+docker compose cp /tmp/erst-openebusiness-common/resources/Schematrons/OIOUBL/OIOUBL_ApplicationResponse_Schematron.xsl dolibarr:/tmp/OIOUBL_ApplicationResponse_Schematron.xsl
 docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-oioubl-outbound.php
 docker compose exec -T dolibarr java -jar /usr/share/java/Saxon-HE.jar \
   -s:/tmp/DKVAT-1.xml \
@@ -185,6 +187,18 @@ expect_failure "UPDATE llx_dk_einvoice_delivery SET endpoint_id='changed' WHERE 
 expect_failure "DELETE FROM llx_dk_einvoice_delivery WHERE rowid=${delivery_rowid}"
 expect_failure "UPDATE llx_dk_einvoice_transport_event SET receipt_code='changed' WHERE rowid=${transport_event_rowid}"
 expect_failure "DELETE FROM llx_dk_einvoice_transport_event WHERE rowid=${transport_event_rowid}"
+
+echo "Receiving and binding an official OIOUBL application response..."
+docker compose exec -T dolibarr php /var/www/dkmodul-tests/prepare-oioubl-application-response.php
+docker compose exec -T dolibarr java -jar /usr/share/java/Saxon-HE.jar \
+  -s:/tmp/DKVAT-1-ApplicationResponse.xml \
+  -xsl:/tmp/OIOUBL_ApplicationResponse_Schematron.xsl \
+  -o:/tmp/OIOUBL_ApplicationResponse_Schematron_Result.xml
+docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-oioubl-application-response.php
+application_response_rowid="$(sql "SELECT rowid FROM llx_dk_einvoice_application_response WHERE entity=1 ORDER BY rowid DESC LIMIT 1")"
+test -n "$application_response_rowid"
+expect_failure "UPDATE llx_dk_einvoice_application_response SET response_code='BusinessReject' WHERE rowid=${application_response_rowid}"
+expect_failure "DELETE FROM llx_dk_einvoice_application_response WHERE rowid=${application_response_rowid}"
 
 echo "Generating, validating and delivering outbound OIOUBL credit note..."
 sql "INSERT INTO llx_facture
