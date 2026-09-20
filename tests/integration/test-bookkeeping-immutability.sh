@@ -166,6 +166,8 @@ git clone -q https://git.erst.dk/openebusiness/common.git /tmp/erst-openebusines
 git -C /tmp/erst-openebusiness-common checkout -q 223694e79eb4dbf0895640b35484ab55abae2c42
 docker compose cp /tmp/erst-openebusiness-common/resources/Schemas/UBL_v2.1 dolibarr:/tmp/oioubl-schema
 docker compose cp /tmp/erst-openebusiness-common/resources/Schematrons/OIOUBL/OIOUBL_Invoice_Schematron.xsl dolibarr:/tmp/OIOUBL_Invoice_Schematron.xsl
+docker compose cp /tmp/erst-openebusiness-common/resources/Documents/Examples/OIOUBL_CreditNote_v2p1.xml dolibarr:/tmp/OIOUBL_CreditNote_v2p1.xml
+docker compose cp /tmp/erst-openebusiness-common/resources/Schematrons/OIOUBL/OIOUBL_CreditNote_Schematron.xsl dolibarr:/tmp/OIOUBL_CreditNote_Schematron.xsl
 docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-oioubl-outbound.php
 docker compose exec -T dolibarr java -jar /usr/share/java/Saxon-HE.jar \
   -s:/tmp/DKVAT-1.xml \
@@ -258,6 +260,14 @@ expect_failure "UPDATE llx_accounting_bookkeeping SET debit=debit+1 WHERE rowid=
 expect_failure "DELETE FROM llx_accounting_bookkeeping WHERE rowid=${inbound_posting_bookkeeping_rowid}"
 expect_failure "UPDATE llx_dk_einvoice_inbound_posting SET line_count=99 WHERE rowid=${inbound_posting_rowid}"
 expect_failure "DELETE FROM llx_dk_einvoice_inbound_posting WHERE rowid=${inbound_posting_rowid}"
+
+echo "Receiving and posting a referenced inbound OIOUBL supplier credit note..."
+docker compose exec -T dolibarr php /var/www/dkmodul-tests/prepare-oioubl-credit-note.php
+docker compose exec -T dolibarr java -jar /usr/share/java/Saxon-HE.jar \
+  -s:/tmp/DKCR-1.xml \
+  -xsl:/tmp/OIOUBL_CreditNote_Schematron.xsl \
+  -o:/tmp/OIOUBL_CreditNote_Schematron_Result.xml
+docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-oioubl-inbound-credit-note.php
 
 echo "Configuring strict SAF-T mapping fixture on real Dolibarr database..."
 

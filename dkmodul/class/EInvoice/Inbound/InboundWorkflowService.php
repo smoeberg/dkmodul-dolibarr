@@ -49,12 +49,13 @@ final class DkInboundWorkflowService
         $p = $this->db->prefix();
         $sql = 'SELECT i.rowid,i.inbound_uuid,i.channel,i.provider_message_id,i.sender_endpoint_id,i.received_at,';
         $sql .= ' tv.rowid AS technical_validation_rowid,tv.event_type,tv.invoice_id,tv.issue_date,tv.currency_code,tv.payable_amount,';
-        $sql .= ' d.rowid AS draft_rowid,d.supplier_rowid,d.supplier_invoice_rowid,d.supplier_invoice_ref,';
+        $sql .= ' d.rowid AS draft_rowid,d.supplier_rowid,d.supplier_invoice_rowid,d.supplier_invoice_ref,f.type AS supplier_invoice_type,';
         $sql .= ' s.nom AS supplier_name,sv.rowid AS supplier_validation_rowid,sv.supplier_invoice_ref AS validated_invoice_ref,';
         $sql .= ' p.rowid AS posting_rowid,p.piece_num,p.line_count,p.debit_total,p.posted_at';
         $sql .= ' FROM '.$p.'dk_einvoice_inbound i';
         $sql .= ' LEFT JOIN '.$p.'dk_einvoice_inbound_validation tv ON tv.entity=i.entity AND tv.inbound_rowid=i.rowid';
         $sql .= ' LEFT JOIN '.$p.'dk_einvoice_inbound_draft d ON d.entity=i.entity AND d.inbound_rowid=i.rowid';
+        $sql .= ' LEFT JOIN '.$p.'facture_fourn f ON f.entity=i.entity AND f.rowid=d.supplier_invoice_rowid';
         $sql .= ' LEFT JOIN '.$p.'societe s ON s.entity=i.entity AND s.rowid=d.supplier_rowid';
         $sql .= ' LEFT JOIN '.$p.'dk_einvoice_inbound_supplier_validation sv ON sv.entity=i.entity AND sv.inbound_draft_rowid=d.rowid';
         $sql .= ' LEFT JOIN '.$p.'dk_einvoice_inbound_posting p ON p.entity=i.entity AND p.supplier_validation_rowid=sv.rowid';
@@ -97,6 +98,7 @@ final class DkInboundWorkflowService
             'supplierRowId' => (int) $row->supplier_rowid,
             'supplierName' => (string) $row->supplier_name,
             'supplierInvoiceRowId' => (int) $row->supplier_invoice_rowid,
+            'documentType' => (int) $row->draft_rowid === 0 ? 'OIOUBL' : ((int) $row->supplier_invoice_type === 2 ? 'CreditNote' : 'Invoice'),
             'supplierValidationRowId' => (int) $row->supplier_validation_rowid,
             'postingRowId' => (int) $row->posting_rowid,
             'pieceNum' => (int) $row->piece_num,

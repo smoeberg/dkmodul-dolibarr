@@ -84,7 +84,7 @@ final class DkInboundSupplierPostingService
             $actual = $this->movementTotals($entity, (int) $source->supplier_invoice_rowid, false);
             if ((int) $actual->line_count !== count($lines) || (int) $actual->piece_count !== 1 || (int) $actual->piece_num !== $pieceNum
                 || $this->cents($actual->debit_total) !== $this->cents($actual->credit_total)
-                || $this->cents($actual->debit_total) !== $this->cents($source->total_ttc)) {
+                || $this->cents($actual->debit_total) !== abs($this->cents($source->total_ttc))) {
                 throw new RuntimeException('Created supplier bookkeeping movement failed balance or completeness verification');
             }
 
@@ -119,7 +119,7 @@ final class DkInboundSupplierPostingService
     private function validatedSource(int $entity, int $validationRowId, bool $lock)
     {
         $sql = 'SELECT v.rowid AS validation_rowid,v.supplier_invoice_rowid,v.supplier_invoice_ref,';
-        $sql .= ' f.ref AS invoice_ref,f.ref_supplier,f.datef,f.date_lim_reglement,f.total_ht,f.total_tva,f.total_ttc,f.multicurrency_code,f.fk_statut,';
+        $sql .= ' f.ref AS invoice_ref,f.ref_supplier,f.datef,f.date_lim_reglement,f.total_ht,f.total_tva,f.total_ttc,f.multicurrency_code,f.fk_statut,f.type,';
         $sql .= ' s.rowid AS supplier_rowid,s.nom AS supplier_name,s.code_fournisseur,s.code_compta_fournisseur,s.accountancy_code_supplier_general,s.fk_pays';
         $sql .= ' FROM '.$this->db->prefix().'dk_einvoice_inbound_supplier_validation v';
         $sql .= ' JOIN '.$this->db->prefix().'facture_fourn f ON f.rowid=v.supplier_invoice_rowid AND f.entity=v.entity';
@@ -130,6 +130,7 @@ final class DkInboundSupplierPostingService
         if (!$row || (int) $row->fk_statut !== 1 || (string) $row->invoice_ref !== (string) $row->supplier_invoice_ref) {
             throw new RuntimeException('Only a controlled, validated inbound supplier invoice can be posted');
         }
+        if (!in_array((int) $row->type, array(0, 2), true)) throw new RuntimeException('Inbound posting supports only standard invoices and credit notes');
         if (trim((string) $row->accountancy_code_supplier_general) === '' || trim((string) $row->code_compta_fournisseur) === '') {
             throw new RuntimeException('Supplier general and subledger accounts must be explicitly configured');
         }
@@ -175,21 +176,21 @@ final class DkInboundSupplierPostingService
         if ($count === 0) throw new RuntimeException('Validated supplier invoice has no lines');
 
         $lines = array();
-        foreach ($purchase as $account => $value) $lines[] = $this->debitLine($account, $value['label'], 'Inbound purchase '.$source->ref_supplier, $value['cents']);
-        foreach ($vat as $account => $value) $lines[] = $this->debitLine($account, $value['label'], 'Inbound purchase VAT '.$source->ref_supplier, $value['cents']);
+        foreach ($purchase as $account => $value) $lines[] = $this->movementLine($account, $value['label'], 'Inbound purchase '.$source->ref_supplier, $value['cents']);
+        foreach ($vat as $account => $value) $lines[] = $this->movementLine($account, $value['label'], 'Inbound purchase VAT '.$source->ref_supplier, $value['cents']);
         $supplierAccount = $this->account($entity, (string) $source->accountancy_code_supplier_general);
-        $lines[] = array(
-            'account' => $supplierAccount['account'], 'accountLabel' => $supplierAccount['label'],
-            'operation' => 'Supplier payable '.$source->ref_supplier, 'subledger' => (string) $source->code_compta_fournisseur,
-            'debitCents' => 0, 'creditCents' => $this->cents($source->total_ttc),
-        );
+        $payable = -$this->cents($source->total_ttc);
+        $lines[] = $this->movementLine($supplierAccount['account'], $supplierAccount['label'], 'Supplier payable '.$source->ref_supplier, $payable, (string) $source->code_compta_fournisseur);
         return $lines;
     }
 
-    private function debitLine(string $account, string $label, string $operation, int $cents): array
+    private function movementLine(string $account, string $label, string $operation, int $signedCents, string $subledger = ''): array
     {
-        if ($cents <= 0) throw new RuntimeException('Inbound invoice posting requires positive debit amounts');
-        return array('account' => $account, 'accountLabel' => $label, 'operation' => $operation, 'subledger' => '', 'debitCents' => $cents, 'creditCents' => 0);
+        if ($signedCents === 0) throw new RuntimeException('Inbound supplier posting does not permit zero-value movements');
+        return array(
+            'account' => $account, 'accountLabel' => $label, 'operation' => $operation, 'subledger' => $subledger,
+            'debitCents' => max(0, $signedCents), 'creditCents' => max(0, -$signedCents),
+        );
     }
 
     private function vatAccount(int $entity, int $countryId, string $sourceCode, float $rate): array
@@ -218,7 +219,7 @@ final class DkInboundSupplierPostingService
     {
         $debit = array_sum(array_column($lines, 'debitCents'));
         $credit = array_sum(array_column($lines, 'creditCents'));
-        if ($invoiceCents <= 0 || $debit !== $credit || $debit !== $invoiceCents) throw new RuntimeException('Supplier invoice mappings do not form a balanced movement');
+        if ($invoiceCents === 0 || $debit !== $credit || $debit !== abs($invoiceCents)) throw new RuntimeException('Supplier invoice mappings do not form a balanced movement');
     }
 
     private function assertNoExistingTransfer(int $entity, int $invoiceId): void
