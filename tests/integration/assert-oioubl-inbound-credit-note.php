@@ -21,7 +21,13 @@ $staged = $staging->stage(1, 'nemhandel', 'provider-credit-note-1', 'GLN', '5790
 $validated = $staging->validate(1, $staged['rowid'], '/tmp/oioubl-schema/maindoc/UBL-CreditNote-2.1.xsd', $schematron, 1);
 if ($validated['state'] !== 'validated' || ($validated['metadata']['documentType'] ?? '') !== 'CreditNote'
     || ($validated['metadata']['creditedInvoiceId'] ?? '') !== 'DKVAT-1') {
-    throw new RuntimeException('Inbound OIOUBL credit note did not retain its controlled identity');
+    $resql = $db->query('SELECT event_type,evidence_json FROM '.$db->prefix().'dk_einvoice_inbound_validation WHERE entity=1 AND inbound_rowid='.(int) $staged['rowid']);
+    $evidence = $resql ? $db->fetch_object($resql) : false;
+    throw new RuntimeException('Inbound OIOUBL credit note did not retain its controlled identity: '.json_encode(array(
+        'result' => $validated,
+        'eventType' => $evidence ? $evidence->event_type : null,
+        'evidence' => $evidence ? json_decode((string) $evidence->evidence_json, true) : null,
+    ), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
 }
 
 $draftService = new DkInboundSupplierDraftService($db, '/var/www/documents/dkmodul/inbound');
