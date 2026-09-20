@@ -69,7 +69,7 @@ print '<tr class="liste_titre"><td>Received</td><td>Invoice</td><td>Supplier</td
 foreach ($rows as $row) {
     print '<tr class="oddeven">';
     print '<td>'.dol_escape_htmltag($row['receivedAt']).'<br><span class="opacitymedium">'.dol_escape_htmltag($row['channel']).'</span></td>';
-    print '<td>'.dol_escape_htmltag($row['invoiceId'] ?: $row['providerMessageId']).'<br><span class="opacitymedium">'.dol_escape_htmltag($row['inboundUuid']).'</span></td>';
+    print '<td>'.dol_escape_htmltag($row['invoiceId'] ?: $row['providerMessageId']).'<br><span class="opacitymedium">'.dol_escape_htmltag($row['documentType'].' · '.$row['inboundUuid']).'</span></td>';
     print '<td>'.dol_escape_htmltag($row['supplierName'] ?: $row['senderEndpoint']).'</td>';
     print '<td class="right">'.($row['payableAmount'] === null ? '' : price($row['payableAmount']).' '.dol_escape_htmltag($row['currencyCode'])).'</td>';
     print '<td>'.dol_escape_htmltag($row['state']);

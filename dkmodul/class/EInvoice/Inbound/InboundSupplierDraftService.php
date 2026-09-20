@@ -53,9 +53,13 @@ final class DkInboundSupplierDraftService
             require_once DOL_DOCUMENT_ROOT.'/fourn/class/fournisseur.facture.class.php';
             $draft = new FactureFournisseur($this->db);
             $draft->socid = $supplierRowId;
+            $draft->type = $invoiceData['documentType'] === 'CreditNote' ? FactureFournisseur::TYPE_CREDIT_NOTE : FactureFournisseur::TYPE_STANDARD;
+            if ($draft->type === FactureFournisseur::TYPE_CREDIT_NOTE) {
+                $draft->fk_facture_source = $this->originalInvoice($entity, $supplierRowId, $invoiceData['creditedInvoiceId']);
+            }
             $draft->ref_supplier = $invoiceData['invoiceId'];
             $draft->date = strtotime($invoiceData['issueDate'].' UTC');
-            $draft->date_echeance = strtotime($invoiceData['dueDate'].' UTC');
+            $draft->date_echeance = $invoiceData['dueDate'] === '' ? null : strtotime($invoiceData['dueDate'].' UTC');
             $draft->multicurrency_code = $invoiceData['currencyCode'];
             $draft->note_private = 'Created from validated inbound OIOUBL '.$source->inbound_uuid;
             $supplierInvoiceId = $draft->create($user);
@@ -65,7 +69,8 @@ final class DkInboundSupplierDraftService
                 if ($result <= 0) throw new RuntimeException('Unable to add supplier invoice line: '.$draft->error);
             }
             if ($draft->fetch($supplierInvoiceId) <= 0 || (int) $draft->statut !== 0) throw new RuntimeException('Inbound supplier invoice was not left as draft');
-            if (abs((float) $draft->total_ttc - (float) $invoiceData['payableAmount']) > 0.01) throw new RuntimeException('Supplier draft total differs from validated OIOUBL payable amount');
+            $expectedTotal = ($invoiceData['documentType'] === 'CreditNote' ? -1 : 1) * (float) $invoiceData['payableAmount'];
+            if (abs((float) $draft->total_ttc - $expectedTotal) > 0.01) throw new RuntimeException('Supplier draft total differs from validated OIOUBL payable amount');
 
             $sql = 'INSERT INTO '.$this->db->prefix().'dk_einvoice_inbound_draft';
             $sql .= ' (entity,inbound_rowid,supplier_rowid,supplier_invoice_rowid,supplier_invoice_ref,source_content_hash,fk_user_approver,approved_at) VALUES (';
@@ -105,27 +110,48 @@ final class DkInboundSupplierDraftService
     {
         $dom = new DOMDocument();
         if (!$dom->loadXML($xml, LIBXML_NONET)) throw new RuntimeException('Unable to parse validated inbound OIOUBL');
+        $root = $dom->documentElement;
+        $documentType = $root ? $root->localName : '';
+        if (!in_array($documentType, array('Invoice', 'CreditNote'), true)) throw new RuntimeException('Inbound document must be an Invoice or CreditNote');
+        $lineElement = $documentType === 'CreditNote' ? 'CreditNoteLine' : 'InvoiceLine';
+        $quantityElement = $documentType === 'CreditNote' ? 'CreditedQuantity' : 'InvoicedQuantity';
         $xp = new DOMXPath($dom);
-        $xp->registerNamespace('i', 'urn:oasis:names:specification:ubl:schema:xsd:Invoice-2');
+        $xp->registerNamespace('doc', 'urn:oasis:names:specification:ubl:schema:xsd:'.$documentType.'-2');
         $xp->registerNamespace('cbc', 'urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2');
         $xp->registerNamespace('cac', 'urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2');
         $value = static fn(string $path, ?DOMNode $context = null): string => trim((string) $xp->evaluate('string('.$path.')', $context));
         $lines = array();
-        foreach ($xp->query('/i:Invoice/cac:InvoiceLine') as $node) {
+        foreach ($xp->query('/doc:'.$documentType.'/cac:'.$lineElement) as $node) {
             $lines[] = array(
                 'description' => $value('cac:Item/cbc:Description', $node) ?: $value('cac:Item/cbc:Name', $node),
-                'quantity' => $value('cbc:InvoicedQuantity', $node),
+                'quantity' => $value('cbc:'.$quantityElement, $node),
                 'unitPrice' => $value('cac:Price/cbc:PriceAmount', $node),
                 'vatPercentage' => $value('cac:TaxTotal/cac:TaxSubtotal/cac:TaxCategory/cbc:Percent', $node),
             );
         }
         if (!$lines) throw new RuntimeException('Validated inbound OIOUBL has no invoice lines');
+        $base = '/doc:'.$documentType;
         return array(
-            'invoiceId' => $value('/i:Invoice/cbc:ID'), 'issueDate' => $value('/i:Invoice/cbc:IssueDate'),
-            'dueDate' => $value('/i:Invoice/cac:PaymentMeans/cbc:PaymentDueDate'), 'currencyCode' => $value('/i:Invoice/cbc:DocumentCurrencyCode'),
-            'supplierCompanyId' => $value('/i:Invoice/cac:AccountingSupplierParty/cac:Party/cac:PartyLegalEntity/cbc:CompanyID'),
-            'payableAmount' => $value('/i:Invoice/cac:LegalMonetaryTotal/cbc:PayableAmount'), 'lines' => $lines,
+            'documentType' => $documentType,
+            'invoiceId' => $value($base.'/cbc:ID'), 'issueDate' => $value($base.'/cbc:IssueDate'),
+            'dueDate' => $value($base.'/cbc:DueDate') ?: $value($base.'/cac:PaymentMeans/cbc:PaymentDueDate'),
+            'currencyCode' => $value($base.'/cbc:DocumentCurrencyCode'),
+            'supplierCompanyId' => $value($base.'/cac:AccountingSupplierParty/cac:Party/cac:PartyLegalEntity/cbc:CompanyID'),
+            'creditedInvoiceId' => $documentType === 'CreditNote' ? $value($base.'/cac:BillingReference/cac:InvoiceDocumentReference/cbc:ID') : '',
+            'payableAmount' => $value($base.'/cac:LegalMonetaryTotal/cbc:PayableAmount'), 'lines' => $lines,
         );
+    }
+
+    private function originalInvoice(int $entity, int $supplierId, string $reference): int
+    {
+        if (trim($reference) === '') throw new RuntimeException('Inbound credit note must reference the credited supplier invoice');
+        $sql = 'SELECT rowid FROM '.$this->db->prefix().'facture_fourn WHERE entity='.$entity.' AND fk_soc='.$supplierId;
+        $sql .= " AND ref_supplier='".$this->db->escape($reference)."' AND type<>2 AND fk_statut=1";
+        $resql = $this->db->query($sql);
+        $matches = array();
+        while ($resql && $row = $this->db->fetch_object($resql)) $matches[] = (int) $row->rowid;
+        if (count($matches) !== 1) throw new RuntimeException('Credited supplier invoice reference must resolve to exactly one validated invoice');
+        return $matches[0];
     }
 
     private function dkCvr(string $value): string

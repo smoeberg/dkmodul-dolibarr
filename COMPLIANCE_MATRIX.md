@@ -31,7 +31,7 @@ Statuskoder:
 | DK-BANK-003 | Ikke-afstemte differencer fremgår tydeligt | bankconnect: UI (afstemningsskærm) | CT-BANK-003 | TODO |
 | DK-EINV-001 | OIOUBL faktura kan sendes | EInvoice | CT-EINV-001 | PARTIAL |
 | DK-EINV-002 | OIOUBL faktura kan modtages | EInvoice | CT-EINV-002 | PARTIAL |
-| DK-EINV-003 | OIOUBL kreditnota kan sendes/modtages | EInvoice | CT-EINV-003 | TODO |
+| DK-EINV-003 | OIOUBL kreditnota kan sendes/modtages | EInvoice | CT-EINV-003 | PARTIAL |
 | DK-EINV-004 | Relevante OIOUBL-responsmeddelelser understøttes | EInvoice | CT-EINV-004 | TODO |
 | DK-EINV-005 | Peppol BIS faktura kan sendes/modtages | EInvoice | CT-EINV-005 | TODO |
 | DK-EINV-006 | Peppol BIS kreditnota kan sendes/modtages | EInvoice | CT-EINV-006 | TODO |
@@ -263,3 +263,11 @@ Testevidens: `tests/integration/assert-oioubl-inbound-supplier-draft.php` og
 Posting dækkes af `tests/integration/assert-oioubl-inbound-supplier-posting.php`.
 Det samlede brugerflow dækkes af
 `tests/integration/assert-oioubl-inbound-workflow.php` og ADR-0020.
+
+Inbound OIOUBL-kreditnotaer genbruger samme kontrollerede flow. En obligatorisk
+fakturareference bindes til én valideret leverandørfaktura hos samme leverandør,
+Dolibarr opretter sin native kreditnotatype, og hovedbogsoverførslen vender køb,
+indgående moms og leverandørgæld i et eksakt balanceret bilag. Omfang og grænser
+er beskrevet i ADR-0021 og dækket af
+`tests/integration/assert-oioubl-inbound-credit-note.php`. `DK-EINV-003` er
+`PARTIAL`, fordi outbound OIOUBL-kreditnota endnu ikke er implementeret.

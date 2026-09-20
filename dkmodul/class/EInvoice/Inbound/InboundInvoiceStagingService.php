@@ -123,20 +123,29 @@ final class DkInboundInvoiceStagingService
     {
         $dom = new DOMDocument();
         if (!$dom->loadXML($xml, LIBXML_NONET)) throw new InvalidArgumentException('Validated OIOUBL XML cannot be parsed');
+        $root = $dom->documentElement;
+        $documentType = $root ? $root->localName : '';
+        if (!in_array($documentType, array('Invoice', 'CreditNote'), true)) {
+            throw new InvalidArgumentException('Validated OIOUBL must be an Invoice or CreditNote');
+        }
         $xpath = new DOMXPath($dom);
-        $xpath->registerNamespace('i', 'urn:oasis:names:specification:ubl:schema:xsd:Invoice-2');
+        $xpath->registerNamespace('doc', 'urn:oasis:names:specification:ubl:schema:xsd:'.$documentType.'-2');
         $xpath->registerNamespace('cbc', 'urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2');
         $xpath->registerNamespace('cac', 'urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2');
         $value = static fn(string $path): string => trim((string) $xpath->evaluate('string('.$path.')'));
         $metadata = array(
-            'invoiceId' => $value('/i:Invoice/cbc:ID'),
-            'invoiceUuid' => $value('/i:Invoice/cbc:UUID'),
-            'issueDate' => $value('/i:Invoice/cbc:IssueDate'),
-            'currencyCode' => $value('/i:Invoice/cbc:DocumentCurrencyCode'),
-            'supplierEndpoint' => $value('/i:Invoice/cac:AccountingSupplierParty/cac:Party/cbc:EndpointID'),
-            'customerEndpoint' => $value('/i:Invoice/cac:AccountingCustomerParty/cac:Party/cbc:EndpointID'),
-            'payableAmount' => $value('/i:Invoice/cac:LegalMonetaryTotal/cbc:PayableAmount'),
+            'documentType' => $documentType,
+            'invoiceId' => $value('/doc:'.$documentType.'/cbc:ID'),
+            'invoiceUuid' => $value('/doc:'.$documentType.'/cbc:UUID'),
+            'issueDate' => $value('/doc:'.$documentType.'/cbc:IssueDate'),
+            'currencyCode' => $value('/doc:'.$documentType.'/cbc:DocumentCurrencyCode'),
+            'supplierEndpoint' => $value('/doc:'.$documentType.'/cac:AccountingSupplierParty/cac:Party/cbc:EndpointID'),
+            'customerEndpoint' => $value('/doc:'.$documentType.'/cac:AccountingCustomerParty/cac:Party/cbc:EndpointID'),
+            'payableAmount' => $value('/doc:'.$documentType.'/cac:LegalMonetaryTotal/cbc:PayableAmount'),
         );
+        if ($documentType === 'CreditNote') {
+            $metadata['creditedInvoiceId'] = $value('/doc:CreditNote/cac:BillingReference/cac:InvoiceDocumentReference/cbc:ID');
+        }
         foreach ($metadata as $field => $fieldValue) if ($fieldValue === '') throw new InvalidArgumentException('Validated OIOUBL is missing '.$field);
         return $metadata;
     }

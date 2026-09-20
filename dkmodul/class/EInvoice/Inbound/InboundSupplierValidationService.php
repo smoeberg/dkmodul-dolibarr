@@ -49,13 +49,16 @@ final class DkInboundSupplierValidationService
             if ((int) $invoice->entity !== $entity || (int) $invoice->socid !== (int) $source->supplier_rowid) {
                 throw new RuntimeException('Supplier invoice identity differs from immutable inbound provenance');
             }
+            $expectedType = $expected['documentType'] === 'CreditNote' ? FactureFournisseur::TYPE_CREDIT_NOTE : FactureFournisseur::TYPE_STANDARD;
+            if ((int) $invoice->type !== $expectedType) throw new RuntimeException('Supplier document type differs from validated OIOUBL');
             if ((int) $invoice->statut !== 0) {
                 throw new RuntimeException('Only the controlled inbound draft can be validated');
             }
             if ((string) $invoice->ref_supplier !== (string) $source->supplier_invoice_ref || (string) $invoice->ref_supplier !== $expected['invoiceId']) {
                 throw new RuntimeException('Supplier invoice reference differs from validated OIOUBL');
             }
-            if (abs((float) $invoice->total_ttc - (float) $expected['payableAmount']) > 0.01) {
+            $expectedTotal = ($expected['documentType'] === 'CreditNote' ? -1 : 1) * (float) $expected['payableAmount'];
+            if (abs((float) $invoice->total_ttc - $expectedTotal) > 0.01) {
                 throw new RuntimeException('Supplier invoice total differs from validated OIOUBL');
             }
 
@@ -114,14 +117,18 @@ final class DkInboundSupplierValidationService
     {
         $dom = new DOMDocument();
         if (!$dom->loadXML($xml, LIBXML_NONET)) throw new RuntimeException('Unable to parse validated inbound OIOUBL');
+        $root = $dom->documentElement;
+        $documentType = $root ? $root->localName : '';
+        if (!in_array($documentType, array('Invoice', 'CreditNote'), true)) throw new RuntimeException('Inbound document must be an Invoice or CreditNote');
         $xp = new DOMXPath($dom);
-        $xp->registerNamespace('i', 'urn:oasis:names:specification:ubl:schema:xsd:Invoice-2');
+        $xp->registerNamespace('doc', 'urn:oasis:names:specification:ubl:schema:xsd:'.$documentType.'-2');
         $xp->registerNamespace('cbc', 'urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2');
         $xp->registerNamespace('cac', 'urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2');
         return array(
-            'invoiceId' => trim((string) $xp->evaluate('string(/i:Invoice/cbc:ID)')),
-            'supplierCompanyId' => trim((string) $xp->evaluate('string(/i:Invoice/cac:AccountingSupplierParty/cac:Party/cac:PartyLegalEntity/cbc:CompanyID)')),
-            'payableAmount' => trim((string) $xp->evaluate('string(/i:Invoice/cac:LegalMonetaryTotal/cbc:PayableAmount)')),
+            'documentType' => $documentType,
+            'invoiceId' => trim((string) $xp->evaluate('string(/doc:'.$documentType.'/cbc:ID)')),
+            'supplierCompanyId' => trim((string) $xp->evaluate('string(/doc:'.$documentType.'/cac:AccountingSupplierParty/cac:Party/cac:PartyLegalEntity/cbc:CompanyID)')),
+            'payableAmount' => trim((string) $xp->evaluate('string(/doc:'.$documentType.'/cac:LegalMonetaryTotal/cbc:PayableAmount)')),
         );
     }
 
