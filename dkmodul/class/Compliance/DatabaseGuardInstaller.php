@@ -31,6 +31,8 @@ class DkDatabaseGuardInstaller
             $this->deliveryDeleteGuardSql(),
             $this->transportEventUpdateGuardSql(),
             $this->transportEventDeleteGuardSql(),
+            $this->applicationResponseUpdateGuardSql(),
+            $this->applicationResponseDeleteGuardSql(),
             $this->inboundUpdateGuardSql(),
             $this->inboundDeleteGuardSql(),
             $this->inboundValidationUpdateGuardSql(),
@@ -198,6 +200,16 @@ class DkDatabaseGuardInstaller
         return $this->appendOnlyGuardSql($this->transportEventDeleteGuardName(), $this->db->prefix().'dk_einvoice_transport_event', 'DELETE', 'e-invoice transport events cannot be deleted');
     }
 
+    public function applicationResponseUpdateGuardSql()
+    {
+        return $this->appendOnlyGuardSql($this->applicationResponseUpdateGuardName(), $this->db->prefix().'dk_einvoice_application_response', 'UPDATE', 'OIOUBL application responses are append-only');
+    }
+
+    public function applicationResponseDeleteGuardSql()
+    {
+        return $this->appendOnlyGuardSql($this->applicationResponseDeleteGuardName(), $this->db->prefix().'dk_einvoice_application_response', 'DELETE', 'OIOUBL application responses cannot be deleted');
+    }
+
     public function inboundUpdateGuardSql()
     {
         return $this->appendOnlyGuardSql($this->inboundUpdateGuardName(), $this->db->prefix().'dk_einvoice_inbound', 'UPDATE', 'inbound e-invoices are immutable');
@@ -312,6 +324,8 @@ class DkDatabaseGuardInstaller
             $this->deliveryDeleteGuardName(),
             $this->transportEventUpdateGuardName(),
             $this->transportEventDeleteGuardName(),
+            $this->applicationResponseUpdateGuardName(),
+            $this->applicationResponseDeleteGuardName(),
             $this->inboundUpdateGuardName(),
             $this->inboundDeleteGuardName(),
             $this->inboundValidationUpdateGuardName(),
@@ -388,6 +402,16 @@ class DkDatabaseGuardInstaller
     private function transportEventDeleteGuardName()
     {
         return $this->db->prefix().'dk_einvoice_transport_event_bd';
+    }
+
+    private function applicationResponseUpdateGuardName()
+    {
+        return $this->db->prefix().'dk_einvoice_application_response_bu';
+    }
+
+    private function applicationResponseDeleteGuardName()
+    {
+        return $this->db->prefix().'dk_einvoice_application_response_bd';
     }
 
     private function inboundUpdateGuardName()

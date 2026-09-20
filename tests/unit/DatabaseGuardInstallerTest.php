@@ -26,6 +26,8 @@ $deliveryUpdateSql = $installer->deliveryUpdateGuardSql();
 $deliveryDeleteSql = $installer->deliveryDeleteGuardSql();
 $transportEventUpdateSql = $installer->transportEventUpdateGuardSql();
 $transportEventDeleteSql = $installer->transportEventDeleteGuardSql();
+$applicationResponseUpdateSql = $installer->applicationResponseUpdateGuardSql();
+$applicationResponseDeleteSql = $installer->applicationResponseDeleteGuardSql();
 $inboundUpdateSql = $installer->inboundUpdateGuardSql();
 $inboundDeleteSql = $installer->inboundDeleteGuardSql();
 $inboundValidationUpdateSql = $installer->inboundValidationUpdateGuardSql();
@@ -73,6 +75,9 @@ assert(strpos($deliveryDeleteSql, 'BEFORE DELETE ON llx_dk_einvoice_delivery') !
 assert(strpos($transportEventUpdateSql, 'BEFORE UPDATE ON llx_dk_einvoice_transport_event') !== false);
 assert(strpos($transportEventUpdateSql, 'append-only') !== false);
 assert(strpos($transportEventDeleteSql, 'BEFORE DELETE ON llx_dk_einvoice_transport_event') !== false);
+assert(strpos($applicationResponseUpdateSql, 'BEFORE UPDATE ON llx_dk_einvoice_application_response') !== false);
+assert(strpos($applicationResponseUpdateSql, 'append-only') !== false);
+assert(strpos($applicationResponseDeleteSql, 'BEFORE DELETE ON llx_dk_einvoice_application_response') !== false);
 
 assert(strpos($inboundUpdateSql, 'BEFORE UPDATE ON llx_dk_einvoice_inbound') !== false);
 assert(strpos($inboundDeleteSql, 'BEFORE DELETE ON llx_dk_einvoice_inbound') !== false);
