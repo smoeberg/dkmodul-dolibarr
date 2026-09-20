@@ -7,6 +7,7 @@ final class DkOioUblInvoiceGenerator
     public const CUSTOMIZATION_ID = 'OIOUBL-2.02';
     public const PROFILE_ID = 'Procurement-OrdAdv-BilSim-1.0';
     private const INVOICE_NS = 'urn:oasis:names:specification:ubl:schema:xsd:Invoice-2';
+    private const CREDIT_NOTE_NS = 'urn:oasis:names:specification:ubl:schema:xsd:CreditNote-2';
     private const CAC_NS = 'urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2';
     private const CBC_NS = 'urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2';
 
@@ -23,7 +24,9 @@ final class DkOioUblInvoiceGenerator
 
         $doc = new DOMDocument('1.0', 'UTF-8');
         $doc->formatOutput = true;
-        $root = $doc->createElementNS(self::INVOICE_NS, 'Invoice');
+        $creditNote = $invoice->documentType === 'CreditNote';
+        $rootName = $creditNote ? 'CreditNote' : 'Invoice';
+        $root = $doc->createElementNS($creditNote ? self::CREDIT_NOTE_NS : self::INVOICE_NS, $rootName);
         $root->setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:cac', self::CAC_NS);
         $root->setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:cbc', self::CBC_NS);
         $doc->appendChild($root);
@@ -37,34 +40,46 @@ final class DkOioUblInvoiceGenerator
         $this->cbc($doc, $root, 'CopyIndicator', 'false');
         $this->cbc($doc, $root, 'UUID', $invoice->uuid);
         $this->cbc($doc, $root, 'IssueDate', $invoice->issueDate);
-        $type = $this->cbc($doc, $root, 'InvoiceTypeCode', '380');
-        $type->setAttribute('listAgencyID', '320');
-        $type->setAttribute('listID', 'urn:oioubl:codelist:invoicetypecode-1.1');
+        if (!$creditNote) {
+            $type = $this->cbc($doc, $root, 'InvoiceTypeCode', '380');
+            $type->setAttribute('listAgencyID', '320');
+            $type->setAttribute('listID', 'urn:oioubl:codelist:invoicetypecode-1.1');
+        }
         $this->cbc($doc, $root, 'DocumentCurrencyCode', $invoice->currencyCode);
 
-        $order = $this->cac($doc, $root, 'OrderReference');
-        $this->cbc($doc, $order, 'ID', $invoice->orderReference);
+        if ($creditNote) {
+            $order = $this->cac($doc, $root, 'OrderReference');
+            $this->cbc($doc, $order, 'ID', $invoice->orderReference);
+            $billing = $this->cac($doc, $root, 'BillingReference');
+            $reference = $this->cac($doc, $billing, 'InvoiceDocumentReference');
+            $this->cbc($doc, $reference, 'ID', (string) $invoice->creditedInvoiceId);
+        } else {
+            $order = $this->cac($doc, $root, 'OrderReference');
+            $this->cbc($doc, $order, 'ID', $invoice->orderReference);
+        }
 
         $this->appendParty($doc, $root, 'AccountingSupplierParty', $invoice->supplier, true);
         $this->appendParty($doc, $root, 'AccountingCustomerParty', $invoice->customer, false);
 
-        $payment = $this->cac($doc, $root, 'PaymentMeans');
-        $this->cbc($doc, $payment, 'ID', '1');
-        $this->cbc($doc, $payment, 'PaymentMeansCode', $invoice->paymentMeansCode);
-        $this->cbc($doc, $payment, 'PaymentDueDate', $invoice->dueDate);
-        $channel = $this->cbc($doc, $payment, 'PaymentChannelCode', 'DK:BANK');
-        $channel->setAttribute('listAgencyID', '320');
-        $channel->setAttribute('listID', 'urn:oioubl:codelist:paymentchannelcode-1.1');
-        $account = $this->cac($doc, $payment, 'PayeeFinancialAccount');
-        $this->cbc($doc, $account, 'ID', $invoice->bankAccount);
-        $this->cbc($doc, $account, 'PaymentNote', $invoice->paymentId);
-        $branch = $this->cac($doc, $account, 'FinancialInstitutionBranch');
-        $this->cbc($doc, $branch, 'ID', $invoice->bankRegistrationNumber);
+        if (!$creditNote) {
+            $payment = $this->cac($doc, $root, 'PaymentMeans');
+            $this->cbc($doc, $payment, 'ID', '1');
+            $this->cbc($doc, $payment, 'PaymentMeansCode', $invoice->paymentMeansCode);
+            $this->cbc($doc, $payment, 'PaymentDueDate', $invoice->dueDate);
+            $channel = $this->cbc($doc, $payment, 'PaymentChannelCode', 'DK:BANK');
+            $channel->setAttribute('listAgencyID', '320');
+            $channel->setAttribute('listID', 'urn:oioubl:codelist:paymentchannelcode-1.1');
+            $account = $this->cac($doc, $payment, 'PayeeFinancialAccount');
+            $this->cbc($doc, $account, 'ID', $invoice->bankAccount);
+            $this->cbc($doc, $account, 'PaymentNote', $invoice->paymentId);
+            $branch = $this->cac($doc, $account, 'FinancialInstitutionBranch');
+            $this->cbc($doc, $branch, 'ID', $invoice->bankRegistrationNumber);
 
-        $terms = $this->cac($doc, $root, 'PaymentTerms');
-        $this->cbc($doc, $terms, 'ID', '1');
-        $this->cbc($doc, $terms, 'PaymentMeansID', '1');
-        $this->amount($doc, $terms, 'Amount', $invoice->payableAmount, $invoice->currencyCode);
+            $terms = $this->cac($doc, $root, 'PaymentTerms');
+            $this->cbc($doc, $terms, 'ID', '1');
+            $this->cbc($doc, $terms, 'PaymentMeansID', '1');
+            $this->amount($doc, $terms, 'Amount', $invoice->payableAmount, $invoice->currencyCode);
+        }
 
         $taxTotal = $this->cac($doc, $root, 'TaxTotal');
         $this->amount($doc, $taxTotal, 'TaxAmount', $invoice->taxAmount, $invoice->currencyCode);
@@ -72,13 +87,14 @@ final class DkOioUblInvoiceGenerator
 
         $monetary = $this->cac($doc, $root, 'LegalMonetaryTotal');
         $this->amount($doc, $monetary, 'LineExtensionAmount', $invoice->taxExclusiveAmount, $invoice->currencyCode);
+        if ($creditNote) $this->amount($doc, $monetary, 'TaxExclusiveAmount', $invoice->taxAmount, $invoice->currencyCode);
         $this->amount($doc, $monetary, 'TaxInclusiveAmount', $invoice->taxInclusiveAmount, $invoice->currencyCode);
         $this->amount($doc, $monetary, 'PayableAmount', $invoice->payableAmount, $invoice->currencyCode);
 
         foreach ($invoice->lines as $line) {
-            $node = $this->cac($doc, $root, 'InvoiceLine');
+            $node = $this->cac($doc, $root, $creditNote ? 'CreditNoteLine' : 'InvoiceLine');
             $this->cbc($doc, $node, 'ID', $line->id);
-            $quantity = $this->cbc($doc, $node, 'InvoicedQuantity', $this->decimal($line->quantity));
+            $quantity = $this->cbc($doc, $node, $creditNote ? 'CreditedQuantity' : 'InvoicedQuantity', $this->decimal($line->quantity));
             $quantity->setAttribute('unitCode', $line->unitCode);
             $this->amount($doc, $node, 'LineExtensionAmount', $line->lineExtensionAmount, $invoice->currencyCode);
             $lineTax = $this->cac($doc, $node, 'TaxTotal');
