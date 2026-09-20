@@ -6,6 +6,8 @@ require_once __DIR__.'/InvoiceLine.php';
 final readonly class DkCanonicalInvoice
 {
     public int $sourceInvoiceId;
+    public string $documentType;
+    public ?string $creditedInvoiceId;
     public string $invoiceId;
     public string $uuid;
     public string $issueDate;
@@ -27,6 +29,11 @@ final readonly class DkCanonicalInvoice
     public function __construct(array $data)
     {
         $this->sourceInvoiceId = (int) ($data['sourceInvoiceId'] ?? 0);
+        $this->documentType = trim((string) ($data['documentType'] ?? 'Invoice'));
+        if (!in_array($this->documentType, array('Invoice', 'CreditNote'), true)) throw new InvalidArgumentException('Canonical invoice document type is invalid');
+        $creditedInvoiceId = trim((string) ($data['creditedInvoiceId'] ?? ''));
+        $this->creditedInvoiceId = $creditedInvoiceId === '' ? null : $creditedInvoiceId;
+        if ($this->documentType === 'CreditNote' && $this->creditedInvoiceId === null) throw new InvalidArgumentException('Canonical credit note requires credited invoice id');
         foreach (array('invoiceId', 'uuid', 'issueDate', 'dueDate', 'currencyCode', 'orderReference', 'paymentMeansCode', 'paymentId', 'bankAccount', 'bankRegistrationNumber') as $field) {
             $value = trim((string) ($data[$field] ?? ''));
             if ($value === '') {

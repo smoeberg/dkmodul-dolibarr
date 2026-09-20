@@ -21,10 +21,12 @@ final class DkDolibarrOutboundInvoiceProvider
 
     public function getInvoice(int $invoiceId, string $customerEndpointId, string $customerEndpointScheme, string $orderReference): DkCanonicalInvoice
     {
-        $sql = 'SELECT f.rowid,f.ref,f.datef,f.date_lim_reglement,f.total_ht,f.total_tva,f.total_ttc,';
+        $sql = 'SELECT f.rowid,f.ref,f.datef,f.date_lim_reglement,f.total_ht,f.total_tva,f.total_ttc,f.type,f.fk_statut,';
+        $sql .= ' original.ref AS credited_invoice_ref,';
         $sql .= ' f.multicurrency_code,s.nom,s.address,s.zip,s.town,s.siren,s.email,c.code AS country_code';
         $sql .= ' FROM '.$this->db->prefix().'facture f';
         $sql .= ' INNER JOIN '.$this->db->prefix().'societe s ON s.rowid=f.fk_soc AND s.entity=f.entity';
+        $sql .= ' LEFT JOIN '.$this->db->prefix().'facture original ON original.rowid=f.fk_facture_source AND original.entity=f.entity AND original.fk_soc=f.fk_soc AND original.fk_statut=1 AND original.type=0';
         $sql .= ' LEFT JOIN '.$this->db->prefix().'c_country c ON c.rowid=s.fk_pays';
         $sql .= ' WHERE f.entity='.$this->entity.' AND f.rowid='.$invoiceId;
         $resql = $this->db->query($sql);
@@ -32,6 +34,8 @@ final class DkDolibarrOutboundInvoiceProvider
         if (!$invoice) {
             throw new InvalidArgumentException('Dolibarr customer invoice was not found');
         }
+        if ((int) $invoice->fk_statut !== 1 || !in_array((int) $invoice->type, array(0, 2), true)) throw new RuntimeException('Only validated standard invoices and credit notes can be exported');
+        if ((int) $invoice->type === 2 && trim((string) $invoice->credited_invoice_ref) === '') throw new RuntimeException('Outbound credit note must reference one validated original invoice for the same customer');
 
         $sql = 'SELECT rowid,description,label,qty,subprice,total_ht,total_tva,tva_tx';
         $sql .= ' FROM '.$this->db->prefix().'facturedet WHERE fk_facture='.$invoiceId.' ORDER BY rang ASC,rowid ASC';
@@ -45,12 +49,12 @@ final class DkDolibarrOutboundInvoiceProvider
             $lines[] = array(
                 'id' => (string) $line->rowid,
                 'description' => $description,
-                'quantity' => $this->dbDecimal($line->qty),
+                'quantity' => $this->positiveDecimal($line->qty),
                 'unitCode' => 'EA',
-                'unitPrice' => $this->dbDecimal($line->subprice),
-                'lineExtensionAmount' => $this->dbDecimal($line->total_ht),
+                'unitPrice' => $this->positiveDecimal($line->subprice),
+                'lineExtensionAmount' => $this->positiveDecimal($line->total_ht),
                 'vatPercentage' => $this->dbDecimal($line->tva_tx),
-                'taxAmount' => $this->dbDecimal($line->total_tva),
+                'taxAmount' => $this->positiveDecimal($line->total_tva),
             );
         }
 
@@ -65,6 +69,8 @@ final class DkDolibarrOutboundInvoiceProvider
 
         return new DkCanonicalInvoice(array(
             'sourceInvoiceId' => (int) $invoice->rowid,
+            'documentType' => (int) $invoice->type === 2 ? 'CreditNote' : 'Invoice',
+            'creditedInvoiceId' => (string) $invoice->credited_invoice_ref,
             'invoiceId' => (string) $invoice->ref,
             'uuid' => $this->deterministicUuid($this->entity.':invoice:'.$invoice->rowid.':'.$invoice->ref),
             'issueDate' => $issueDate,
@@ -85,10 +91,10 @@ final class DkDolibarrOutboundInvoiceProvider
                 'email' => (string) $invoice->email,
             ),
             'lines' => $lines,
-            'taxExclusiveAmount' => $this->dbDecimal($invoice->total_ht),
-            'taxAmount' => $this->dbDecimal($invoice->total_tva),
-            'taxInclusiveAmount' => $this->dbDecimal($invoice->total_ttc),
-            'payableAmount' => $this->dbDecimal($invoice->total_ttc),
+            'taxExclusiveAmount' => $this->positiveDecimal($invoice->total_ht),
+            'taxAmount' => $this->positiveDecimal($invoice->total_tva),
+            'taxInclusiveAmount' => $this->positiveDecimal($invoice->total_ttc),
+            'payableAmount' => $this->positiveDecimal($invoice->total_ttc),
             'paymentMeansCode' => (string) ($this->supplier['paymentMeansCode'] ?? '42'),
             'paymentId' => (string) $invoice->ref,
             'bankAccount' => (string) ($this->supplier['bankAccount'] ?? ''),
@@ -123,6 +129,12 @@ final class DkDolibarrOutboundInvoiceProvider
             return number_format($value, DkCanonicalDecimal::SCALE, '.', '');
         }
         return DkCanonicalDecimal::normalize((string) $value);
+    }
+
+    private function positiveDecimal($value): string
+    {
+        $normalized = $this->dbDecimal($value);
+        return $normalized[0] === '-' ? substr($normalized, 1) : $normalized;
     }
 
     private function deterministicUuid(string $name): string

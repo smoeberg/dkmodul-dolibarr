@@ -186,6 +186,27 @@ expect_failure "DELETE FROM llx_dk_einvoice_delivery WHERE rowid=${delivery_rowi
 expect_failure "UPDATE llx_dk_einvoice_transport_event SET receipt_code='changed' WHERE rowid=${transport_event_rowid}"
 expect_failure "DELETE FROM llx_dk_einvoice_transport_event WHERE rowid=${transport_event_rowid}"
 
+echo "Generating, validating and delivering outbound OIOUBL credit note..."
+sql "INSERT INTO llx_facture
+(ref,entity,type,fk_soc,datec,datef,date_lim_reglement,total_tva,total_ht,total_ttc,fk_statut,fk_user_author,fk_cond_reglement,fk_facture_source)
+VALUES ('DKCR-OUT-1',1,2,${customer_id},NOW(),'2026-09-20','2026-09-20',-62.50,-250.00,-312.50,1,1,1,${invoice_id})"
+outbound_credit_id="$(sql "SELECT rowid FROM llx_facture WHERE ref='DKCR-OUT-1' AND entity=1")"
+sql "INSERT INTO llx_facturedet
+(fk_facture,label,description,vat_src_code,tva_tx,qty,subprice,total_ht,total_tva,total_ttc,product_type,fk_code_ventilation)
+VALUES (${outbound_credit_id},'VAT credit','VAT credit','DKTEST25',25,1,-250.00,-250.00,-62.50,-312.50,0,${revenue_account_rowid})"
+sql "INSERT INTO llx_accounting_bookkeeping
+(entity,ref,piece_num,doc_date,doc_type,doc_ref,fk_doc,fk_docdet,thirdparty_code,subledger_account,subledger_label,numero_compte,label_compte,label_operation,debit,credit,fk_user_author,date_creation,code_journal,journal_label,date_validated)
+VALUES
+(1,'DK-990008',990008,'2026-09-20','customer_invoice','DKCR-OUT-1',${outbound_credit_id},0,'DKVATCUST','DKVATCUST','DK VAT Customer','1000','Receivables','Credit receivable',0.00,312.50,1,NOW(),'VT','Sales',NOW()),
+(1,'DK-990008',990008,'2026-09-20','customer_invoice','DKCR-OUT-1',${outbound_credit_id},0,'DKVATCUST','','','3000','Revenue','Credit revenue',250.00,0.00,1,NOW(),'VT','Sales',NOW()),
+(1,'DK-990008',990008,'2026-09-20','customer_invoice','DKCR-OUT-1',${outbound_credit_id},0,'DKVATCUST','','','2600','Sales VAT','Credit VAT',62.50,0.00,1,NOW(),'VT','Sales',NOW())"
+docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-oioubl-outbound-credit-note.php
+docker compose exec -T dolibarr java -jar /usr/share/java/Saxon-HE.jar \
+  -s:/tmp/DKCR-OUT-1.xml \
+  -xsl:/tmp/OIOUBL_CreditNote_Schematron.xsl \
+  -o:/tmp/OIOUBL_Outbound_CreditNote_Schematron_Result.xml
+docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-oioubl-outbound-credit-note.php
+
 echo "Staging and validating inbound OIOUBL invoice..."
 docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-oioubl-inbound-staging.php
 inbound_rowid="$(sql "SELECT rowid FROM llx_dk_einvoice_inbound WHERE entity=1 ORDER BY rowid DESC LIMIT 1")"

@@ -138,8 +138,8 @@ final class DkOutboundDeliveryService
 
     private function assertOioUblDocument($document): void
     {
-        if ($document->source_type !== 'oioubl_invoice' || $document->mime_type !== 'application/xml') {
-            throw new InvalidArgumentException('Only archived OIOUBL invoice XML can be queued');
+        if (!in_array($document->source_type, array('oioubl_invoice', 'oioubl_credit_note'), true) || $document->mime_type !== 'application/xml') {
+            throw new InvalidArgumentException('Only archived OIOUBL invoice or credit-note XML can be queued');
         }
     }
 

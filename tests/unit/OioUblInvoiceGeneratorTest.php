@@ -30,6 +30,25 @@ assert($xpath->evaluate('string(/i:Invoice/cac:LegalMonetaryTotal/cbc:PayableAmo
 assert($xpath->evaluate('string(/i:Invoice/cac:InvoiceLine/cac:TaxTotal/cbc:TaxAmount)') === '62.50');
 assert($generator->generate($invoice) === $xml);
 
+$credit = new DkCanonicalInvoice(array(
+    'sourceInvoiceId' => 43, 'documentType' => 'CreditNote', 'creditedInvoiceId' => 'INV-42',
+    'invoiceId' => 'CR-43', 'uuid' => '31e60c75-fc57-5f7b-9320-581517ce6897',
+    'issueDate' => '2026-09-20', 'dueDate' => '2026-09-20', 'currencyCode' => 'DKK', 'orderReference' => 'PO-42',
+    'supplier' => $invoice->supplier, 'customer' => $invoice->customer, 'lines' => $invoice->lines,
+    'taxExclusiveAmount' => '250', 'taxAmount' => '62.5', 'taxInclusiveAmount' => '312.5', 'payableAmount' => '312.5',
+    'paymentMeansCode' => '42', 'paymentId' => 'CR-43', 'bankAccount' => '440116243', 'bankRegistrationNumber' => '0040',
+));
+$creditXml = $generator->generate($credit);
+$creditDom = new DOMDocument();
+assert($creditDom->loadXML($creditXml) === true);
+$creditXp = new DOMXPath($creditDom);
+$creditXp->registerNamespace('c', 'urn:oasis:names:specification:ubl:schema:xsd:CreditNote-2');
+$creditXp->registerNamespace('cbc', 'urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2');
+$creditXp->registerNamespace('cac', 'urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2');
+assert($creditXp->evaluate('string(/c:CreditNote/cac:BillingReference/cac:InvoiceDocumentReference/cbc:ID)') === 'INV-42');
+assert($creditXp->evaluate('string(/c:CreditNote/cac:CreditNoteLine/cbc:CreditedQuantity)') === '1.00');
+assert($generator->generate($credit) === $creditXml);
+
 $rejected = false;
 try {
     new DkCanonicalInvoice(array(
