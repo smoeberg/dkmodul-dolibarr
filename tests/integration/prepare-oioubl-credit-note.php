@@ -24,9 +24,10 @@ $set('/doc:CreditNote/cac:AccountingSupplierParty/cac:Party/cac:PartyLegalEntity
 $set('/doc:CreditNote/cac:AccountingCustomerParty/cac:Party/cbc:EndpointID', '5790001968502');
 
 $lines = $xp->query('/doc:CreditNote/cac:CreditNoteLine');
-while ($lines->length > 1) {
-    $line = $lines->item($lines->length - 1);
-    if (!$line || !$line->parentNode) throw new RuntimeException('Unable to reduce official credit-note lines');
+$extraLines = array();
+foreach ($lines as $index => $line) if ($index > 0) $extraLines[] = $line;
+foreach ($extraLines as $line) {
+    if (!$line->parentNode) throw new RuntimeException('Unable to reduce official credit-note lines');
     $line->parentNode->removeChild($line);
 }
 $set('/doc:CreditNote/cac:CreditNoteLine/cbc:CreditedQuantity', '1.00');
