@@ -56,6 +56,22 @@ class modDkmodul extends DolibarrModules
         $this->boxes = array();
         $this->cronjobs = array();
 
+        $this->menu = array();
+        $this->menu[] = array(
+            'fk_menu' => 'fk_mainmenu=billing',
+            'type' => 'left',
+            'titre' => 'Inbound OIOUBL',
+            'mainmenu' => 'billing',
+            'leftmenu' => 'dkmodul_inbound',
+            'url' => '/dkmodul/einvoice/inbound.php',
+            'langs' => '',
+            'position' => 100,
+            'enabled' => 'isModEnabled("dkmodul")',
+            'perms' => '$user->hasRight("dkmodul", "inbound", "read")',
+            'target' => '',
+            'user' => 2,
+        );
+
         $this->rights = array();
         $r = 0;
 
@@ -69,6 +85,30 @@ class modDkmodul extends DolibarrModules
         $this->rights[$r][1] = 'Administer Danish compliance settings';
         $this->rights[$r][4] = 'compliance';
         $this->rights[$r][5] = 'admin';
+        $r++;
+
+        $this->rights[$r][0] = $this->numero + 10;
+        $this->rights[$r][1] = 'Read inbound OIOUBL workflow';
+        $this->rights[$r][4] = 'inbound';
+        $this->rights[$r][5] = 'read';
+        $r++;
+
+        $this->rights[$r][0] = $this->numero + 11;
+        $this->rights[$r][1] = 'Approve inbound OIOUBL supplier drafts';
+        $this->rights[$r][4] = 'inbound';
+        $this->rights[$r][5] = 'approve';
+        $r++;
+
+        $this->rights[$r][0] = $this->numero + 12;
+        $this->rights[$r][1] = 'Validate inbound OIOUBL supplier invoices';
+        $this->rights[$r][4] = 'inbound';
+        $this->rights[$r][5] = 'validate';
+        $r++;
+
+        $this->rights[$r][0] = $this->numero + 13;
+        $this->rights[$r][1] = 'Post inbound OIOUBL supplier invoices';
+        $this->rights[$r][4] = 'inbound';
+        $this->rights[$r][5] = 'post';
     }
 
     public function init($options = '')

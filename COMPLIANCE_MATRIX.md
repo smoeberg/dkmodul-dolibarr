@@ -232,8 +232,9 @@ Valideringsresultat og artefakthashes er append-only og AuditLedger-koblede.
 `DK-EINV-002` er `PARTIAL`, fordi staging, teknisk validering, mapping til
 leverandør, kladdeoprettelse og eksplicit forretningsgodkendelse via Dolibarrs
 validerings-API samt kontrolleret, balanceret overførsel til hovedbogen nu er
-dækket. Et fuldt brugerflow samt credit notes, fremmed valuta og lokale afgifter
-mangler fortsat.
+dækket. Et rettighedsopdelt brugerflow viser den evidensafledte status og kalder
+de kontrollerede handlinger uden at kunne springe et trin over. Credit notes,
+fremmed valuta og lokale afgifter mangler fortsat.
 
 Testevidens: `tests/integration/assert-oioubl-inbound-staging.php` og
 `tests/integration/test-bookkeeping-immutability.sh`.
@@ -260,3 +261,5 @@ derefter immutable; grænsen er beskrevet i ADR-0019.
 Testevidens: `tests/integration/assert-oioubl-inbound-supplier-draft.php` og
 `tests/integration/assert-oioubl-inbound-supplier-validation.php`.
 Posting dækkes af `tests/integration/assert-oioubl-inbound-supplier-posting.php`.
+Det samlede brugerflow dækkes af
+`tests/integration/assert-oioubl-inbound-workflow.php` og ADR-0020.

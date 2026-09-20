@@ -34,6 +34,9 @@ final class DkInboundSupplierDraftService
         if ($entity <= 0 || $inboundRowId <= 0 || $supplierRowId <= 0 || $actorId <= 0 || (int) $user->id !== $actorId) {
             throw new InvalidArgumentException('Entity, inbound invoice, supplier and approving actor are required');
         }
+        if (empty($user->admin) && (!method_exists($user, 'hasRight') || !$user->hasRight('dkmodul', 'inbound', 'approve'))) {
+            throw new RuntimeException('Actor is not authorized to approve inbound supplier drafts');
+        }
         $this->db->begin();
         try {
             $existing = $this->existingDraft($entity, $inboundRowId, true);
