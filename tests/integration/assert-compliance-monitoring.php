@@ -1,5 +1,9 @@
 <?php
 
+define('NOLOGIN', 1);
+define('NOREQUIREMENU', 1);
+define('NOREQUIREHTML', 1);
+
 require '/var/www/html/main.inc.php';
 require_once DOL_DOCUMENT_ROOT.'/custom/dkmodul/class/Compliance/ComplianceMonitorRepository.php';
 require_once DOL_DOCUMENT_ROOT.'/custom/dkmodul/class/Compliance/ComplianceMonitoringService.php';

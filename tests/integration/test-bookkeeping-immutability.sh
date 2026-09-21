@@ -104,6 +104,8 @@ expect_failure "UPDATE llx_dk_restore_evidence SET status='failed' WHERE evidenc
 expect_failure "DELETE FROM llx_dk_restore_evidence WHERE evidence_uuid='22222222-2222-4222-8222-222222222222'"
 docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-backup-compliance.php
 docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-compliance-monitoring.php
+test "$(sql "SELECT COUNT(*) FROM llx_dk_compliance_check WHERE deployment_id='monitor-integration'")" = "3"
+test "$(sql "SELECT COUNT(*) FROM llx_dk_compliance_alert WHERE deployment_id='monitor-integration'")" = "2"
 expect_failure "UPDATE llx_dk_compliance_check SET status='ok' WHERE deployment_id='monitor-integration'"
 expect_failure "DELETE FROM llx_dk_compliance_alert WHERE deployment_id='monitor-integration'"
 expect_failure "DELETE d FROM llx_dk_compliance_alert_delivery d JOIN llx_dk_compliance_alert a ON a.alert_uuid=d.alert_uuid WHERE a.deployment_id='monitor-integration'"
