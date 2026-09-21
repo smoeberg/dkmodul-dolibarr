@@ -25,13 +25,24 @@ if ! docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "SELECT CO
 fi
 
 echo "Waiting for Dolibarr installation lock..."
-for _ in $(seq 1 60); do
+install_ready=0
+for _ in $(seq 1 90); do
   if docker compose exec -T dolibarr test -f /var/www/documents/install.lock; then
+    install_ready=1
+    break
+  fi
+  if [ "$(docker compose ps -q dolibarr | xargs -r docker inspect -f '{{.State.Running}}' 2>/dev/null || true)" != "true" ]; then
     break
   fi
   sleep 2
 done
-docker compose exec -T dolibarr test -f /var/www/documents/install.lock
+
+if [ "$install_ready" != "1" ]; then
+  echo "Dolibarr installation did not create install.lock"
+  docker compose ps
+  docker compose logs --no-color dolibarr mariadb
+  exit 1
+fi
 
 echo "Ensuring OIOUBL XSLT 2.0 runtime dependency..."
 if ! docker compose exec -T dolibarr test -f /usr/share/java/Saxon-HE.jar; then
@@ -42,6 +53,13 @@ docker compose exec -T dolibarr java -jar /usr/share/java/Saxon-HE.jar -? >/dev/
 echo "Verifying real Dolibarr module activation..."
 module_enabled="$(docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "SELECT value FROM llx_const WHERE name='MAIN_MODULE_DKMODUL' AND entity=1 ORDER BY rowid DESC LIMIT 1")"
 test "$module_enabled" = "1"
+
+echo "Verifying that an incomplete registered profile fails closed..."
+docker compose exec -T mariadb mariadb -uroot -proot dolidb -e "
+UPDATE llx_const SET value='1' WHERE name IN ('DKMODUL_REGISTERED_PROFILE','DKMODUL_COMPLIANCE_MODE') AND entity=1;"
+docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-registered-profile-lock.php
+docker compose exec -T mariadb mariadb -uroot -proot dolidb -e "
+UPDATE llx_const SET value='0' WHERE name='DKMODUL_REGISTERED_PROFILE' AND entity=1;"
 
 for table in llx_dk_audit_event llx_dk_correction llx_dk_bookkeeping_origin llx_dk_document_archive llx_dk_einvoice_delivery llx_dk_einvoice_transport_event llx_dk_einvoice_application_response llx_dk_einvoice_inbound llx_dk_einvoice_inbound_validation llx_dk_einvoice_inbound_draft llx_dk_einvoice_inbound_supplier_validation llx_dk_einvoice_inbound_posting llx_dk_standard_account llx_dk_account_mapping llx_dk_standard_vat_code llx_dk_vat_mapping; do
   table_count="$(docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='dolidb' AND table_name='$table'")"

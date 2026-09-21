@@ -21,3 +21,13 @@ At etablere en sporbar kæde fra myndighedskrav til:
 - Erhvervsstyrelsens standardfilformater: https://git.erst.dk/standard-filformater/standard-filformater
 
 > Projektets compliance-dokumentation er teknisk projektdokumentation og udgør ikke juridisk rådgivning.
+
+## P0 referenceprofil
+
+- `dkmodul/product-manifest.json` er den maskinlæsbare versions- og driftspolitik og følger med moduldistributionen.
+- `dkmodul/deployment-attestation.schema.json` fastlægger de hosting-, backup- og evidensoplysninger, som registreres pr. installation uden at hardcode en cloudleverandør.
+- `docs/p0-readiness-checklist.md` viser åbne gates før `registered-candidate`.
+- `docs/operations/backup-retention-restore.md` definerer backup-, retention- og restorebeviser.
+- `docs/security/risk-and-control-baseline.md` definerer sikkerheds- og risikobaseline.
+
+En registreret profil fejler lukket, hvis compliance-mode deaktiveres, manifestet stadig indeholder uafklarede registreringsværdier, eller den konfigurerede deployment-attestation mangler/er ugyldig. Attestationen ligger uden for koden og vælges pr. installation via `DKMODUL_DEPLOYMENT_ATTESTATION_PATH`; hosting- og backupleverandører hardcodes derfor ikke. Normal modulafinstallation er blokeret i den registrerede profil.

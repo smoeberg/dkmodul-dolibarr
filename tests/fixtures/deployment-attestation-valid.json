@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "deployment_id": "example-production",
+  "hosting": {
+    "legal_name": "Example Hosting ApS",
+    "registration_number": "DK12345678",
+    "country": "DK",
+    "regions": ["dk-east-1"]
+  },
+  "backup": {
+    "legal_name": "Independent Backup ApS",
+    "registration_number": "DK87654321",
+    "country": "DK",
+    "regions": ["dk-west-1"],
+    "full_schedule": "weekly",
+    "incremental_schedule": "daily"
+  },
+  "evidence": {
+    "risk_assessment": "evidence/risk-assessment.pdf",
+    "restore_test": "evidence/restore-test.pdf",
+    "retention_test": "evidence/retention-test.pdf",
+    "authority_export_test": "evidence/authority-export-test.pdf"
+  }
+}

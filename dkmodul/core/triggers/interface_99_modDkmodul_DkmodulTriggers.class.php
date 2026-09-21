@@ -2,6 +2,7 @@
 
 require_once DOL_DOCUMENT_ROOT.'/core/triggers/dolibarrtriggers.class.php';
 dol_include_once('/dkmodul/class/Compliance/PostingGuard.php');
+dol_include_once('/dkmodul/class/Compliance/ComplianceLock.php');
 dol_include_once('/dkmodul/class/Audit/AuditLedger.php');
 
 class InterfaceDkmodulTriggers extends DolibarrTriggers
@@ -17,11 +18,29 @@ class InterfaceDkmodulTriggers extends DolibarrTriggers
 
     public function runTrigger($action, $object, User $user, Translate $langs, Conf $conf)
     {
-        if (!isModEnabled('dkmodul') || !getDolGlobalInt('DKMODUL_COMPLIANCE_MODE')) {
+        if (!in_array($action, array('BOOKKEEPING_CREATE', 'BOOKKEEPING_MODIFY', 'BOOKKEEPING_DELETE'), true)) {
             return 0;
         }
 
-        if (!in_array($action, array('BOOKKEEPING_CREATE', 'BOOKKEEPING_MODIFY', 'BOOKKEEPING_DELETE'), true)) {
+        try {
+            $registeredProfile = (bool) getDolGlobalInt('DKMODUL_REGISTERED_PROFILE');
+            $decision = DkComplianceLock::triggerDecision(
+                isModEnabled('dkmodul'),
+                $registeredProfile,
+                (bool) getDolGlobalInt('DKMODUL_COMPLIANCE_MODE')
+            );
+            DkComplianceLock::assertDeploymentReady(
+                dirname(__DIR__, 2).'/product-manifest.json',
+                getDolGlobalString('DKMODUL_DEPLOYMENT_ATTESTATION_PATH'),
+                $registeredProfile
+            );
+        } catch (Throwable $e) {
+            $this->error = $e->getMessage();
+            dol_syslog($this->error, LOG_ERR);
+            return -1;
+        }
+
+        if ($decision !== 'enforce') {
             return 0;
         }
 

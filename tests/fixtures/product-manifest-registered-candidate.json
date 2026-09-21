@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "product": {
+    "id": "dolibarr-dk",
+    "name": "Dolibarr DK",
+    "release": "test-candidate",
+    "profile_status": "registered-candidate"
+  },
+  "components": {
+    "dolibarr": "24.0.1",
+    "dk_module": "test-candidate",
+    "php": "8.2.x",
+    "database": "MariaDB 11.4.x",
+    "saft": "DK SAF-T 2.1",
+    "oioubl": "OIOUBL 3",
+    "peppol": "Peppol BIS Billing 3"
+  },
+  "deployment": {
+    "model": "hybrid-customer-hosted",
+    "hosting_policy": "customer-selectable-with-deployment-attestation",
+    "deployment_attestation": {
+      "required": true,
+      "schema": "deployment-attestation.schema.json"
+    },
+    "backup_policy": {
+      "third_party_copy_required": true,
+      "eu_eea_copy_required": true,
+      "provider_must_be_identified_per_deployment": true
+    },
+    "access_point": {
+      "model": "own-certified-access-point",
+      "certification_status": "test"
+    }
+  },
+  "controls": {
+    "full_backup": "weekly-minimum",
+    "incremental_backup": "daily-minimum",
+    "retention": "five-years-from-financial-year-end",
+    "restore_test_required": true,
+    "risk_assessment_required": true,
+    "processor_agreement_required_where_applicable": true
+  }
+}

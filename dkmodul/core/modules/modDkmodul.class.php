@@ -20,7 +20,7 @@ class modDkmodul extends DolibarrModules
         $this->module_position = '90';
         $this->name = preg_replace('/^mod/i', '', get_class($this));
         $this->description = 'Danish bookkeeping compliance layer for Dolibarr';
-        $this->version = 'development';
+        $this->version = '0.1.0-p0';
         $this->const_name = 'MAIN_MODULE_'.strtoupper($this->name);
         $this->picto = 'accounting';
 
@@ -44,6 +44,8 @@ class modDkmodul extends DolibarrModules
 
         $this->const = array(
             1 => array('DKMODUL_COMPLIANCE_MODE', 'yesno', '1', 'Enable Danish compliance mode', 0, 'current', 1),
+            2 => array('DKMODUL_REGISTERED_PROFILE', 'yesno', '0', 'Lock the registered Danish compliance profile', 0, 'current', 1),
+            3 => array('DKMODUL_DEPLOYMENT_ATTESTATION_PATH', 'chaine', '', 'Absolute path to the deployment attestation JSON file', 0, 'current', 1),
         );
 
         if (!isModEnabled('dkmodul')) {
@@ -138,9 +140,11 @@ class modDkmodul extends DolibarrModules
 
     public function remove($options = '')
     {
+        require_once dirname(__DIR__, 2).'/class/Compliance/ComplianceLock.php';
         require_once dirname(__DIR__, 2).'/class/Compliance/DatabaseGuardInstaller.php';
 
         try {
+            DkComplianceLock::assertRemovalAllowed((bool) getDolGlobalInt('DKMODUL_REGISTERED_PROFILE'));
             $installer = new DkDatabaseGuardInstaller($this->db);
             $installer->drop();
         } catch (Throwable $e) {
