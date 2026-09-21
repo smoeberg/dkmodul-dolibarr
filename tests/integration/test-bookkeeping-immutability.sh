@@ -25,13 +25,24 @@ if ! docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "SELECT CO
 fi
 
 echo "Waiting for Dolibarr installation lock..."
-for _ in $(seq 1 60); do
+install_ready=0
+for _ in $(seq 1 90); do
   if docker compose exec -T dolibarr test -f /var/www/documents/install.lock; then
+    install_ready=1
+    break
+  fi
+  if [ "$(docker compose ps -q dolibarr | xargs -r docker inspect -f '{{.State.Running}}' 2>/dev/null || true)" != "true" ]; then
     break
   fi
   sleep 2
 done
-docker compose exec -T dolibarr test -f /var/www/documents/install.lock
+
+if [ "$install_ready" != "1" ]; then
+  echo "Dolibarr installation did not create install.lock"
+  docker compose ps
+  docker compose logs --no-color dolibarr mariadb
+  exit 1
+fi
 
 echo "Ensuring OIOUBL XSLT 2.0 runtime dependency..."
 if ! docker compose exec -T dolibarr test -f /usr/share/java/Saxon-HE.jar; then
