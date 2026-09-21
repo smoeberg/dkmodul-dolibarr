@@ -5,7 +5,8 @@
 - [x] Machine-readable product manifest exists.
 - [x] Dolibarr, PHP, MariaDB, DK module, SAF-T and e-invoice target versions are explicit.
 - [x] Customer-selectable hosting policy and deployment-attestation schema exist.
-- [ ] Every production deployment is blocked until its actual hosting/backup parties, services and regions are attested.
+- [x] Registered-profile runtime blocks missing or invalid attestations for the actual hosting/backup parties and regions.
+- [ ] Every production deployment has an approved, current attestation and supporting evidence.
 - [ ] Own Nemhandel/Peppol access-point certification identifier and lifecycle are recorded.
 - [ ] Release is changed from `p0-draft` to `registered-candidate` only after all gates pass.
 
@@ -14,6 +15,7 @@
 - [x] Registered profile fails closed if compliance mode is disabled.
 - [x] Normal module removal is blocked in the registered profile.
 - [x] Draft manifest can be used in development but cannot be asserted registrable.
+- [x] Registered candidate fails closed when the configured external attestation is missing or invalid.
 - [ ] Production monitoring alerts on module/profile/configuration drift.
 - [ ] Controlled migration and decommissioning procedure is approved.
 

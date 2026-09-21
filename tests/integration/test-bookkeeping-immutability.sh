@@ -43,6 +43,13 @@ echo "Verifying real Dolibarr module activation..."
 module_enabled="$(docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "SELECT value FROM llx_const WHERE name='MAIN_MODULE_DKMODUL' AND entity=1 ORDER BY rowid DESC LIMIT 1")"
 test "$module_enabled" = "1"
 
+echo "Verifying that an incomplete registered profile fails closed..."
+docker compose exec -T mariadb mariadb -uroot -proot dolidb -e "
+UPDATE llx_const SET value='1' WHERE name IN ('DKMODUL_REGISTERED_PROFILE','DKMODUL_COMPLIANCE_MODE') AND entity=1;"
+docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-registered-profile-lock.php
+docker compose exec -T mariadb mariadb -uroot -proot dolidb -e "
+UPDATE llx_const SET value='0' WHERE name='DKMODUL_REGISTERED_PROFILE' AND entity=1;"
+
 for table in llx_dk_audit_event llx_dk_correction llx_dk_bookkeeping_origin llx_dk_document_archive llx_dk_einvoice_delivery llx_dk_einvoice_transport_event llx_dk_einvoice_application_response llx_dk_einvoice_inbound llx_dk_einvoice_inbound_validation llx_dk_einvoice_inbound_draft llx_dk_einvoice_inbound_supplier_validation llx_dk_einvoice_inbound_posting llx_dk_standard_account llx_dk_account_mapping llx_dk_standard_vat_code llx_dk_vat_mapping; do
   table_count="$(docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='dolidb' AND table_name='$table'")"
   test "$table_count" = "1"

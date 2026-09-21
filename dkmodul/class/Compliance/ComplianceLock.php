@@ -24,10 +24,17 @@ final class DkComplianceLock
 
     public static function assertManifestReady($manifestPath, $registeredProfile)
     {
+        return self::assertDeploymentReady($manifestPath, '', $registeredProfile);
+    }
+
+    public static function assertDeploymentReady($manifestPath, $attestationPath, $registeredProfile)
+    {
         require_once __DIR__.'/ProductManifest.php';
         $manifest = DkProductManifest::load($manifestPath);
         if ($registeredProfile) {
             $manifest->assertRegistrable();
+            require_once __DIR__.'/DeploymentAttestation.php';
+            DkDeploymentAttestation::load($attestationPath);
         }
 
         return $manifest;

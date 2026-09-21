@@ -42,8 +42,8 @@
           "minItems": 1,
           "items": { "type": "string", "minLength": 1 }
         },
-        "full_schedule": { "type": "string", "minLength": 1 },
-        "incremental_schedule": { "type": "string", "minLength": 1 }
+        "full_schedule": { "enum": ["daily", "weekly"] },
+        "incremental_schedule": { "enum": ["hourly", "daily"] }
       }
     },
     "evidence": {

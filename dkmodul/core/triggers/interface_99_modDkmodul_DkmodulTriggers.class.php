@@ -29,7 +29,11 @@ class InterfaceDkmodulTriggers extends DolibarrTriggers
                 $registeredProfile,
                 (bool) getDolGlobalInt('DKMODUL_COMPLIANCE_MODE')
             );
-            DkComplianceLock::assertManifestReady(dirname(__DIR__, 2).'/product-manifest.json', $registeredProfile);
+            DkComplianceLock::assertDeploymentReady(
+                dirname(__DIR__, 2).'/product-manifest.json',
+                getDolGlobalString('DKMODUL_DEPLOYMENT_ATTESTATION_PATH'),
+                $registeredProfile
+            );
         } catch (Throwable $e) {
             $this->error = $e->getMessage();
             dol_syslog($this->error, LOG_ERR);

@@ -11,7 +11,7 @@ Dolibarr DK består af:
 - Dolibarr 24.0.x (første certificeringsbaseline),
 - Dolibarr Advanced Accounting,
 - DK-modulet i dette repository,
-- managed-cloud referenceprofil med PHP 8.2 og MariaDB 11.4,
+- hybrid, customer-hosted referenceprofil med PHP 8.2 og MariaDB 11.4,
 - de eksterne integrationsservices, som er nødvendige for dansk compliance.
 
 Produktet skal kunne identificeres entydigt ved versioner af:
@@ -49,7 +49,7 @@ Som udgangspunkt er følgende ikke dækket af compliance-garantien:
 
 - vilkårlige tredjepartsmoduler,
 - direkte ændringer i Dolibarr core,
-- ikke-understøttet hosting,
+- hosting uden en godkendt deployment-attestation,
 - databaseændringer uden for officielle migrations,
 - integrationer som ikke er eksplicit dokumenteret som understøttede.
 
@@ -59,10 +59,10 @@ Som udgangspunkt er følgende ikke dækket af compliance-garantien:
 - CI/integration Docker pin: 24.0.1
 - PHP 8.2
 - MariaDB 11.4
-- managed cloud
-- customer-selected hosting that passes the versioned deployment-attestation policy,
+- hybrid customer-hosted deployment, where the customer selects primary hosting,
+- mandatory approved deployment attestation and an independent third-party backup copy in EU/EØS,
 - own certified Nemhandel/Peppol access point,
-- PostgreSQL og generisk self-hosting er uden for første registrerede produktgrænse
+- PostgreSQL er uden for første registrerede produktgrænse
 
 ## Åbne beslutninger
 

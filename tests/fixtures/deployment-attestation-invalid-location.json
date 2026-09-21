@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "deployment_id": "invalid-backup-location",
+  "hosting": {
+    "legal_name": "Example Hosting ApS",
+    "registration_number": "DK12345678",
+    "country": "DK",
+    "regions": ["dk-east-1"]
+  },
+  "backup": {
+    "legal_name": "Example Backup Inc.",
+    "registration_number": "US123456",
+    "country": "US",
+    "regions": ["us-east-1"],
+    "full_schedule": "weekly",
+    "incremental_schedule": "daily"
+  },
+  "evidence": {
+    "risk_assessment": "evidence/risk-assessment.pdf",
+    "restore_test": "evidence/restore-test.pdf",
+    "retention_test": "evidence/retention-test.pdf",
+    "authority_export_test": "evidence/authority-export-test.pdf"
+  }
+}
