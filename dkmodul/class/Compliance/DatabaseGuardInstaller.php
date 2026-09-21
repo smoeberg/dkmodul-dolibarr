@@ -47,6 +47,12 @@ class DkDatabaseGuardInstaller
             $this->backupEvidenceDeleteGuardSql(),
             $this->restoreEvidenceUpdateGuardSql(),
             $this->restoreEvidenceDeleteGuardSql(),
+            $this->complianceCheckUpdateGuardSql(),
+            $this->complianceCheckDeleteGuardSql(),
+            $this->complianceAlertUpdateGuardSql(),
+            $this->complianceAlertDeleteGuardSql(),
+            $this->complianceDeliveryUpdateGuardSql(),
+            $this->complianceDeliveryDeleteGuardSql(),
         );
 
         foreach ($sqlStatements as $sql) {
@@ -284,6 +290,36 @@ class DkDatabaseGuardInstaller
         return $this->appendOnlyGuardSql($this->restoreEvidenceDeleteGuardName(), $this->db->prefix().'dk_restore_evidence', 'DELETE', 'restore evidence cannot be deleted');
     }
 
+    public function complianceCheckUpdateGuardSql()
+    {
+        return $this->appendOnlyGuardSql($this->complianceCheckUpdateGuardName(), $this->db->prefix().'dk_compliance_check', 'UPDATE', 'compliance checks are append-only');
+    }
+
+    public function complianceCheckDeleteGuardSql()
+    {
+        return $this->appendOnlyGuardSql($this->complianceCheckDeleteGuardName(), $this->db->prefix().'dk_compliance_check', 'DELETE', 'compliance checks cannot be deleted');
+    }
+
+    public function complianceAlertUpdateGuardSql()
+    {
+        return $this->appendOnlyGuardSql($this->complianceAlertUpdateGuardName(), $this->db->prefix().'dk_compliance_alert', 'UPDATE', 'compliance alerts are append-only');
+    }
+
+    public function complianceAlertDeleteGuardSql()
+    {
+        return $this->appendOnlyGuardSql($this->complianceAlertDeleteGuardName(), $this->db->prefix().'dk_compliance_alert', 'DELETE', 'compliance alerts cannot be deleted');
+    }
+
+    public function complianceDeliveryUpdateGuardSql()
+    {
+        return $this->appendOnlyGuardSql($this->complianceDeliveryUpdateGuardName(), $this->db->prefix().'dk_compliance_alert_delivery', 'UPDATE', 'alert delivery attempts are append-only');
+    }
+
+    public function complianceDeliveryDeleteGuardSql()
+    {
+        return $this->appendOnlyGuardSql($this->complianceDeliveryDeleteGuardName(), $this->db->prefix().'dk_compliance_alert_delivery', 'DELETE', 'alert delivery attempts cannot be deleted');
+    }
+
     private function appendOnlyGuardSql(string $name, string $table, string $operation, string $message): string
     {
         return 'CREATE TRIGGER '.$name.' BEFORE '.$operation.' ON '.$table
@@ -364,6 +400,12 @@ class DkDatabaseGuardInstaller
             $this->backupEvidenceDeleteGuardName(),
             $this->restoreEvidenceUpdateGuardName(),
             $this->restoreEvidenceDeleteGuardName(),
+            $this->complianceCheckUpdateGuardName(),
+            $this->complianceCheckDeleteGuardName(),
+            $this->complianceAlertUpdateGuardName(),
+            $this->complianceAlertDeleteGuardName(),
+            $this->complianceDeliveryUpdateGuardName(),
+            $this->complianceDeliveryDeleteGuardName(),
         );
     }
 
@@ -510,6 +552,36 @@ class DkDatabaseGuardInstaller
     private function restoreEvidenceDeleteGuardName()
     {
         return $this->db->prefix().'dk_restore_evidence_bd';
+    }
+
+    private function complianceCheckUpdateGuardName()
+    {
+        return $this->db->prefix().'dk_compliance_check_bu';
+    }
+
+    private function complianceCheckDeleteGuardName()
+    {
+        return $this->db->prefix().'dk_compliance_check_bd';
+    }
+
+    private function complianceAlertUpdateGuardName()
+    {
+        return $this->db->prefix().'dk_compliance_alert_bu';
+    }
+
+    private function complianceAlertDeleteGuardName()
+    {
+        return $this->db->prefix().'dk_compliance_alert_bd';
+    }
+
+    private function complianceDeliveryUpdateGuardName()
+    {
+        return $this->db->prefix().'dk_compliance_alert_delivery_bu';
+    }
+
+    private function complianceDeliveryDeleteGuardName()
+    {
+        return $this->db->prefix().'dk_compliance_alert_delivery_bd';
     }
 
     private function assertSupportedDatabase()
