@@ -62,6 +62,37 @@ final class DkProductManifest
         if ($this->value('deployment.backup_policy.eu_eea_copy_required') !== true) {
             throw new RuntimeException('An EU/EEA backup copy must be required');
         }
+
+        $this->assertCertifiedAccessPoint();
+    }
+
+    private function assertCertifiedAccessPoint()
+    {
+        if ($this->value('deployment.access_point.model') !== 'own-certified-access-point'
+            || $this->value('deployment.access_point.certification_status') !== 'certified') {
+            throw new RuntimeException('Registered profile requires an own certified Nemhandel/Peppol access point');
+        }
+
+        $certificationId = $this->value('deployment.access_point.certification_id');
+        $certificateSha256 = $this->value('deployment.access_point.certificate_sha256');
+        if (!is_string($certificationId) || trim($certificationId) === '') {
+            throw new RuntimeException('Registered profile requires an access-point certification identifier');
+        }
+        if (!is_string($certificateSha256) || !preg_match('/^[a-f0-9]{64}$/', $certificateSha256)) {
+            throw new RuntimeException('Registered profile requires an access-point certificate SHA-256');
+        }
+
+        $validFromValue = $this->value('deployment.access_point.valid_from');
+        $validUntilValue = $this->value('deployment.access_point.valid_until');
+        $validFrom = is_string($validFromValue) ? DateTimeImmutable::createFromFormat('!Y-m-d', $validFromValue) : false;
+        $validUntil = is_string($validUntilValue) ? DateTimeImmutable::createFromFormat('!Y-m-d', $validUntilValue) : false;
+        $today = new DateTimeImmutable('today');
+        if (!$validFrom || !$validUntil
+            || $validFrom->format('Y-m-d') !== $validFromValue
+            || $validUntil->format('Y-m-d') !== $validUntilValue
+            || $validFrom > $today || $validUntil < $today || $validUntil < $validFrom) {
+            throw new RuntimeException('Access-point certification period is invalid or expired');
+        }
     }
 
     private function assertStructure()
@@ -89,6 +120,11 @@ final class DkProductManifest
             'deployment.backup_policy.eu_eea_copy_required',
             'deployment.backup_policy.provider_must_be_identified_per_deployment',
             'deployment.access_point.model',
+            'deployment.access_point.certification_status',
+            'deployment.access_point.certification_id',
+            'deployment.access_point.certificate_sha256',
+            'deployment.access_point.valid_from',
+            'deployment.access_point.valid_until',
             'controls.full_backup',
             'controls.incremental_backup',
             'controls.retention',
