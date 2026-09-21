@@ -33,7 +33,11 @@
     },
     "access_point": {
       "model": "own-certified-access-point",
-      "certification_status": "planned"
+      "certification_status": "planned",
+      "certification_id": "TBD-production-certification-id",
+      "certificate_sha256": "TBD-production-certificate-sha256",
+      "valid_from": "TBD",
+      "valid_until": "TBD"
     }
   },
   "controls": {
