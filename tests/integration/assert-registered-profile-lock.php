@@ -24,7 +24,12 @@ if (strpos($trigger->error, 'registered-candidate') === false
 $candidateManifest = '/var/www/dkmodul-tests/fixtures/product-manifest-registered-candidate.json';
 $missingAttestationBlocked = false;
 try {
-    DkComplianceLock::assertDeploymentReady($candidateManifest, '', true);
+    DkComplianceLock::assertDeploymentReady(
+        $candidateManifest,
+        '',
+        true,
+        '/var/www/dkmodul-tests/fixtures/attestation-trust-store.json'
+    );
 } catch (RuntimeException $e) {
     $missingAttestationBlocked = strpos($e->getMessage(), 'deployment attestation') !== false;
 }
@@ -37,13 +42,21 @@ try {
     DkComplianceLock::assertDeploymentReady(
         $candidateManifest,
         '/var/www/dkmodul-tests/fixtures/deployment-attestation-invalid-location.json',
-        true
+        true,
+        '/var/www/dkmodul-tests/fixtures/attestation-trust-store.json'
     );
 } catch (RuntimeException $e) {
-    $invalidAttestationBlocked = strpos($e->getMessage(), 'EU/EEA') !== false;
+    $invalidAttestationBlocked = strpos($e->getMessage(), 'signed deployment attestation envelope') !== false;
 }
 if (!$invalidAttestationBlocked) {
     throw new RuntimeException('Registered candidate accepted an invalid deployment attestation');
 }
+
+DkComplianceLock::assertDeploymentReady(
+    $candidateManifest,
+    '/var/www/dkmodul-tests/fixtures/deployment-attestation-signed-valid.json',
+    true,
+    '/var/www/dkmodul-tests/fixtures/attestation-trust-store.json'
+);
 
 echo "Registered profile fail-closed integration test passed\n";

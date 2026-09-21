@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "keys": [
+    {
+      "key_id": "p0-test-2026",
+      "algorithm": "RSA-SHA256",
+      "status": "active",
+      "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA5lGV/qinSsj/nRXTrbDN\nzRPg11xzCOhz7GZ+2kOBp4pAsyAi7AdV7dBTNwkoCQaMG+qMyw56KrdpEKTxDMwB\n2vStzTIb7KA62DCY63VtvBbrKgea0qS2l8KF2Qi1M80L9DdnIPAOvm6yl0Mud1l7\nmKO1P7MQX2uEDpurFWlwMUWgAgtLfkvrmcbjMJn2vmcSVTYJJQFdKa2ZSBGLgjiG\nKKw8uV3GT70bAd4JDypbs4EssZX1PcmRd4eUO1z6WbvIOxlsHsp+1W+Krwppm/NW\nvj31aDkxEuZHcnaPKYAIgG4YjtoMYDX+TbZBHgR6B8ttzEf2+TbD/G4WGQ0pJmvc\n3QIDAQAB\n-----END PUBLIC KEY-----\n"
+    }
+  ]
+}

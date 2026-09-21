@@ -46,6 +46,7 @@ class modDkmodul extends DolibarrModules
             1 => array('DKMODUL_COMPLIANCE_MODE', 'yesno', '1', 'Enable Danish compliance mode', 0, 'current', 1),
             2 => array('DKMODUL_REGISTERED_PROFILE', 'yesno', '0', 'Lock the registered Danish compliance profile', 0, 'current', 1),
             3 => array('DKMODUL_DEPLOYMENT_ATTESTATION_PATH', 'chaine', '', 'Absolute path to the deployment attestation JSON file', 0, 'current', 1),
+            4 => array('DKMODUL_ATTESTATION_TRUST_STORE_PATH', 'chaine', '', 'Absolute path to the approved attestation public-key trust store', 0, 'current', 1),
         );
 
         if (!isModEnabled('dkmodul')) {
