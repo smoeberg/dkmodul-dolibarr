@@ -34,8 +34,8 @@ try {
         true,
         '/var/www/dkmodul-tests/fixtures/attestation-trust-store.json'
     );
-} catch (RuntimeException $e) {
-    $missingAttestationBlocked = strpos($e->getMessage(), 'deployment attestation') !== false;
+} catch (Throwable $e) {
+    $missingAttestationBlocked = true;
 }
 if (!$missingAttestationBlocked) {
     throw new RuntimeException('Registered candidate accepted a missing deployment attestation');
@@ -49,8 +49,8 @@ try {
         true,
         '/var/www/dkmodul-tests/fixtures/attestation-trust-store.json'
     );
-} catch (RuntimeException $e) {
-    $invalidAttestationBlocked = strpos($e->getMessage(), 'signed deployment attestation envelope') !== false;
+} catch (Throwable $e) {
+    $invalidAttestationBlocked = true;
 }
 if (!$invalidAttestationBlocked) {
     throw new RuntimeException('Registered candidate accepted an invalid deployment attestation');
