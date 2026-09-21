@@ -25,14 +25,14 @@ if (strpos($trigger->error, 'registered-candidate') === false
     throw new RuntimeException('Registered profile failed for an unexpected reason: '.$trigger->error);
 }
 
-$candidateManifest = '/var/www/dkmodul-tests/fixtures/product-manifest-registered-candidate.json';
+$candidateManifest = '/var/www/dkmodul-fixtures/product-manifest-registered-candidate.json';
 $missingAttestationBlocked = false;
 try {
     DkComplianceLock::assertDeploymentReady(
         $candidateManifest,
         '',
         true,
-        '/var/www/dkmodul-tests/fixtures/attestation-trust-store.json'
+        '/var/www/dkmodul-fixtures/attestation-trust-store.json'
     );
 } catch (Throwable $e) {
     $missingAttestationBlocked = true;
@@ -45,9 +45,9 @@ $invalidAttestationBlocked = false;
 try {
     DkComplianceLock::assertDeploymentReady(
         $candidateManifest,
-        '/var/www/dkmodul-tests/fixtures/deployment-attestation-invalid-location.json',
+        '/var/www/dkmodul-fixtures/deployment-attestation-invalid-location.json',
         true,
-        '/var/www/dkmodul-tests/fixtures/attestation-trust-store.json'
+        '/var/www/dkmodul-fixtures/attestation-trust-store.json'
     );
 } catch (Throwable $e) {
     $invalidAttestationBlocked = true;
@@ -58,9 +58,9 @@ if (!$invalidAttestationBlocked) {
 
 DkComplianceLock::assertDeploymentReady(
     $candidateManifest,
-    '/var/www/dkmodul-tests/fixtures/deployment-attestation-signed-valid.json',
+    '/var/www/dkmodul-fixtures/deployment-attestation-signed-valid.json',
     true,
-    '/var/www/dkmodul-tests/fixtures/attestation-trust-store.json'
+    '/var/www/dkmodul-fixtures/attestation-trust-store.json'
 );
 
 echo "Registered profile fail-closed integration test passed\n";
