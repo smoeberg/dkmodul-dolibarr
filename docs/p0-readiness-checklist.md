@@ -4,7 +4,8 @@
 
 - [x] Machine-readable product manifest exists.
 - [x] Dolibarr, PHP, MariaDB, DK module, SAF-T and e-invoice target versions are explicit.
-- [ ] Existing cloud provider, services and EU/EØS regions are recorded.
+- [x] Customer-selectable hosting policy and deployment-attestation schema exist.
+- [ ] Every production deployment is blocked until its actual hosting/backup parties, services and regions are attested.
 - [ ] Own Nemhandel/Peppol access-point certification identifier and lifecycle are recorded.
 - [ ] Release is changed from `p0-draft` to `registered-candidate` only after all gates pass.
 
@@ -19,7 +20,7 @@
 ## Backup, retention and restore
 
 - [ ] Weekly full and daily incremental jobs configured.
-- [ ] At least one full and incremental copy proven in EU/EØS.
+- [ ] At least one full and incremental copy proven in EU/EØS for every deployment.
 - [ ] Five-year retention and early-delete denial tested.
 - [ ] Customer-exit/insolvency access path tested.
 - [ ] Quarterly end-to-end restore completed and signed off.

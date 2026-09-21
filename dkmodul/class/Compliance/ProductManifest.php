@@ -46,21 +46,14 @@ final class DkProductManifest
             throw new RuntimeException('Product manifest is not a registered-candidate profile');
         }
 
-        $required = array(
-            'deployment.provider',
-            'deployment.primary_region',
-            'deployment.backup_region',
-            'deployment.storage_provider',
-            'controls.restore_test',
-            'controls.risk_assessment',
-            'controls.processor_agreement',
-        );
-
-        foreach ($required as $path) {
-            $value = trim((string) $this->value($path));
-            if ($value === '' || strpos($value, 'TBD') === 0) {
-                throw new RuntimeException('Unresolved registered-profile manifest value: '.$path);
-            }
+        if ($this->value('deployment.hosting_policy') !== 'customer-selectable-with-deployment-attestation') {
+            throw new RuntimeException('Unsupported registered-profile hosting policy');
+        }
+        if ($this->value('deployment.deployment_attestation.required') !== true) {
+            throw new RuntimeException('Deployment attestation must be required');
+        }
+        if ($this->value('deployment.backup_policy.eu_eea_copy_required') !== true) {
+            throw new RuntimeException('An EU/EEA backup copy must be required');
         }
     }
 
@@ -78,11 +71,18 @@ final class DkProductManifest
             'components.saft',
             'components.oioubl',
             'deployment.model',
-            'deployment.provider',
+            'deployment.hosting_policy',
+            'deployment.deployment_attestation.required',
+            'deployment.deployment_attestation.schema',
+            'deployment.backup_policy.third_party_copy_required',
+            'deployment.backup_policy.eu_eea_copy_required',
+            'deployment.backup_policy.provider_must_be_identified_per_deployment',
             'deployment.access_point.model',
             'controls.full_backup',
             'controls.incremental_backup',
             'controls.retention',
+            'controls.restore_test_required',
+            'controls.risk_assessment_required',
         );
 
         foreach ($required as $path) {

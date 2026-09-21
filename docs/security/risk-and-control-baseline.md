@@ -1,6 +1,6 @@
 # IT security risk and control baseline
 
-Status: P0 draft — requires the existing cloud provider and own access-point architecture.
+Status: P0 draft — customer hosting is configurable; each deployment requires its own attestation and evidence review.
 
 ## Scope
 
@@ -24,11 +24,11 @@ The assessment covers Dolibarr, the DK module, MariaDB, document/object storage,
 
 | Risk | Impact | Required treatment before candidate |
 |---|---|---|
-| Unknown cloud provider/regions | Cannot prove EU/EØS backup or supplier controls | Record legal supplier, services, primary/backup regions and contracts |
+| Unattested customer-selected hosting | Cannot prove backup location, supplier controls or authority access | Block production compliance status until the deployment attestation is approved |
 | Own access point not certified | E-invoices cannot be relied on as production-delivered | Complete Nemhandel/Peppol certification, certificate and conformance lifecycle |
 | Compliance mode disabled | Required controls may be bypassed | Registered-profile fail-closed lock and monitoring |
 | Module removal drops DB guards | Immutability may disappear | Block normal removal in registered profile; define controlled migration procedure |
 | Lost encryption keys | Five-year records become unreadable | Dual-control key recovery and periodic recovery test |
 | Backup exists but is not restorable | Statutory records may be unavailable | Quarterly end-to-end restore and reconciliation |
 
-The named risk owner, likelihood, impact score, treatment deadline and residual risk acceptance must be added once the provider and operating organisation are known.
+The named risk owner, likelihood, impact score, treatment deadline and residual risk acceptance must be recorded for each deployment. A provider is configuration/evidence, not a compiled product dependency.

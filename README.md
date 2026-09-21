@@ -24,7 +24,8 @@ At etablere en sporbar kæde fra myndighedskrav til:
 
 ## P0 referenceprofil
 
-- `dkmodul/product-manifest.json` er den maskinlæsbare versions- og driftsgrænse og følger med moduldistributionen.
+- `dkmodul/product-manifest.json` er den maskinlæsbare versions- og driftspolitik og følger med moduldistributionen.
+- `dkmodul/deployment-attestation.schema.json` fastlægger de hosting-, backup- og evidensoplysninger, som registreres pr. installation uden at hardcode en cloudleverandør.
 - `docs/p0-readiness-checklist.md` viser åbne gates før `registered-candidate`.
 - `docs/operations/backup-retention-restore.md` definerer backup-, retention- og restorebeviser.
 - `docs/security/risk-and-control-baseline.md` definerer sikkerheds- og risikobaseline.

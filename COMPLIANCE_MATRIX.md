@@ -49,7 +49,7 @@ Statuskoder:
 | DK-P0-001 | Produkt- og komponentversioner er maskinlæsbart fastlåst | Product manifest | CT-P0-001 | DONE |
 | DK-P0-002 | Registreret profil fejler lukket ved deaktiveret compliance | ComplianceLock | CT-P0-002 | DONE |
 | DK-P0-003 | Normal afinstallation kan ikke fjerne kontroller i registreret profil | ComplianceLock | CT-P0-003 | DONE |
-| DK-P0-004 | Cloudleverandør, EU/EØS-regioner og opbevaringspart er fastlagt | Runtime manifest | CT-P0-004 | TODO |
+| DK-P0-004 | Hosting-/backup-part og EU/EØS-kopi attesteres pr. installation | Deployment attestation | CT-P0-004 | PARTIAL |
 | DK-P0-005 | Eget access point er certificeret og driftsdokumenteret | Access point | CT-P0-005 | TODO |
 
 ## Kilder

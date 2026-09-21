@@ -16,11 +16,17 @@
     "peppol": "Peppol BIS Billing 3"
   },
   "deployment": {
-    "model": "managed-cloud",
-    "provider": "TBD-existing-cloud-provider",
-    "primary_region": "TBD-EU-or-EEA-region",
-    "backup_region": "TBD-EU-or-EEA-region",
-    "storage_provider": "TBD",
+    "model": "hybrid-customer-hosted",
+    "hosting_policy": "customer-selectable-with-deployment-attestation",
+    "deployment_attestation": {
+      "required": true,
+      "schema": "deployment-attestation.schema.json"
+    },
+    "backup_policy": {
+      "third_party_copy_required": true,
+      "eu_eea_copy_required": true,
+      "provider_must_be_identified_per_deployment": true
+    },
     "access_point": {
       "model": "own-certified-access-point",
       "certification_status": "planned"
@@ -30,8 +36,8 @@
     "full_backup": "weekly-minimum",
     "incremental_backup": "daily-minimum",
     "retention": "five-years-from-financial-year-end",
-    "restore_test": "TBD",
-    "risk_assessment": "TBD",
-    "processor_agreement": "TBD"
+    "restore_test_required": true,
+    "risk_assessment_required": true,
+    "processor_agreement_required_where_applicable": true
   }
 }

@@ -1,6 +1,6 @@
 # Backup, retention and restore control baseline
 
-Status: P0 draft — provider evidence required before `registered-candidate`.
+Status: P0 draft — evidence is supplied per customer deployment, not hardcoded in the module.
 
 ## Required control objectives
 
@@ -26,4 +26,4 @@ Status: P0 draft — provider evidence required before `registered-candidate`.
 
 ## Release gate
 
-The profile must not be changed to `registered-candidate` until all `TBD` deployment values in `dkmodul/product-manifest.json` are resolved and a successful restore test is referenced there.
+The product profile may become `registered-candidate` when its policy and enforcement are approved. Every production installation must separately pass `dkmodul/deployment-attestation.schema.json`; a successful deployment-specific restore test is mandatory. Hosting-provider names and regions belong in the attestation/evidence registry, not in source code.

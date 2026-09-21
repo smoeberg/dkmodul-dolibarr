@@ -60,12 +60,12 @@ Som udgangspunkt er følgende ikke dækket af compliance-garantien:
 - PHP 8.2
 - MariaDB 11.4
 - managed cloud
-- existing cloud provider, with the exact legal supplier, services and EU/EØS regions to be locked in `dkmodul/product-manifest.json`,
+- customer-selected hosting that passes the versioned deployment-attestation policy,
 - own certified Nemhandel/Peppol access point,
 - PostgreSQL og generisk self-hosting er uden for første registrerede produktgrænse
 
 ## Åbne beslutninger
 
-- konkret referencehosting/cloudleverandør,
+- operational attestation and approval workflow for customer-selected hosting,
 - certification plan and production identity for the own e-fakturerings/access-point service,
 - backup- og object-storage-platform.
