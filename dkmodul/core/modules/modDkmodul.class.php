@@ -47,6 +47,9 @@ class modDkmodul extends DolibarrModules
             2 => array('DKMODUL_REGISTERED_PROFILE', 'yesno', '0', 'Lock the registered Danish compliance profile', 0, 'current', 1),
             3 => array('DKMODUL_DEPLOYMENT_ATTESTATION_PATH', 'chaine', '', 'Absolute path to the deployment attestation JSON file', 0, 'current', 1),
             4 => array('DKMODUL_ATTESTATION_TRUST_STORE_PATH', 'chaine', '', 'Absolute path to the approved attestation public-key trust store', 0, 'current', 1),
+            5 => array('DKMODUL_DEPLOYMENT_ID', 'chaine', '', 'Deployment identifier used for compliance monitoring', 0, 'current', 1),
+            6 => array('DKMODUL_REQUIRED_RETAIN_UNTIL', 'chaine', '', 'Current minimum statutory retention date (YYYY-MM-DD)', 0, 'current', 1),
+            7 => array('DKMODUL_HOSTING_REGISTRATION', 'chaine', '', 'Legal registration number of the primary hosting operator', 0, 'current', 1),
         );
 
         if (!isModEnabled('dkmodul')) {
@@ -58,6 +61,19 @@ class modDkmodul extends DolibarrModules
         $this->dictionaries = array();
         $this->boxes = array();
         $this->cronjobs = array();
+        $this->cronjobs[] = array(
+            'label' => 'Dolibarr DK compliance monitoring',
+            'jobtype' => 'method',
+            'class' => '/dkmodul/class/Compliance/ComplianceMonitorJob.php',
+            'objectname' => 'DkComplianceMonitorJob',
+            'method' => 'run',
+            'parameters' => '',
+            'comment' => 'Hourly fail-closed checks for configuration, signed attestation, backup and restore evidence',
+            'frequency' => 1,
+            'unitfrequency' => 3600,
+            'status' => 1,
+            'test' => 'isModEnabled("dkmodul")',
+        );
 
         $this->menu = array();
         $this->menu[] = array(

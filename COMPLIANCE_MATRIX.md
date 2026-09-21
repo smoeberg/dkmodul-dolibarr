@@ -44,13 +44,14 @@ Statuskoder:
 | DK-OPS-003 | Mindst én fuld og inkrementel backupkopi i EU/EØS kan dokumenteres | BackupComplianceMonitor | CT-OPS-003 | PARTIAL |
 | DK-OPS-004 | Restoreprocedure er dokumenteret og testbar | BackupComplianceMonitor | CT-OPS-004 | PARTIAL |
 | DK-SEC-001 | Adgangsstyring er dokumenteret | Security | CT-SEC-001 | TODO |
-| DK-SEC-002 | Sikkerhedslogning er dokumenteret | Security | CT-SEC-002 | TODO |
+| DK-SEC-002 | Sikkerhedslogning er dokumenteret | Compliance monitoring | CT-SEC-002 | PARTIAL |
 | DK-SEC-003 | Netværks- og driftskontroller er dokumenteret | Security | CT-SEC-003 | TODO |
 | DK-P0-001 | Produkt- og komponentversioner er maskinlæsbart fastlåst | Product manifest | CT-P0-001 | DONE |
 | DK-P0-002 | Registreret profil fejler lukket ved deaktiveret compliance | ComplianceLock | CT-P0-002 | DONE |
 | DK-P0-003 | Normal afinstallation kan ikke fjerne kontroller i registreret profil | ComplianceLock | CT-P0-003 | DONE |
 | DK-P0-004 | Hosting-/backup-part og EU/EØS-kopi attesteres pr. installation | Deployment attestation | CT-P0-004 | PARTIAL |
 | DK-P0-005 | Eget access point er certificeret og driftsdokumenteret | Access point | CT-P0-005 | TODO |
+| DK-P0-006 | Compliance-status overvåges og alarmhændelser er append-only | ComplianceMonitorJob | CT-P0-006 | PARTIAL |
 
 ## Kilder
 

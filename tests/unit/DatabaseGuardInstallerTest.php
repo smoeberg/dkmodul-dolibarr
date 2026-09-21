@@ -42,6 +42,12 @@ $backupEvidenceUpdateSql = $installer->backupEvidenceUpdateGuardSql();
 $backupEvidenceDeleteSql = $installer->backupEvidenceDeleteGuardSql();
 $restoreEvidenceUpdateSql = $installer->restoreEvidenceUpdateGuardSql();
 $restoreEvidenceDeleteSql = $installer->restoreEvidenceDeleteGuardSql();
+$complianceCheckUpdateSql = $installer->complianceCheckUpdateGuardSql();
+$complianceCheckDeleteSql = $installer->complianceCheckDeleteGuardSql();
+$complianceAlertUpdateSql = $installer->complianceAlertUpdateGuardSql();
+$complianceAlertDeleteSql = $installer->complianceAlertDeleteGuardSql();
+$complianceDeliveryUpdateSql = $installer->complianceDeliveryUpdateGuardSql();
+$complianceDeliveryDeleteSql = $installer->complianceDeliveryDeleteGuardSql();
 
 assert(strpos($updateSql, 'BEFORE UPDATE ON llx_accounting_bookkeeping') !== false);
 assert(strpos($updateSql, 'OLD.date_validated IS NOT NULL') !== false);
@@ -101,5 +107,11 @@ assert(strpos($backupEvidenceDeleteSql, 'BEFORE DELETE ON llx_dk_backup_evidence
 assert(strpos($restoreEvidenceUpdateSql, 'BEFORE UPDATE ON llx_dk_restore_evidence') !== false);
 assert(strpos($restoreEvidenceUpdateSql, 'append-only') !== false);
 assert(strpos($restoreEvidenceDeleteSql, 'BEFORE DELETE ON llx_dk_restore_evidence') !== false);
+assert(strpos($complianceCheckUpdateSql, 'BEFORE UPDATE ON llx_dk_compliance_check') !== false);
+assert(strpos($complianceCheckDeleteSql, 'BEFORE DELETE ON llx_dk_compliance_check') !== false);
+assert(strpos($complianceAlertUpdateSql, 'BEFORE UPDATE ON llx_dk_compliance_alert') !== false);
+assert(strpos($complianceAlertDeleteSql, 'BEFORE DELETE ON llx_dk_compliance_alert') !== false);
+assert(strpos($complianceDeliveryUpdateSql, 'BEFORE UPDATE ON llx_dk_compliance_alert_delivery') !== false);
+assert(strpos($complianceDeliveryDeleteSql, 'BEFORE DELETE ON llx_dk_compliance_alert_delivery') !== false);
 
 echo "DatabaseGuardInstaller tests passed\n";

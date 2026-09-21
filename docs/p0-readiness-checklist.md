@@ -18,7 +18,8 @@
 - [x] Registered candidate fails closed when the configured external attestation is missing or invalid.
 - [x] Runtime verifies attestation signature, trusted key status and approval validity period.
 - [ ] Production signing key ceremony, custody, rotation and revocation procedure is approved.
-- [ ] Production monitoring alerts on module/profile/configuration drift.
+- [x] Hourly product-side monitoring records append-only checks and deduplicated alert lifecycle events.
+- [ ] Production webhook/mail adapter, recipients, retry worker and escalation channel are approved and tested.
 - [ ] Controlled migration and decommissioning procedure is approved.
 
 ## Backup, retention and restore
