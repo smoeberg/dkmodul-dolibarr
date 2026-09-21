@@ -1,0 +1,21 @@
+CREATE TABLE llx_dk_restore_evidence (
+    rowid BIGINT AUTO_INCREMENT PRIMARY KEY,
+    entity INTEGER NOT NULL DEFAULT 1,
+    evidence_uuid VARCHAR(36) NOT NULL,
+    deployment_id VARCHAR(128) NOT NULL,
+    backup_evidence_uuid VARCHAR(36) NOT NULL,
+    status VARCHAR(16) NOT NULL,
+    started_at DATETIME NOT NULL,
+    completed_at DATETIME NOT NULL,
+    database_sha256 CHAR(64) NOT NULL,
+    document_sample_sha256 CHAR(64) NOT NULL,
+    saft_sha256 CHAR(64) NOT NULL,
+    debit_total DECIMAL(24,8) NOT NULL,
+    credit_total DECIMAL(24,8) NOT NULL,
+    reviewed_by VARCHAR(255) NOT NULL,
+    reviewed_at DATETIME NOT NULL,
+    evidence_reference VARCHAR(500) NOT NULL,
+    created_at DATETIME NOT NULL,
+    UNIQUE KEY uk_dk_restore_evidence_uuid (evidence_uuid),
+    KEY idx_dk_restore_deployment (entity, deployment_id, completed_at)
+) ENGINE=InnoDB;

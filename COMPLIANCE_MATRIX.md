@@ -39,10 +39,10 @@ Statuskoder:
 | DK-NHR-001 | Kunde kan informeres om/tilmeldes NemHandelsregister | EInvoice | CT-NHR-001 | TODO |
 | DK-REP-001 | Regnskab Basis CSV eller andet accepteret årsrapportformat | Reporting | CT-REP-001 | TODO |
 | DK-VATAPI-001 | Momsindberetning via Skattestyrelsens API understøttes | Reporting | CT-VATAPI-001 | TODO |
-| DK-OPS-001 | Daglig inkrementel backup kan dokumenteres | Runtime | CT-OPS-001 | DESIGN |
-| DK-OPS-002 | Ugentlig fuld backup kan dokumenteres | Runtime | CT-OPS-002 | DESIGN |
-| DK-OPS-003 | Mindst én fuld og inkrementel backupkopi i EU/EØS kan dokumenteres | Runtime | CT-OPS-003 | DESIGN |
-| DK-OPS-004 | Restoreprocedure er dokumenteret og testbar | Runtime | CT-OPS-004 | TODO |
+| DK-OPS-001 | Daglig inkrementel backup kan dokumenteres | BackupComplianceMonitor | CT-OPS-001 | PARTIAL |
+| DK-OPS-002 | Ugentlig fuld backup kan dokumenteres | BackupComplianceMonitor | CT-OPS-002 | PARTIAL |
+| DK-OPS-003 | Mindst én fuld og inkrementel backupkopi i EU/EØS kan dokumenteres | BackupComplianceMonitor | CT-OPS-003 | PARTIAL |
+| DK-OPS-004 | Restoreprocedure er dokumenteret og testbar | BackupComplianceMonitor | CT-OPS-004 | PARTIAL |
 | DK-SEC-001 | Adgangsstyring er dokumenteret | Security | CT-SEC-001 | TODO |
 | DK-SEC-002 | Sikkerhedslogning er dokumenteret | Security | CT-SEC-002 | TODO |
 | DK-SEC-003 | Netværks- og driftskontroller er dokumenteret | Security | CT-SEC-003 | TODO |

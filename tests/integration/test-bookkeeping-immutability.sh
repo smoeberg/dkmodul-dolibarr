@@ -61,7 +61,7 @@ docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-registered-pro
 docker compose exec -T mariadb mariadb -uroot -proot dolidb -e "
 UPDATE llx_const SET value='0' WHERE name='DKMODUL_REGISTERED_PROFILE' AND entity=1;"
 
-for table in llx_dk_audit_event llx_dk_correction llx_dk_bookkeeping_origin llx_dk_document_archive llx_dk_einvoice_delivery llx_dk_einvoice_transport_event llx_dk_einvoice_application_response llx_dk_einvoice_inbound llx_dk_einvoice_inbound_validation llx_dk_einvoice_inbound_draft llx_dk_einvoice_inbound_supplier_validation llx_dk_einvoice_inbound_posting llx_dk_standard_account llx_dk_account_mapping llx_dk_standard_vat_code llx_dk_vat_mapping; do
+for table in llx_dk_audit_event llx_dk_correction llx_dk_bookkeeping_origin llx_dk_document_archive llx_dk_einvoice_delivery llx_dk_einvoice_transport_event llx_dk_einvoice_application_response llx_dk_einvoice_inbound llx_dk_einvoice_inbound_validation llx_dk_einvoice_inbound_draft llx_dk_einvoice_inbound_supplier_validation llx_dk_einvoice_inbound_posting llx_dk_standard_account llx_dk_account_mapping llx_dk_standard_vat_code llx_dk_vat_mapping llx_dk_backup_evidence llx_dk_restore_evidence; do
   table_count="$(docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='dolidb' AND table_name='$table'")"
   test "$table_count" = "1"
 done
@@ -69,7 +69,7 @@ done
 test "$(docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='dolidb' AND table_name='llx_dk_correction_link'")" = "0"
 
 trigger_count="$(docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_schema='dolidb' AND trigger_name LIKE 'llx_dk_%'")"
-test "$trigger_count" = "25"
+test "$trigger_count" = "29"
 
 sql() {
   docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "$1"
@@ -87,6 +87,22 @@ expect_failure() {
     exit 1
   fi
 }
+
+echo "Recording immutable backup and restore evidence..."
+sql "INSERT INTO llx_dk_backup_evidence
+(entity,evidence_uuid,deployment_id,backup_type,status,started_at,completed_at,provider_name,provider_registration,country,region,object_reference,receipt_sha256,byte_size,retention_until,immutable_until,signature_verified,created_at)
+VALUES (1,'11111111-1111-4111-8111-111111111111','integration-test','full','success','2026-09-20 01:00:00','2026-09-20 02:00:00','Independent Backup ApS','DK87654321','DK','dk-west-1','backup/full/2026-09-20','aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',1024,'2032-12-31','2032-12-31',1,NOW())"
+sql "INSERT INTO llx_dk_backup_evidence
+(entity,evidence_uuid,deployment_id,backup_type,status,started_at,completed_at,provider_name,provider_registration,country,region,object_reference,receipt_sha256,byte_size,retention_until,immutable_until,signature_verified,created_at)
+VALUES (1,'33333333-3333-4333-8333-333333333333','integration-test','incremental','success','2026-09-21 01:00:00','2026-09-21 01:30:00','Independent Backup ApS','DK87654321','DK','dk-west-1','backup/incremental/2026-09-21','eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',512,'2032-12-31','2032-12-31',1,NOW())"
+sql "INSERT INTO llx_dk_restore_evidence
+(entity,evidence_uuid,deployment_id,backup_evidence_uuid,status,started_at,completed_at,database_sha256,document_sample_sha256,saft_sha256,debit_total,credit_total,reviewed_by,reviewed_at,evidence_reference,created_at)
+VALUES (1,'22222222-2222-4222-8222-222222222222','integration-test','11111111-1111-4111-8111-111111111111','passed','2026-09-20 03:00:00','2026-09-20 04:00:00','bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb','cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc','dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd',100.00,100.00,'Integration reviewer','2026-09-20 05:00:00','evidence/restore-integration.pdf',NOW())"
+expect_failure "UPDATE llx_dk_backup_evidence SET status='failed' WHERE evidence_uuid='11111111-1111-4111-8111-111111111111'"
+expect_failure "DELETE FROM llx_dk_backup_evidence WHERE evidence_uuid='11111111-1111-4111-8111-111111111111'"
+expect_failure "UPDATE llx_dk_restore_evidence SET status='failed' WHERE evidence_uuid='22222222-2222-4222-8222-222222222222'"
+expect_failure "DELETE FROM llx_dk_restore_evidence WHERE evidence_uuid='22222222-2222-4222-8222-222222222222'"
+docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-backup-compliance.php
 
 echo "Creating unlocked test entry..."
 sql "INSERT INTO llx_accounting_bookkeeping

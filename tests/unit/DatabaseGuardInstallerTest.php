@@ -38,6 +38,10 @@ $inboundSupplierValidationUpdateSql = $installer->inboundSupplierValidationUpdat
 $inboundSupplierValidationDeleteSql = $installer->inboundSupplierValidationDeleteGuardSql();
 $inboundPostingUpdateSql = $installer->inboundPostingUpdateGuardSql();
 $inboundPostingDeleteSql = $installer->inboundPostingDeleteGuardSql();
+$backupEvidenceUpdateSql = $installer->backupEvidenceUpdateGuardSql();
+$backupEvidenceDeleteSql = $installer->backupEvidenceDeleteGuardSql();
+$restoreEvidenceUpdateSql = $installer->restoreEvidenceUpdateGuardSql();
+$restoreEvidenceDeleteSql = $installer->restoreEvidenceDeleteGuardSql();
 
 assert(strpos($updateSql, 'BEFORE UPDATE ON llx_accounting_bookkeeping') !== false);
 assert(strpos($updateSql, 'OLD.date_validated IS NOT NULL') !== false);
@@ -91,5 +95,11 @@ assert(strpos($inboundSupplierValidationUpdateSql, 'BEFORE UPDATE ON llx_dk_einv
 assert(strpos($inboundSupplierValidationDeleteSql, 'BEFORE DELETE ON llx_dk_einvoice_inbound_supplier_validation') !== false);
 assert(strpos($inboundPostingUpdateSql, 'BEFORE UPDATE ON llx_dk_einvoice_inbound_posting') !== false);
 assert(strpos($inboundPostingDeleteSql, 'BEFORE DELETE ON llx_dk_einvoice_inbound_posting') !== false);
+assert(strpos($backupEvidenceUpdateSql, 'BEFORE UPDATE ON llx_dk_backup_evidence') !== false);
+assert(strpos($backupEvidenceUpdateSql, 'append-only') !== false);
+assert(strpos($backupEvidenceDeleteSql, 'BEFORE DELETE ON llx_dk_backup_evidence') !== false);
+assert(strpos($restoreEvidenceUpdateSql, 'BEFORE UPDATE ON llx_dk_restore_evidence') !== false);
+assert(strpos($restoreEvidenceUpdateSql, 'append-only') !== false);
+assert(strpos($restoreEvidenceDeleteSql, 'BEFORE DELETE ON llx_dk_restore_evidence') !== false);
 
 echo "DatabaseGuardInstaller tests passed\n";
