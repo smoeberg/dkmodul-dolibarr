@@ -2,6 +2,20 @@
 
 Status: P0 draft — evidence is supplied per customer deployment, not hardcoded in the module.
 
+## Runtime evidence model
+
+`llx_dk_backup_evidence` records immutable full and incremental backup receipts. `llx_dk_restore_evidence` records immutable quarterly restore results. MariaDB triggers reject updates and deletes on both tables.
+
+`DkBackupComplianceMonitor` fails closed unless it can find:
+
+- a successful full backup no older than eight days,
+- a successful incremental backup no older than two days,
+- an independently operated EU/EØS copy with a verified receipt,
+- retention and immutability dates meeting the required financial-year horizon, and
+- a passed restore test no older than 92 days with database, document and SAF-T hashes, reviewer evidence and balanced debit/credit totals.
+
+The one-day grace intervals allow job completion and evidence ingestion. They do not weaken the required weekly/daily schedules; production alerting must fire before the grace limit is reached.
+
 ## Required control objectives
 
 | Control | Minimum | Evidence required |

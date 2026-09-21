@@ -23,6 +23,9 @@
 
 ## Backup, retention and restore
 
+- [x] Backup and restore evidence is append-only and integration-tested on MariaDB.
+- [x] Runtime status fails closed for stale/missing full, incremental and quarterly restore evidence.
+- [x] Runtime status checks EU/EØS location, independent provider, signed receipt, retention and balanced restore.
 - [ ] Weekly full and daily incremental jobs configured.
 - [ ] At least one full and incremental copy proven in EU/EØS for every deployment.
 - [ ] Five-year retention and early-delete denial tested.

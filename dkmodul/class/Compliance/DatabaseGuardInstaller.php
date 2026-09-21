@@ -43,6 +43,10 @@ class DkDatabaseGuardInstaller
             $this->inboundSupplierValidationDeleteGuardSql(),
             $this->inboundPostingUpdateGuardSql(),
             $this->inboundPostingDeleteGuardSql(),
+            $this->backupEvidenceUpdateGuardSql(),
+            $this->backupEvidenceDeleteGuardSql(),
+            $this->restoreEvidenceUpdateGuardSql(),
+            $this->restoreEvidenceDeleteGuardSql(),
         );
 
         foreach ($sqlStatements as $sql) {
@@ -260,6 +264,26 @@ class DkDatabaseGuardInstaller
         return $this->appendOnlyGuardSql($this->inboundPostingDeleteGuardName(), $this->db->prefix().'dk_einvoice_inbound_posting', 'DELETE', 'inbound supplier posting evidence cannot be deleted');
     }
 
+    public function backupEvidenceUpdateGuardSql()
+    {
+        return $this->appendOnlyGuardSql($this->backupEvidenceUpdateGuardName(), $this->db->prefix().'dk_backup_evidence', 'UPDATE', 'backup evidence is append-only');
+    }
+
+    public function backupEvidenceDeleteGuardSql()
+    {
+        return $this->appendOnlyGuardSql($this->backupEvidenceDeleteGuardName(), $this->db->prefix().'dk_backup_evidence', 'DELETE', 'backup evidence cannot be deleted');
+    }
+
+    public function restoreEvidenceUpdateGuardSql()
+    {
+        return $this->appendOnlyGuardSql($this->restoreEvidenceUpdateGuardName(), $this->db->prefix().'dk_restore_evidence', 'UPDATE', 'restore evidence is append-only');
+    }
+
+    public function restoreEvidenceDeleteGuardSql()
+    {
+        return $this->appendOnlyGuardSql($this->restoreEvidenceDeleteGuardName(), $this->db->prefix().'dk_restore_evidence', 'DELETE', 'restore evidence cannot be deleted');
+    }
+
     private function appendOnlyGuardSql(string $name, string $table, string $operation, string $message): string
     {
         return 'CREATE TRIGGER '.$name.' BEFORE '.$operation.' ON '.$table
@@ -336,6 +360,10 @@ class DkDatabaseGuardInstaller
             $this->inboundSupplierValidationDeleteGuardName(),
             $this->inboundPostingUpdateGuardName(),
             $this->inboundPostingDeleteGuardName(),
+            $this->backupEvidenceUpdateGuardName(),
+            $this->backupEvidenceDeleteGuardName(),
+            $this->restoreEvidenceUpdateGuardName(),
+            $this->restoreEvidenceDeleteGuardName(),
         );
     }
 
@@ -462,6 +490,26 @@ class DkDatabaseGuardInstaller
     private function inboundPostingDeleteGuardName()
     {
         return $this->db->prefix().'dk_einvoice_inbound_posting_bd';
+    }
+
+    private function backupEvidenceUpdateGuardName()
+    {
+        return $this->db->prefix().'dk_backup_evidence_bu';
+    }
+
+    private function backupEvidenceDeleteGuardName()
+    {
+        return $this->db->prefix().'dk_backup_evidence_bd';
+    }
+
+    private function restoreEvidenceUpdateGuardName()
+    {
+        return $this->db->prefix().'dk_restore_evidence_bu';
+    }
+
+    private function restoreEvidenceDeleteGuardName()
+    {
+        return $this->db->prefix().'dk_restore_evidence_bd';
     }
 
     private function assertSupportedDatabase()
