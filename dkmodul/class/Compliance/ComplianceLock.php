@@ -27,14 +27,18 @@ final class DkComplianceLock
         return self::assertDeploymentReady($manifestPath, '', $registeredProfile);
     }
 
-    public static function assertDeploymentReady($manifestPath, $attestationPath, $registeredProfile)
+    public static function assertDeploymentReady($manifestPath, $attestationPath, $registeredProfile, $trustStorePath = '')
     {
         require_once __DIR__.'/ProductManifest.php';
         $manifest = DkProductManifest::load($manifestPath);
         if ($registeredProfile) {
             $manifest->assertRegistrable();
             require_once __DIR__.'/DeploymentAttestation.php';
-            DkDeploymentAttestation::load($attestationPath);
+            DkDeploymentAttestation::loadSigned(
+                $attestationPath,
+                $trustStorePath,
+                $manifest->value('deployment.deployment_attestation.trust_store_sha256')
+            );
         }
 
         return $manifest;

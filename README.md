@@ -29,5 +29,8 @@ At etablere en sporbar kæde fra myndighedskrav til:
 - `docs/p0-readiness-checklist.md` viser åbne gates før `registered-candidate`.
 - `docs/operations/backup-retention-restore.md` definerer backup-, retention- og restorebeviser.
 - `docs/security/risk-and-control-baseline.md` definerer sikkerheds- og risikobaseline.
+- `docs/security/attestation-signing.md` definerer signatur-envelope, trust boundary, rotation og revocation.
 
-En registreret profil fejler lukket, hvis compliance-mode deaktiveres, manifestet stadig indeholder uafklarede registreringsværdier, eller den konfigurerede deployment-attestation mangler/er ugyldig. Attestationen ligger uden for koden og vælges pr. installation via `DKMODUL_DEPLOYMENT_ATTESTATION_PATH`; hosting- og backupleverandører hardcodes derfor ikke. Normal modulafinstallation er blokeret i den registrerede profil.
+En registreret profil fejler lukket, hvis compliance-mode deaktiveres, manifestet stadig indeholder uafklarede registreringsværdier, eller den konfigurerede deployment-attestation mangler/er ugyldig. Attestationen ligger uden for koden og vælges pr. installation via `DKMODUL_DEPLOYMENT_ATTESTATION_PATH`; hosting- og backupleverandører hardcodes derfor ikke.
+
+Attestationen leveres som en digitalt signeret JSON-envelope. Runtime verificerer RSA-SHA256-signaturen og nøglestatus mod trust store angivet i `DKMODUL_ATTESTATION_TRUST_STORE_PATH`, før payload, godkendelsesperiode, hosting og backupkontroller accepteres. Testnøglen under `tests/fixtures` er ikke en produktionsnøgle. Normal modulafinstallation er blokeret i den registrerede profil.

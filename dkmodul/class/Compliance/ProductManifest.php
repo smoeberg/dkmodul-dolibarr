@@ -52,6 +52,13 @@ final class DkProductManifest
         if ($this->value('deployment.deployment_attestation.required') !== true) {
             throw new RuntimeException('Deployment attestation must be required');
         }
+        if ($this->value('deployment.deployment_attestation.signature_required') !== true
+            || $this->value('deployment.deployment_attestation.signature_algorithms') !== array('RSA-SHA256')) {
+            throw new RuntimeException('Registered profile requires RSA-SHA256 signed deployment attestations');
+        }
+        if (!preg_match('/^[a-f0-9]{64}$/', $this->value('deployment.deployment_attestation.trust_store_sha256'))) {
+            throw new RuntimeException('Registered profile requires a pinned attestation trust-store SHA-256');
+        }
         if ($this->value('deployment.backup_policy.eu_eea_copy_required') !== true) {
             throw new RuntimeException('An EU/EEA backup copy must be required');
         }
@@ -74,6 +81,10 @@ final class DkProductManifest
             'deployment.hosting_policy',
             'deployment.deployment_attestation.required',
             'deployment.deployment_attestation.schema',
+            'deployment.deployment_attestation.signature_required',
+            'deployment.deployment_attestation.signature_algorithms',
+            'deployment.deployment_attestation.trust_store_schema',
+            'deployment.deployment_attestation.trust_store_sha256',
             'deployment.backup_policy.third_party_copy_required',
             'deployment.backup_policy.eu_eea_copy_required',
             'deployment.backup_policy.provider_must_be_identified_per_deployment',

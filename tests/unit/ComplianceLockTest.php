@@ -31,7 +31,8 @@ try {
     DkComplianceLock::assertDeploymentReady(
         __DIR__.'/../fixtures/product-manifest-registered-candidate.json',
         '',
-        true
+        true,
+        __DIR__.'/../fixtures/attestation-trust-store.json'
     );
 } catch (RuntimeException $e) {
     $missingAttestationBlocked = strpos($e->getMessage(), 'deployment attestation') !== false;
@@ -43,17 +44,19 @@ try {
     DkComplianceLock::assertDeploymentReady(
         __DIR__.'/../fixtures/product-manifest-registered-candidate.json',
         __DIR__.'/../fixtures/deployment-attestation-invalid-location.json',
-        true
+        true,
+        __DIR__.'/../fixtures/attestation-trust-store.json'
     );
 } catch (RuntimeException $e) {
-    $invalidAttestationBlocked = strpos($e->getMessage(), 'EU/EEA') !== false;
+    $invalidAttestationBlocked = strpos($e->getMessage(), 'signed deployment attestation envelope') !== false;
 }
 assert($invalidAttestationBlocked);
 
 DkComplianceLock::assertDeploymentReady(
     __DIR__.'/../fixtures/product-manifest-registered-candidate.json',
-    __DIR__.'/../fixtures/deployment-attestation-valid.json',
-    true
+    __DIR__.'/../fixtures/deployment-attestation-signed-valid.json',
+    true,
+    __DIR__.'/../fixtures/attestation-trust-store.json'
 );
 
 echo "Compliance lock tests passed\n";

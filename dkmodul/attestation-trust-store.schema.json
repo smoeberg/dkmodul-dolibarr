@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dolibarr.dk/schemas/attestation-trust-store-v1.json",
+  "title": "Dolibarr DK attestation trust store",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "keys"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "keys": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["key_id", "algorithm", "status", "public_key_pem"],
+        "properties": {
+          "key_id": { "type": "string", "minLength": 1 },
+          "algorithm": { "const": "RSA-SHA256" },
+          "status": { "enum": ["active", "revoked", "retired"] },
+          "public_key_pem": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

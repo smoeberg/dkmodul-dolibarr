@@ -16,6 +16,8 @@
 - [x] Normal module removal is blocked in the registered profile.
 - [x] Draft manifest can be used in development but cannot be asserted registrable.
 - [x] Registered candidate fails closed when the configured external attestation is missing or invalid.
+- [x] Runtime verifies attestation signature, trusted key status and approval validity period.
+- [ ] Production signing key ceremony, custody, rotation and revocation procedure is approved.
 - [ ] Production monitoring alerts on module/profile/configuration drift.
 - [ ] Controlled migration and decommissioning procedure is approved.
 

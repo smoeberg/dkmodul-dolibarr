@@ -20,5 +20,10 @@
     "restore_test": "evidence/restore-test.pdf",
     "retention_test": "evidence/retention-test.pdf",
     "authority_export_test": "evidence/authority-export-test.pdf"
+  },
+  "approval": {
+    "approved_by": "P0 test approval authority",
+    "approved_at": "2026-09-21",
+    "valid_until": "2099-12-31"
   }
 }

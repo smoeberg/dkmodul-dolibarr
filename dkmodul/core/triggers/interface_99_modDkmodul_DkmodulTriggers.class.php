@@ -32,7 +32,8 @@ class InterfaceDkmodulTriggers extends DolibarrTriggers
             DkComplianceLock::assertDeploymentReady(
                 dirname(__DIR__, 2).'/product-manifest.json',
                 getDolGlobalString('DKMODUL_DEPLOYMENT_ATTESTATION_PATH'),
-                $registeredProfile
+                $registeredProfile,
+                getDolGlobalString('DKMODUL_ATTESTATION_TRUST_STORE_PATH')
             );
         } catch (Throwable $e) {
             $this->error = $e->getMessage();
