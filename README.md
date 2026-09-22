@@ -30,6 +30,7 @@ At etablere en sporbar kæde fra myndighedskrav til:
 - `docs/operations/backup-retention-restore.md` definerer backup-, retention- og restorebeviser.
 - `docs/security/risk-and-control-baseline.md` definerer sikkerheds- og risikobaseline.
 - `docs/security/attestation-signing.md` definerer signatur-envelope, trust boundary, rotation og revocation.
+- `docs/operations/p0-release-gate.md` definerer den deterministiske, fail-closed P0-rapport og dens evidensgrænse.
 - `DkBackupComplianceMonitor` beregner deploymentets backup-/restore-status fra append-only evidens og fejler lukket ved manglende eller forældede beviser.
 - `DkComplianceMonitorJob` kører timebaserede checks og registrerer deduplikerede åbne/lukkede alarmer via en provider-uafhængig transportgrænse.
 
