@@ -64,6 +64,11 @@ Primære kilder for videre validering og kravnedbrydning:
 
 Matrixen skal udbygges med præcis paragraf-/kildereference for hvert krav før krav mærkes som `DONE`.
 
+`DK-P0-005` forbliver `TODO`, indtil den faktiske certificering og driftsdokumentation
+foreligger. Produktets release gate afviser nu maskinelt en `registered-candidate`,
+hvis access point stadig er planlagt, mangler certificerings-ID eller
+certifikatfingeraftryk, eller certificeringsperioden ikke er aktuel.
+
 
 ## Verificerede kildereferencer
 

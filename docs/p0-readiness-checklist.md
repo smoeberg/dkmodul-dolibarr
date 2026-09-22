@@ -8,6 +8,7 @@
 - [x] Registered-profile runtime blocks missing or invalid attestations for the actual hosting/backup parties and regions.
 - [ ] Every production deployment has an approved, current attestation and supporting evidence.
 - [ ] Own Nemhandel/Peppol access-point certification identifier and lifecycle are recorded.
+- [x] Registered-candidate runtime rejects a planned, unidentified or expired access-point certification.
 - [ ] Release is changed from `p0-draft` to `registered-candidate` only after all gates pass.
 
 ## Compliance lock

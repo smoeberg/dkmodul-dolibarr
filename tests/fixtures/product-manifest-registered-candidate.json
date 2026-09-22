@@ -33,7 +33,11 @@
     },
     "access_point": {
       "model": "own-certified-access-point",
-      "certification_status": "test"
+      "certification_status": "certified",
+      "certification_id": "TEST-AP-CERTIFICATION-001",
+      "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "valid_from": "2020-01-01",
+      "valid_until": "2099-12-31"
     }
   },
   "controls": {
