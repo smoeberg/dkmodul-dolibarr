@@ -53,6 +53,8 @@ class DkDatabaseGuardInstaller
             $this->complianceAlertDeleteGuardSql(),
             $this->complianceDeliveryUpdateGuardSql(),
             $this->complianceDeliveryDeleteGuardSql(),
+            $this->p0ReleaseReportUpdateGuardSql(),
+            $this->p0ReleaseReportDeleteGuardSql(),
         );
 
         foreach ($sqlStatements as $sql) {
@@ -320,6 +322,16 @@ class DkDatabaseGuardInstaller
         return $this->appendOnlyGuardSql($this->complianceDeliveryDeleteGuardName(), $this->db->prefix().'dk_compliance_alert_delivery', 'DELETE', 'alert delivery attempts cannot be deleted');
     }
 
+    public function p0ReleaseReportUpdateGuardSql()
+    {
+        return $this->appendOnlyGuardSql($this->p0ReleaseReportUpdateGuardName(), $this->db->prefix().'dk_p0_release_report', 'UPDATE', 'P0 release reports are append-only');
+    }
+
+    public function p0ReleaseReportDeleteGuardSql()
+    {
+        return $this->appendOnlyGuardSql($this->p0ReleaseReportDeleteGuardName(), $this->db->prefix().'dk_p0_release_report', 'DELETE', 'P0 release reports cannot be deleted');
+    }
+
     private function appendOnlyGuardSql(string $name, string $table, string $operation, string $message): string
     {
         return 'CREATE TRIGGER '.$name.' BEFORE '.$operation.' ON '.$table
@@ -406,6 +418,8 @@ class DkDatabaseGuardInstaller
             $this->complianceAlertDeleteGuardName(),
             $this->complianceDeliveryUpdateGuardName(),
             $this->complianceDeliveryDeleteGuardName(),
+            $this->p0ReleaseReportUpdateGuardName(),
+            $this->p0ReleaseReportDeleteGuardName(),
         );
     }
 
@@ -583,6 +597,9 @@ class DkDatabaseGuardInstaller
     {
         return $this->db->prefix().'dk_compliance_alert_delivery_bd';
     }
+
+    private function p0ReleaseReportUpdateGuardName() { return $this->db->prefix().'dk_p0_release_report_bu'; }
+    private function p0ReleaseReportDeleteGuardName() { return $this->db->prefix().'dk_p0_release_report_bd'; }
 
     private function assertSupportedDatabase()
     {
