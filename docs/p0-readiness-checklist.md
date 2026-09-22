@@ -2,6 +2,9 @@
 
 ## Product identity
 
+- [x] Deterministic fail-closed P0 release report and JSON schema exist.
+- [ ] Runtime collector derives every release gate from verified evidence and persists the report append-only.
+- [ ] Production release report is digitally signed by an approved release key.
 - [x] Machine-readable product manifest exists.
 - [x] Dolibarr, PHP, MariaDB, DK module, SAF-T and e-invoice target versions are explicit.
 - [x] Customer-selectable hosting policy and deployment-attestation schema exist.
