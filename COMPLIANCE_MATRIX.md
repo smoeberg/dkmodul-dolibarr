@@ -52,6 +52,7 @@ Statuskoder:
 | DK-P0-004 | Hosting-/backup-part og EU/EØS-kopi attesteres pr. installation | Deployment attestation | CT-P0-004 | PARTIAL |
 | DK-P0-005 | Eget access point er certificeret og driftsdokumenteret | Access point | CT-P0-005 | TODO |
 | DK-P0-006 | Compliance-status overvåges og alarmhændelser er append-only | ComplianceMonitorJob | CT-P0-006 | PARTIAL |
+| DK-P0-007 | Samlet P0-beslutning er maskinlæsbar, fail-closed og evidensbundet | P0ReleaseGate | CT-P0-007 | PARTIAL |
 
 ## Kilder
 
@@ -63,6 +64,10 @@ Primære kilder for videre validering og kravnedbrydning:
 - Erhvervsstyrelsens repository for standardfilformater, herunder SAF-T og tilhørende schemaer.
 
 Matrixen skal udbygges med præcis paragraf-/kildereference for hvert krav før krav mærkes som `DONE`.
+
+`DK-P0-007` er `PARTIAL`: den deterministiske rapport, det faste gatesæt,
+evidenshashkrav og JSON-schema er implementeret og unit-testet. Runtime collector,
+append-only persistence og produktionssignering mangler fortsat.
 
 `DK-P0-005` forbliver `TODO`, indtil den faktiske certificering og driftsdokumentation
 foreligger. Produktets release gate afviser nu maskinelt en `registered-candidate`,
