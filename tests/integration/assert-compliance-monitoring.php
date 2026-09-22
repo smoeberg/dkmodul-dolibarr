@@ -8,6 +8,7 @@ require '/var/www/html/main.inc.php';
 require_once DOL_DOCUMENT_ROOT.'/custom/dkmodul/class/Compliance/ComplianceMonitorRepository.php';
 require_once DOL_DOCUMENT_ROOT.'/custom/dkmodul/class/Compliance/ComplianceMonitoringService.php';
 require_once DOL_DOCUMENT_ROOT.'/custom/dkmodul/class/Compliance/OutboxAlertTransport.php';
+require_once DOL_DOCUMENT_ROOT.'/custom/dkmodul/class/Compliance/P0ReleaseGateCollector.php';
 
 $service = new DkComplianceMonitoringService(
     new DkComplianceMonitorRepository($db),
@@ -28,6 +29,14 @@ if ((int) $db->fetch_object($checks)->count_rows !== 3
     || (int) $db->fetch_object($alerts)->count_rows !== 2
     || (int) $db->fetch_object($deliveries)->count_rows !== 2) {
     throw new RuntimeException('Compliance monitoring deduplication or recovery evidence failed');
+}
+
+$collector = new DkP0ReleaseGateCollector(new DkP0ReleaseGateRepository($db));
+$result = $collector->collectAndPersist(1, 'monitor-integration', DOL_DOCUMENT_ROOT.'/custom/dkmodul/product-manifest.json', $checkedAt);
+if ($result['report']['decision'] !== 'BLOCKED'
+    || !preg_match('/^[a-f0-9]{64}$/', $result['report']['report_sha256'])
+    || empty($result['report_uuid'])) {
+    throw new RuntimeException('P0 runtime release report did not fail closed');
 }
 
 echo "Compliance monitoring integration test passed\n";
