@@ -2,13 +2,20 @@
 
 require_once __DIR__.'/P0ReleaseGate.php';
 require_once __DIR__.'/P0ReleaseGateRepository.php';
+require_once __DIR__.'/P0ReleaseReportSigner.php';
+require_once __DIR__.'/P0ReleaseSigningKeyProvider.php';
 require_once __DIR__.'/ProductManifest.php';
 
 final class DkP0ReleaseGateCollector
 {
     private $repository;
+    private $signingKeyProvider;
 
-    public function __construct(DkP0ReleaseGateRepository $repository) { $this->repository = $repository; }
+    public function __construct(DkP0ReleaseGateRepository $repository, DkP0ReleaseSigningKeyProvider $signingKeyProvider = null)
+    {
+        $this->repository = $repository;
+        $this->signingKeyProvider = $signingKeyProvider;
+    }
 
     public function collectAndPersist($entity, $deploymentId, $manifestPath, DateTimeImmutable $now)
     {
@@ -43,8 +50,26 @@ final class DkP0ReleaseGateCollector
         }, $sources)));
         $results[] = $failed ? $this->fail('compliance-monitoring', $reasons, $monitorHash)
             : (count($reasons) ? $this->blocked('compliance-monitoring', $reasons, $monitorHash) : $this->pass('compliance-monitoring', $monitorHash));
-        $results[] = $this->blocked('security-risk-evidence', array('verified-security-risk-evidence-not-connected'), null);
+
+        if ($this->signingKeyProvider === null) {
+            $results[] = $this->blocked('security-risk-evidence', array('verified-security-risk-evidence-not-connected'), null);
+        } else {
+            $results[] = $this->pass('security-risk-evidence', $this->signingKeyProvider->publicKeySha256());
+        }
+
         $report = DkP0ReleaseGate::evaluate($manifest->value('product.id'), $manifest->value('product.release'), $deploymentId, $results, $now);
+        if ($this->signingKeyProvider !== null) {
+            $signature = DkP0ReleaseReportSigner::sign(
+                $report,
+                $this->signingKeyProvider->privateKeyPem(),
+                $this->signingKeyProvider->keyId()
+            );
+            if (!DkP0ReleaseReportSigner::verify($report, $signature, $this->signingKeyProvider->publicKeyPem())) {
+                throw new RuntimeException('P0 release report signature self-verification failed');
+            }
+            $report['signature'] = $signature;
+        }
+
         return array('report' => $report, 'report_uuid' => $this->repository->appendReport($entity, $report));
     }
 
