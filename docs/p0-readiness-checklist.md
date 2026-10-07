@@ -4,7 +4,7 @@
 
 - [x] Deterministic fail-closed P0 release report and JSON schema exist.
 - [x] Runtime collector derives available release gates from verified evidence and persists the report append-only.
-- [ ] Signed security/risk evidence source is connected to the runtime collector.
+- [x] Signed security/risk evidence source is connected to the runtime collector.
 - [ ] Production release report is digitally signed by an approved release key.
 - [x] Machine-readable product manifest exists.
 - [x] Dolibarr, PHP, MariaDB, DK module, SAF-T and e-invoice target versions are explicit.
