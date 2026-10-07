@@ -33,7 +33,8 @@ At etablere en sporbar kæde fra myndighedskrav til:
 - `docs/operations/p0-release-gate.md` definerer den deterministiske, fail-closed P0-rapport og dens evidensgrænse.
 - `DkBackupComplianceMonitor` beregner deploymentets backup-/restore-status fra append-only evidens og fejler lukket ved manglende eller forældede beviser.
 - `DkComplianceMonitorJob` kører timebaserede checks og registrerer deduplikerede åbne/lukkede alarmer via en provider-uafhængig transportgrænse.
-- `DkP0ReleaseSigningKeyProvider` leverer P0-release-nøglen fra runtime-konfiguration; `DKMODUL_P0_SIGNING_PRIVATE_KEY_PATH` er den foretrukne produktionskonfiguration, mens private keys aldrig ligger i source eller modul-database.
+- `DkP0ReleaseSigningKeyProvider` leverer P0-release-signering fra runtime-konfiguration; `DKMODUL_P0_SIGNING_PRIVATE_KEY_PATH` er den foretrukne produktionskonfiguration, mens private keys aldrig ligger i source eller modul-database.
+- `DkP0SecurityRiskEvidence` verificerer deployment-specifik, eksternt godkendt security/risk-evidens mod den manifest-pinnede trust store via `DKMODUL_P0_SECURITY_RISK_EVIDENCE_PATH`; release-signering alene kan ikke få security-risk-gaten til at passere.
 
 En registreret profil fejler lukket, hvis compliance-mode deaktiveres, manifestet stadig indeholder uafklarede registreringsværdier, eller den konfigurerede deployment-attestation mangler/er ugyldig. Attestationen ligger uden for koden og vælges pr. installation via `DKMODUL_DEPLOYMENT_ATTESTATION_PATH`; hosting- og backupleverandører hardcodes derfor ikke.
 
