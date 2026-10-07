@@ -2,6 +2,7 @@
 
 require_once __DIR__.'/P0ReleaseGate.php';
 require_once __DIR__.'/P0ReleaseGateRepository.php';
+require_once __DIR__.'/P0SecurityRiskEvidence.php';
 require_once __DIR__.'/P0ReleaseReportSigner.php';
 require_once __DIR__.'/P0ReleaseSigningKeyProvider.php';
 require_once __DIR__.'/ProductManifest.php';
@@ -52,7 +53,7 @@ final class DkP0ReleaseGateCollector
             : (count($reasons) ? $this->blocked('compliance-monitoring', $reasons, $monitorHash) : $this->pass('compliance-monitoring', $monitorHash));
 
         if ($this->signingKeyProvider === null) {
-            $results[] = $this->blocked('security-risk-evidence', array('verified-security-risk-evidence-not-connected'), null);
+            $results[] = $this->collectSecurityRiskEvidence($deploymentId, $manifest, $now);
         } else {
             $results[] = $this->pass('security-risk-evidence', $this->signingKeyProvider->publicKeySha256());
         }
@@ -71,6 +72,27 @@ final class DkP0ReleaseGateCollector
         }
 
         return array('report' => $report, 'report_uuid' => $this->repository->appendReport($entity, $report));
+    }
+
+    private function collectSecurityRiskEvidence($deploymentId, $manifest, DateTimeImmutable $now)
+    {
+        $path = getenv('DKMODUL_P0_SECURITY_RISK_EVIDENCE_PATH');
+        $trustStorePath = getenv('DKMODUL_ATTESTATION_TRUST_STORE_PATH');
+        $trustStoreSha256 = $manifest->value('deployment.deployment_attestation.trust_store_sha256');
+        if (!is_string($path) || trim($path) === '' || !is_string($trustStorePath) || trim($trustStorePath) === '') {
+            return $this->blocked('security-risk-evidence', array('security-risk-evidence-not-configured'), null);
+        }
+
+        try {
+            $result = DkP0SecurityRiskEvidence::loadSigned($path, $trustStorePath, $trustStoreSha256, $now);
+            if ($result['evidence']['deployment_id'] !== $deploymentId) {
+                return $this->blocked('security-risk-evidence', array('security-risk-evidence-deployment-mismatch'), $result['evidence_sha256']);
+            }
+
+            return $this->pass('security-risk-evidence', $result['evidence_sha256']);
+        } catch (Throwable $e) {
+            return $this->blocked('security-risk-evidence', array('invalid-security-risk-evidence'), null);
+        }
     }
 
     private function checkGate($entity, $deploymentId, $checkType, $gateId, DateTimeImmutable $now)
