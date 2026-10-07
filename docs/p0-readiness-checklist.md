@@ -33,6 +33,9 @@
 - [x] Runtime status fails closed for stale/missing full, incremental and quarterly restore evidence.
 - [x] Runtime status checks EU/EØS location, independent provider, signed receipt, retention and balanced restore.
 - [ ] Weekly full and daily incremental jobs configured.
+- [ ] Backup configuration (platform, provider, destination, retention, EU/EØS location) is set
+      per installation through module setup and the signed deployment attestation, and is never
+      hardcoded in code (`DkBackupConfiguration` + `admin/setup_backup.php`).
 - [ ] At least one full and incremental copy proven in EU/EØS for every deployment.
 - [ ] Five-year retention and early-delete denial tested.
 - [ ] Customer-exit/insolvency access path tested.
