@@ -52,11 +52,7 @@ final class DkP0ReleaseGateCollector
         $results[] = $failed ? $this->fail('compliance-monitoring', $reasons, $monitorHash)
             : (count($reasons) ? $this->blocked('compliance-monitoring', $reasons, $monitorHash) : $this->pass('compliance-monitoring', $monitorHash));
 
-        if ($this->signingKeyProvider === null) {
-            $results[] = $this->collectSecurityRiskEvidence($deploymentId, $manifest, $now);
-        } else {
-            $results[] = $this->pass('security-risk-evidence', $this->signingKeyProvider->publicKeySha256());
-        }
+        $results[] = $this->collectSecurityRiskEvidence($deploymentId, $manifest, $now);
 
         $report = DkP0ReleaseGate::evaluate($manifest->value('product.id'), $manifest->value('product.release'), $deploymentId, $results, $now);
         if ($this->signingKeyProvider !== null) {
