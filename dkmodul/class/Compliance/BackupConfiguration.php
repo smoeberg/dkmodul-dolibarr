@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__.'/DeploymentAttestation.php';
+require_once __DIR__.'/ProductManifest.php';
 
 /**
  * Resolves the per-installation backup configuration for the registered
