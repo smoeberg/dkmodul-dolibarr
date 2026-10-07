@@ -72,9 +72,15 @@ final class DkP0ReleaseGateCollector
 
     private function collectSecurityRiskEvidence($deploymentId, $manifest, DateTimeImmutable $now)
     {
-        $path = getenv('DKMODUL_P0_SECURITY_RISK_EVIDENCE_PATH');
+        $pathEnv = $manifest->value('deployment.deployment_attestation.security_risk_evidence.path_env');
+        $path = getenv($pathEnv);
         $trustStorePath = getenv('DKMODUL_ATTESTATION_TRUST_STORE_PATH');
-        $trustStoreSha256 = $manifest->value('deployment.deployment_attestation.trust_store_sha256');
+        $trustStoreSha256 = $manifest->value('deployment.deployment_attestation.security_risk_evidence.trust_store_sha256');
+        if ($manifest->value('deployment.deployment_attestation.security_risk_evidence.required') !== true
+            || $manifest->value('deployment.deployment_attestation.security_risk_evidence.signature_required') !== true
+            || $manifest->value('deployment.deployment_attestation.security_risk_evidence.signature_algorithms') !== array('RSA-SHA256')) {
+            return $this->blocked('security-risk-evidence', array('security-risk-evidence-contract-invalid'), null);
+        }
         if (!is_string($path) || trim($path) === '' || !is_string($trustStorePath) || trim($trustStorePath) === '') {
             return $this->blocked('security-risk-evidence', array('security-risk-evidence-not-configured'), null);
         }

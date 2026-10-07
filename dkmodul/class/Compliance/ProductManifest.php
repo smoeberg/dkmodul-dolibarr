@@ -59,6 +59,23 @@ final class DkProductManifest
         if (!preg_match('/^[a-f0-9]{64}$/', $this->value('deployment.deployment_attestation.trust_store_sha256'))) {
             throw new RuntimeException('Registered profile requires a pinned attestation trust-store SHA-256');
         }
+        if ($this->value('deployment.deployment_attestation.security_risk_evidence.required') !== true
+            || $this->value('deployment.deployment_attestation.security_risk_evidence.signature_required') !== true
+            || $this->value('deployment.deployment_attestation.security_risk_evidence.signature_algorithms') !== array('RSA-SHA256')) {
+            throw new RuntimeException('Registered profile requires RSA-SHA256 signed security-risk evidence');
+        }
+        if ($this->value('deployment.deployment_attestation.security_risk_evidence.schema') !== 'p0-security-risk-evidence.schema.json'
+            || $this->value('deployment.deployment_attestation.security_risk_evidence.trust_store_schema') !== 'attestation-trust-store.schema.json') {
+            throw new RuntimeException('Registered profile requires the pinned security-risk evidence contract');
+        }
+        if ($this->value('deployment.deployment_attestation.security_risk_evidence.trust_store_sha256')
+            !== $this->value('deployment.deployment_attestation.trust_store_sha256')) {
+            throw new RuntimeException('Security-risk evidence trust-store pin must match attestation trust-store pin');
+        }
+        $pathEnv = $this->value('deployment.deployment_attestation.security_risk_evidence.path_env');
+        if (!is_string($pathEnv) || !preg_match('/^DKMODUL_[A-Z0-9_]+$/', $pathEnv)) {
+            throw new RuntimeException('Registered profile requires a valid security-risk evidence path environment variable');
+        }
         if ($this->value('deployment.backup_policy.eu_eea_copy_required') !== true) {
             throw new RuntimeException('An EU/EEA backup copy must be required');
         }
@@ -116,6 +133,13 @@ final class DkProductManifest
             'deployment.deployment_attestation.signature_algorithms',
             'deployment.deployment_attestation.trust_store_schema',
             'deployment.deployment_attestation.trust_store_sha256',
+            'deployment.deployment_attestation.security_risk_evidence.required',
+            'deployment.deployment_attestation.security_risk_evidence.schema',
+            'deployment.deployment_attestation.security_risk_evidence.signature_required',
+            'deployment.deployment_attestation.security_risk_evidence.signature_algorithms',
+            'deployment.deployment_attestation.security_risk_evidence.trust_store_schema',
+            'deployment.deployment_attestation.security_risk_evidence.trust_store_sha256',
+            'deployment.deployment_attestation.security_risk_evidence.path_env',
             'deployment.backup_policy.third_party_copy_required',
             'deployment.backup_policy.eu_eea_copy_required',
             'deployment.backup_policy.provider_must_be_identified_per_deployment',
