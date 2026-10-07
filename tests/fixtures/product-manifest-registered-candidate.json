@@ -60,5 +60,13 @@
     "restore_test_required": true,
     "risk_assessment_required": true,
     "processor_agreement_required_where_applicable": true
+  },
+  "release_signing": {
+    "required": true,
+    "signature_type": "openssl-rsa-sha256",
+    "key_id": "p0-release-test-2026",
+    "public_key_sha256": "b9ab799c8de54889173cc7772bcd4660f96bdd4e39d27c884895548d29373d80",
+    "key_id_env": "DKMODUL_P0_SIGNING_KEY_ID",
+    "private_key_path_env": "DKMODUL_P0_SIGNING_PRIVATE_KEY_PATH"
   }
 }
