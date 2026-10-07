@@ -28,7 +28,13 @@ final class DkP0ReleaseGateRepository
     {
         $expectedHash = $report['report_sha256'] ?? '';
         $payload = $report;
-        unset($payload['report_sha256']);
+        unset($payload['report_sha256'], $payload['signature']);
+        if (isset($report['signature'])) {
+            if (!is_array($report['signature']) || !isset($report['signature']['report_sha256'])
+                || $report['signature']['report_sha256'] !== $expectedHash) {
+                throw new RuntimeException('P0 release report signature hash mismatch');
+            }
+        }
         if (!preg_match('/^[a-f0-9]{64}$/', (string) $expectedHash)
             || !hash_equals($expectedHash, hash('sha256', DkP0ReleaseGate::canonicalJson($payload)))) {
             throw new RuntimeException('P0 release report hash verification failed');
