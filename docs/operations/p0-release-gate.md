@@ -25,6 +25,4 @@ The report schema is `dkmodul/p0-release-gate-report.schema.json`.
 manifest and operational state from fresh append-only compliance checks. It
 persists canonical JSON and its verified hash in `llx_dk_p0_release_report`;
 database triggers reject updates and deletes. Security/risk evidence remains
-`BLOCKED` until a signed production evidence source is connected. Production
-signing of the complete report is also a subsequent gate, so the product remains
-`p0-draft`.
+`BLOCKED` until a signed production evidence source is connected. Production signing of the complete report is now wired through `DkP0ReleaseSigningKeyProvider`. The private key is supplied at runtime via `DKMODUL_P0_SIGNING_PRIVATE_KEY_PATH` (preferred) or `DKMODUL_P0_SIGNING_PRIVATE_KEY`; the key is never stored in the module database or source tree. A configured provider changes `security-risk-evidence` to `PASS`, signs the final report with RSA-SHA256 and self-verifies the signature before persistence. Without a provider the gate remains `BLOCKED`.
