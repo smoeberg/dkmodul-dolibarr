@@ -14,6 +14,18 @@
     "generated_at": { "type": "string", "format": "date-time" },
     "decision": { "enum": ["PASS", "FAIL", "BLOCKED"] },
     "report_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "signature_type", "key_id", "report_sha256", "signature_base64"],
+      "properties": {
+        "schema_version": { "const": 1 },
+        "signature_type": { "const": "openssl-rsa-sha256" },
+        "key_id": { "type": "string", "minLength": 1 },
+        "report_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "signature_base64": { "type": "string", "minLength": 1 }
+      }
+    },
     "gates": {
       "type": "array",
       "minItems": 6,
