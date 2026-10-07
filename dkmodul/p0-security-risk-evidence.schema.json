@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dolibarr.dk/schemas/p0-security-risk-evidence-v1.json",
+  "title": "Dolibarr DK P0 signed security risk evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "signed_payload", "signature"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "signed_payload": { "type": "string", "minLength": 1 },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "key_id", "value"],
+      "properties": {
+        "algorithm": { "const": "RSA-SHA256" },
+        "key_id": { "type": "string", "minLength": 1 },
+        "value": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}
