@@ -35,3 +35,6 @@ database triggers reject updates and deletes. Security/risk evidence remains
 The collector reads the evidence from `DKMODUL_P0_SECURITY_RISK_EVIDENCE_PATH`. The same pinned trust-store file used for deployment attestation is used as the trust boundary. Missing, expired, tampered, untrusted or deployment-mismatched evidence remains `BLOCKED`.
 
 The evidence file is deployment-specific and is not generated automatically by the module; approval remains an external controlled process.
+
+
+The product manifest also declares the security-evidence schema, RSA-SHA256 requirement, trust-store contract and runtime path variable. This keeps the evidence contract versioned with the product policy rather than only in operational prose.
