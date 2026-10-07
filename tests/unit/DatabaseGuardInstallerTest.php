@@ -48,6 +48,8 @@ $complianceAlertUpdateSql = $installer->complianceAlertUpdateGuardSql();
 $complianceAlertDeleteSql = $installer->complianceAlertDeleteGuardSql();
 $complianceDeliveryUpdateSql = $installer->complianceDeliveryUpdateGuardSql();
 $complianceDeliveryDeleteSql = $installer->complianceDeliveryDeleteGuardSql();
+$p0ReleaseReportUpdateSql = $installer->p0ReleaseReportUpdateGuardSql();
+$p0ReleaseReportDeleteSql = $installer->p0ReleaseReportDeleteGuardSql();
 
 assert(strpos($updateSql, 'BEFORE UPDATE ON llx_accounting_bookkeeping') !== false);
 assert(strpos($updateSql, 'OLD.date_validated IS NOT NULL') !== false);
@@ -113,5 +115,8 @@ assert(strpos($complianceAlertUpdateSql, 'BEFORE UPDATE ON llx_dk_compliance_ale
 assert(strpos($complianceAlertDeleteSql, 'BEFORE DELETE ON llx_dk_compliance_alert') !== false);
 assert(strpos($complianceDeliveryUpdateSql, 'BEFORE UPDATE ON llx_dk_compliance_alert_delivery') !== false);
 assert(strpos($complianceDeliveryDeleteSql, 'BEFORE DELETE ON llx_dk_compliance_alert_delivery') !== false);
+assert(strpos($p0ReleaseReportUpdateSql, 'BEFORE UPDATE ON llx_dk_p0_release_report') !== false);
+assert(strpos($p0ReleaseReportUpdateSql, 'append-only') !== false);
+assert(strpos($p0ReleaseReportDeleteSql, 'BEFORE DELETE ON llx_dk_p0_release_report') !== false);
 
 echo "DatabaseGuardInstaller tests passed\n";

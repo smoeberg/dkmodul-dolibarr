@@ -66,8 +66,10 @@ Primære kilder for videre validering og kravnedbrydning:
 Matrixen skal udbygges med præcis paragraf-/kildereference for hvert krav før krav mærkes som `DONE`.
 
 `DK-P0-007` er `PARTIAL`: den deterministiske rapport, det faste gatesæt,
-evidenshashkrav og JSON-schema er implementeret og unit-testet. Runtime collector,
-append-only persistence og produktionssignering mangler fortsat.
+evidenshashkrav og JSON-schema er implementeret. Runtime collector afleder status
+fra manifest og friske append-only checks og gemmer rapporten databasebeskyttet
+mod UPDATE/DELETE. Signeret sikkerheds-/risikoevidens og produktionssignering af
+den samlede rapport mangler fortsat.
 
 `DK-P0-005` forbliver `TODO`, indtil den faktiske certificering og driftsdokumentation
 foreligger. Produktets release gate afviser nu maskinelt en `registered-candidate`,

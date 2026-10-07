@@ -19,4 +19,12 @@ The canonical JSON payload is hashed into `report_sha256`. The hash excludes onl
 
 The evaluator validates completeness, state transitions and evidence hashes. A collector must derive gate states from the product manifest, signed deployment attestation, append-only backup/restore evidence, compliance checks and approved security/access-point records. A caller must never translate an unverified free-text assertion into `PASS`.
 
-The report schema is `dkmodul/p0-release-gate-report.schema.json`. Runtime collection, append-only persistence and production signing are subsequent gates; until they are connected, the product remains `p0-draft`.
+The report schema is `dkmodul/p0-release-gate-report.schema.json`.
+
+`DkP0ReleaseGateCollector` derives product/access-point state from the pinned
+manifest and operational state from fresh append-only compliance checks. It
+persists canonical JSON and its verified hash in `llx_dk_p0_release_report`;
+database triggers reject updates and deletes. Security/risk evidence remains
+`BLOCKED` until a signed production evidence source is connected. Production
+signing of the complete report is also a subsequent gate, so the product remains
+`p0-draft`.

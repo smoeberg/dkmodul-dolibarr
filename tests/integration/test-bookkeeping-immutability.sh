@@ -61,7 +61,7 @@ docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-registered-pro
 docker compose exec -T mariadb mariadb -uroot -proot dolidb -e "
 UPDATE llx_const SET value='0' WHERE name='DKMODUL_REGISTERED_PROFILE' AND entity=1;"
 
-for table in llx_dk_audit_event llx_dk_correction llx_dk_bookkeeping_origin llx_dk_document_archive llx_dk_einvoice_delivery llx_dk_einvoice_transport_event llx_dk_einvoice_application_response llx_dk_einvoice_inbound llx_dk_einvoice_inbound_validation llx_dk_einvoice_inbound_draft llx_dk_einvoice_inbound_supplier_validation llx_dk_einvoice_inbound_posting llx_dk_standard_account llx_dk_account_mapping llx_dk_standard_vat_code llx_dk_vat_mapping llx_dk_backup_evidence llx_dk_restore_evidence llx_dk_compliance_check llx_dk_compliance_alert llx_dk_compliance_alert_delivery; do
+for table in llx_dk_audit_event llx_dk_correction llx_dk_bookkeeping_origin llx_dk_document_archive llx_dk_einvoice_delivery llx_dk_einvoice_transport_event llx_dk_einvoice_application_response llx_dk_einvoice_inbound llx_dk_einvoice_inbound_validation llx_dk_einvoice_inbound_draft llx_dk_einvoice_inbound_supplier_validation llx_dk_einvoice_inbound_posting llx_dk_standard_account llx_dk_account_mapping llx_dk_standard_vat_code llx_dk_vat_mapping llx_dk_backup_evidence llx_dk_restore_evidence llx_dk_compliance_check llx_dk_compliance_alert llx_dk_compliance_alert_delivery llx_dk_p0_release_report; do
   table_count="$(docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='dolidb' AND table_name='$table'")"
   test "$table_count" = "1"
 done
@@ -69,7 +69,7 @@ done
 test "$(docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='dolidb' AND table_name='llx_dk_correction_link'")" = "0"
 
 trigger_count="$(docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_schema='dolidb' AND trigger_name LIKE 'llx_dk_%'")"
-test "$trigger_count" = "35"
+test "$trigger_count" = "37"
 
 sql() {
   docker compose exec -T mariadb mariadb -uroot -proot dolidb -Nse "$1"
@@ -106,9 +106,12 @@ docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-backup-complia
 docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-compliance-monitoring.php
 test "$(sql "SELECT COUNT(*) FROM llx_dk_compliance_check WHERE deployment_id='monitor-integration'")" = "3"
 test "$(sql "SELECT COUNT(*) FROM llx_dk_compliance_alert WHERE deployment_id='monitor-integration'")" = "2"
+test "$(sql "SELECT COUNT(*) FROM llx_dk_p0_release_report WHERE deployment_id='monitor-integration' AND decision='BLOCKED'")" = "1"
 expect_failure "UPDATE llx_dk_compliance_check SET status='ok' WHERE deployment_id='monitor-integration'"
 expect_failure "DELETE FROM llx_dk_compliance_alert WHERE deployment_id='monitor-integration'"
 expect_failure "DELETE d FROM llx_dk_compliance_alert_delivery d JOIN llx_dk_compliance_alert a ON a.alert_uuid=d.alert_uuid WHERE a.deployment_id='monitor-integration'"
+expect_failure "UPDATE llx_dk_p0_release_report SET decision='PASS' WHERE deployment_id='monitor-integration'"
+expect_failure "DELETE FROM llx_dk_p0_release_report WHERE deployment_id='monitor-integration'"
 
 echo "Creating unlocked test entry..."
 sql "INSERT INTO llx_accounting_bookkeeping

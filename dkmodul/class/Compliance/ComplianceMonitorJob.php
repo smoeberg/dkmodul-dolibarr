@@ -5,6 +5,7 @@ require_once __DIR__.'/ComplianceLock.php';
 require_once __DIR__.'/ComplianceMonitorRepository.php';
 require_once __DIR__.'/ComplianceMonitoringService.php';
 require_once __DIR__.'/OutboxAlertTransport.php';
+require_once __DIR__.'/P0ReleaseGateCollector.php';
 
 final class DkComplianceMonitorJob
 {
@@ -78,6 +79,13 @@ final class DkComplianceMonitorJob
             dol_syslog('DK backup compliance monitor: '.$e->getMessage(), LOG_ERR);
         }
         $this->record($service, $entity, $deploymentId ?: 'unconfigured', 'backup-restore', $backupReasons, $checkedAt, $nextDueAt);
+
+        (new DkP0ReleaseGateCollector(new DkP0ReleaseGateRepository($this->db)))->collectAndPersist(
+            $entity,
+            $deploymentId ?: 'unconfigured',
+            dirname(__DIR__, 2).'/product-manifest.json',
+            $checkedAt
+        );
 
         return 0;
     }

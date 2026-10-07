@@ -66,7 +66,7 @@ final class DkProductManifest
         $this->assertCertifiedAccessPoint();
     }
 
-    private function assertCertifiedAccessPoint()
+    public function assertCertifiedAccessPoint()
     {
         if ($this->value('deployment.access_point.model') !== 'own-certified-access-point'
             || $this->value('deployment.access_point.certification_status') !== 'certified') {
