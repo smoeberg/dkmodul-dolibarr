@@ -76,11 +76,35 @@ final class DkProductManifest
         if (!is_string($pathEnv) || !preg_match('/^DKMODUL_[A-Z0-9_]+$/', $pathEnv)) {
             throw new RuntimeException('Registered profile requires a valid security-risk evidence path environment variable');
         }
+        $this->assertReleaseSigningContract();
+
         if ($this->value('deployment.backup_policy.eu_eea_copy_required') !== true) {
             throw new RuntimeException('An EU/EEA backup copy must be required');
         }
 
         $this->assertCertifiedAccessPoint();
+    }
+
+    public function assertReleaseSigningContract()
+    {
+        if ($this->value('release_signing.required') !== true
+            || $this->value('release_signing.signature_type') !== 'openssl-rsa-sha256') {
+            throw new RuntimeException('Registered profile requires RSA-SHA256 release report signing');
+        }
+        $keyId = $this->value('release_signing.key_id');
+        $publicKeySha256 = $this->value('release_signing.public_key_sha256');
+        if (!is_string($keyId) || trim($keyId) === '' || strpos($keyId, 'TBD-') === 0) {
+            throw new RuntimeException('Registered profile requires an approved release signing key id');
+        }
+        if (!is_string($publicKeySha256) || !preg_match('/^[a-f0-9]{64}$/', $publicKeySha256)) {
+            throw new RuntimeException('Registered profile requires a pinned release signing public-key SHA-256');
+        }
+        foreach (array('key_id_env', 'private_key_path_env') as $path) {
+            $env = $this->value('release_signing.'.$path);
+            if (!is_string($env) || !preg_match('/^DKMODUL_[A-Z0-9_]+$/', $env)) {
+                throw new RuntimeException('Registered profile requires valid release signing environment variables');
+            }
+        }
     }
 
     public function assertCertifiedAccessPoint()
@@ -127,6 +151,12 @@ final class DkProductManifest
             'components.oioubl',
             'deployment.model',
             'deployment.hosting_policy',
+            'release_signing.required',
+            'release_signing.signature_type',
+            'release_signing.key_id',
+            'release_signing.public_key_sha256',
+            'release_signing.key_id_env',
+            'release_signing.private_key_path_env',
             'deployment.deployment_attestation.required',
             'deployment.deployment_attestation.schema',
             'deployment.deployment_attestation.signature_required',

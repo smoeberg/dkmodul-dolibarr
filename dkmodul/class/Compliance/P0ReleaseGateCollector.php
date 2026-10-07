@@ -24,9 +24,23 @@ final class DkP0ReleaseGateCollector
         $manifestHash = hash_file('sha256', $manifestPath);
         if (!is_string($manifestHash)) throw new RuntimeException('Unable to hash P0 product manifest');
         $candidate = $manifest->value('product.profile_status') === 'registered-candidate';
-        $results = array($candidate
+        $manifestGate = $candidate
             ? $this->pass('product-manifest', $manifestHash)
-            : $this->blocked('product-manifest', array('product-profile-not-registered-candidate'), $manifestHash));
+            : $this->blocked('product-manifest', array('product-profile-not-registered-candidate'), $manifestHash);
+        if ($candidate) {
+            try {
+                $manifest->assertReleaseSigningContract();
+                if ($this->signingKeyProvider === null) {
+                    $manifestGate = $this->blocked('product-manifest', array('release-signing-not-configured'), $manifestHash);
+                } elseif ($this->signingKeyProvider->keyId() !== $manifest->value('release_signing.key_id')
+                    || $this->signingKeyProvider->publicKeySha256() !== $manifest->value('release_signing.public_key_sha256')) {
+                    $manifestGate = $this->blocked('product-manifest', array('release-signing-key-not-approved'), $manifestHash);
+                }
+            } catch (Throwable $e) {
+                $manifestGate = $this->blocked('product-manifest', array('release-signing-contract-invalid'), $manifestHash);
+            }
+        }
+        $results = array($manifestGate);
         try {
             $manifest->assertCertifiedAccessPoint();
             $results[] = $candidate ? $this->pass('access-point-certification', $manifestHash)
