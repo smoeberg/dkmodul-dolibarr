@@ -26,3 +26,12 @@ manifest and operational state from fresh append-only compliance checks. It
 persists canonical JSON and its verified hash in `llx_dk_p0_release_report`;
 database triggers reject updates and deletes. Security/risk evidence remains
 `BLOCKED` until a signed production evidence source is connected. Production signing of the complete report is now wired through `DkP0ReleaseSigningKeyProvider`. The private key is supplied at runtime via `DKMODUL_P0_SIGNING_PRIVATE_KEY_PATH` (preferred) or `DKMODUL_P0_SIGNING_PRIVATE_KEY`; the key is never stored in the module database or source tree. A configured provider changes `security-risk-evidence` to `PASS`, signs the final report with RSA-SHA256 and self-verifies the signature before persistence. Without a provider the gate remains `BLOCKED`.
+
+
+## Security/risk evidence
+
+`DkP0SecurityRiskEvidence` accepts only a signed JSON envelope using RSA-SHA256 and an active key from the manifest-pinned attestation trust store. The signed payload must identify the deployment, an approved reviewer, an active approval period, and SHA-256 fingerprints for the risk register and control set.
+
+The collector reads the evidence from `DKMODUL_P0_SECURITY_RISK_EVIDENCE_PATH`. The same pinned trust-store file used for deployment attestation is used as the trust boundary. Missing, expired, tampered, untrusted or deployment-mismatched evidence remains `BLOCKED`.
+
+The evidence file is deployment-specific and is not generated automatically by the module; approval remains an external controlled process.
