@@ -31,6 +31,7 @@ final class DkInexchangeInboundStagingService
             'listed' => count($listed['documents']),
             'staged' => 0,
             'acknowledged' => 0,
+            'reused' => 0,
             'failed' => array(),
         );
 
@@ -56,7 +57,11 @@ final class DkInexchangeInboundStagingService
                     $downloaded->payload(),
                     $actorId
                 );
-                $result['staged']++;
+                if (!empty($staged['reused'])) {
+                    $result['reused']++;
+                } else {
+                    $result['staged']++;
+                }
 
                 // A provider acknowledgement is only allowed after immutable local persistence.
                 $this->provider->markInboundHandled($reference);
