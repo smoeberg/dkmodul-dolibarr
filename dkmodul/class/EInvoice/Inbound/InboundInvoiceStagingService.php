@@ -3,7 +3,7 @@
 require_once dirname(__DIR__).'/OioUblValidator.php';
 require_once dirname(__DIR__, 2).'/Audit/AuditLedger.php';
 
-final class DkInboundInvoiceStagingService
+final class DkInboundInvoiceStagingService implements DkInboundInvoiceStagingContract
 {
     private $db;
     private string $storageRoot;
