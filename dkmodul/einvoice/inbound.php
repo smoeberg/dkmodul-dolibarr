@@ -105,13 +105,12 @@ try {
 $title = 'Inbound OIOUBL workflow';
 llxHeader('', $title);
 print load_fiche_titre($title, '', 'fa-file-invoice');
-print '<div class="opacitymedium marginbottomonly">Controlled progression from received OIOUBL to immutable bookkeeping. Each action is separately authorized and auditable.</div>
-
+print '<div class="opacitymedium marginbottomonly">Controlled progression from received OIOUBL to immutable bookkeeping. Each action is separately authorized and auditable.</div>';
 print '<form method="post" action="'.dol_escape_htmltag($_SERVER['PHP_SELF']).'" class="marginbottomonly">';
 print '<input type="hidden" name="token" value="'.newToken().'">';
 print '<input type="hidden" name="action" value="sync">';
 print '<button class="button" type="submit">Hent nye Inexchange-fakturaer</button>';
-print '</form>';';
+print '</form>';
 
 print '<div class="div-table-responsive-no-min">';
 print '<table class="noborder centpercent">';
