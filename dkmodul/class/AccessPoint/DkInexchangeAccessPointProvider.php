@@ -139,10 +139,13 @@ final class DkInexchangeAccessPointProvider implements DkAccessPointProvider
         $sent = $this->requestJson('POST', '/documents/outbound', $payload, array(200, 201, 202));
         $sentData = $this->decodeJson($sent['body']);
         $reference = $sentData['DocumentId'] ?? $sentData['documentId'] ?? $providerDocumentId;
+        if (!is_string($reference) || trim($reference) === '') {
+            throw new RuntimeException('Inexchange outbound response did not contain a provider document reference');
+        }
         return new DkAccessPointMessageResult(
             true,
             $document->documentId(),
-            is_string($reference) ? $reference : null,
+            trim($reference),
             array('provider' => 'inexchange', 'response' => $sentData)
         );
     }
@@ -244,6 +247,9 @@ final class DkInexchangeAccessPointProvider implements DkAccessPointProvider
         $response = $this->http->request($method, $path, $headers, $body, $query);
         if (!is_array($response) || !isset($response['status']) || !array_key_exists('body', $response)) {
             throw new RuntimeException('Invalid Inexchange HTTP client response');
+        }
+        if (!is_int($response['status']) && !ctype_digit((string) $response['status'])) {
+            throw new RuntimeException('Invalid Inexchange HTTP status');
         }
         $this->assertStatus($response, range(200, 299), 'Inexchange API request');
         return $response;
