@@ -56,7 +56,7 @@ class DkVatMappingService
                 $entity,
                 'accounting.vat_mapping.created',
                 'vat_mapping',
-                (int) $this->db->last_insert_id($this->db->prefix().'dk_vat_mapping'),
+                0,
                 $userId,
                 array(
                     'source_tax_code' => $sourceTaxCode,
