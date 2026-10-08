@@ -6,7 +6,7 @@ require_once __DIR__.'/../class/AccessPoint/DkAccessPointConnection.php';
 require_once __DIR__.'/../class/AccessPoint/DkAccessPointCurlHttpClient.php';
 require_once __DIR__.'/../class/AccessPoint/DkInexchangeAccessPointProvider.php';
 
-if (empty($user->admin)) {
+if (!$user->hasRight('dkmodul', 'compliance', 'admin')) {
     accessforbidden();
 }
 
@@ -48,7 +48,7 @@ if ($action === 'save') {
 $apiKeyConfigured = is_string(getenv('DKMODUL_INEXCHANGE_API_KEY')) && trim((string) getenv('DKMODUL_INEXCHANGE_API_KEY')) !== '';
 $clientTokenConfigured = is_string(getenv('DKMODUL_INEXCHANGE_CLIENT_TOKEN')) && trim((string) getenv('DKMODUL_INEXCHANGE_CLIENT_TOKEN')) !== '';
 
-if ($action === 'test') {
+if ($action === 'test' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $apiKey = getenv('DKMODUL_INEXCHANGE_API_KEY');
     $clientToken = getenv('DKMODUL_INEXCHANGE_CLIENT_TOKEN');
 
@@ -116,7 +116,8 @@ print '</form>';
 
 print '<div class="underbanner clearboth"></div>';
 
-print '<form method="GET" action="'.dol_escape_htmltag($_SERVER['PHP_SELF']).'">';
+print '<form method="POST" action="'.dol_escape_htmltag($_SERVER['PHP_SELF']).'">';
+print '<input type="hidden" name="token" value="'.newToken().'">';
 print '<div class="center"><input type="hidden" name="action" value="test">';
 print '<input type="submit" class="button button-small" value="Test Inexchange-forbindelse"></div>';
 print '</form>';
