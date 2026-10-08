@@ -106,6 +106,10 @@ final class DkInexchangeAccessPointProvider implements DkAccessPointProvider
 
         $response = $this->request('GET', '/companies/status', array(), null, array('RegistrationId' => trim($registrationId)));
         $data = $this->decodeJson($response['body']);
+        $status = $data['Status'] ?? $data['status'] ?? null;
+        if (!is_string($status) || trim($status) === '') {
+            throw new RuntimeException('Inexchange company registration status response did not contain Status');
+        }
         $data['_http_status'] = $response['status'];
         return $data;
     }
