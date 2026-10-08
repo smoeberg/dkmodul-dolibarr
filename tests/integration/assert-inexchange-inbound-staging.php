@@ -14,6 +14,7 @@ require_once __DIR__.'/../../dkmodul/class/EInvoice/Inbound/InexchangeInboundSta
 final class FakeInboundProvider implements DkAccessPointProvider
 {
     public $handled = array();
+    public $failHandledOnce = false;
 
     public function capabilities() { return null; }
     public function health() { return null; }
@@ -44,6 +45,10 @@ final class FakeInboundProvider implements DkAccessPointProvider
 
     public function markInboundHandled(DkAccessPointMessageReference $reference)
     {
+        if ($this->failHandledOnce) {
+            $this->failHandledOnce = false;
+            throw new RuntimeException('simulated acknowledgement failure');
+        }
         $this->handled[] = $reference->providerReference();
         return true;
     }
@@ -54,12 +59,14 @@ final class FakeInboundStaging implements DkInboundInvoiceStagingContract
     public $calls = 0;
     public $fail = false;
     public $reused = false;
+    public $reuseAfterFirstCall = false;
 
     public function stage(int $entity, string $channel, string $providerMessageId, string $senderScheme, string $senderId, string $xml, int $actorId): array
     {
         $this->calls++;
         if ($this->fail) throw new RuntimeException('simulated staging failure');
-        return array('rowid' => 1, 'state' => 'received', 'reused' => $this->reused);
+        $reused = $this->reuseAfterFirstCall ? $this->calls > 1 : $this->reused;
+        return array('rowid' => 1, 'state' => 'received', 'reused' => $reused);
     }
 }
 
@@ -93,6 +100,22 @@ $staging->reused = true;
 $second = $service->poll(1, '/tmp/dkmodul-inbound-test', 42);
 if ($first['staged'] !== 1 || $second['staged'] !== 0 || $second['reused'] !== 1 || $second['acknowledged'] !== 1 || count($provider->handled) !== 2) {
     throw new RuntimeException('Inbound retry was not reported as idempotent reuse');
+}
+
+$provider = new FakeInboundProvider();
+$provider->failHandledOnce = true;
+$staging = new FakeInboundStaging();
+$staging->reuseAfterFirstCall = true;
+$service = new DkInexchangeInboundStagingService($provider, $staging);
+
+$first = $service->poll(1, '/tmp/dkmodul-inbound-test', 42);
+if ($first['staged'] !== 1 || $first['reused'] !== 0 || $first['acknowledged'] !== 0 || count($first['failed']) !== 1 || count($provider->handled) !== 0) {
+    throw new RuntimeException('Inbound acknowledgement failure did not leave the locally staged message retryable');
+}
+
+$second = $service->poll(1, '/tmp/dkmodul-inbound-test', 42);
+if ($second['staged'] !== 0 || $second['reused'] !== 1 || $second['acknowledged'] !== 1 || count($second['failed']) !== 0 || count($provider->handled) !== 1 || $staging->calls !== 2) {
+    throw new RuntimeException('Inbound acknowledgement retry did not reuse staging without duplicating persistence');
 }
 
 echo "Inexchange inbound no-ack-on-staging-failure contract: PASS\n";
