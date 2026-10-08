@@ -220,7 +220,11 @@ final class DkInexchangeAccessPointProvider implements DkAccessPointProvider
 
         $response = $this->request('POST', '/documents/outbound/list', array('Content-Type' => 'application/json'), json_encode($query));
         $this->assertStatus($response, array(200), 'Inexchange outbound list');
-        return $this->decodeJson($response['body']);
+        $data = $this->decodeJson($response['body']);
+        if (!isset($data['documents']) || !is_array($data['documents'])) {
+            throw new RuntimeException('Inexchange outbound list response did not contain documents array');
+        }
+        return $data;
     }
 
     public function listInbound(DkAccessPointPollCursor $cursor)
@@ -229,7 +233,11 @@ final class DkInexchangeAccessPointProvider implements DkAccessPointProvider
         if ($cursor->value() !== null) $query['UpdatedAfter'] = $cursor->value();
 
         $response = $this->request('GET', '/documents/incoming', array(), null, $query);
-        return $this->decodeJson($response['body']);
+        $data = $this->decodeJson($response['body']);
+        if (!isset($data['documents']) || !is_array($data['documents'])) {
+            throw new RuntimeException('Inexchange inbound list response did not contain documents array');
+        }
+        return $data;
     }
 
     public function downloadInbound(DkAccessPointMessageReference $reference)
