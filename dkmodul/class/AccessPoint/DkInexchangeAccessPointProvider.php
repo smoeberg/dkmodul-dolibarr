@@ -225,9 +225,7 @@ final class DkInexchangeAccessPointProvider implements DkAccessPointProvider
         $response = $this->request('POST', '/documents/outbound/list', array('Content-Type' => 'application/json'), json_encode($query));
         $this->assertStatus($response, array(200), 'Inexchange outbound list');
         $data = $this->decodeJson($response['body']);
-        if (!isset($data['documents']) || !is_array($data['documents'])) {
-            throw new RuntimeException('Inexchange outbound list response did not contain documents array');
-        }
+        $this->assertPollingDocuments($data, 'outbound');
         return $data;
     }
 
@@ -238,9 +236,7 @@ final class DkInexchangeAccessPointProvider implements DkAccessPointProvider
 
         $response = $this->request('GET', '/documents/incoming', array(), null, $query);
         $data = $this->decodeJson($response['body']);
-        if (!isset($data['documents']) || !is_array($data['documents'])) {
-            throw new RuntimeException('Inexchange inbound list response did not contain documents array');
-        }
+        $this->assertPollingDocuments($data, 'inbound');
         return $data;
     }
 
@@ -279,6 +275,24 @@ final class DkInexchangeAccessPointProvider implements DkAccessPointProvider
         }
 
         return $data;
+    }
+
+    private function assertPollingDocuments(array $data, $direction)
+    {
+        if (!isset($data['documents']) || !is_array($data['documents'])) {
+            throw new RuntimeException('Inexchange '.$direction.' list response did not contain documents array');
+        }
+
+        foreach ($data['documents'] as $index => $document) {
+            if (!is_array($document)) {
+                throw new RuntimeException('Inexchange '.$direction.' list response contained an invalid document at index '.$index);
+            }
+
+            $providerReference = $document['DocumentId'] ?? $document['documentId'] ?? null;
+            if (!is_string($providerReference) || trim($providerReference) === '') {
+                throw new RuntimeException('Inexchange '.$direction.' list document at index '.$index.' did not contain a provider document reference');
+            }
+        }
     }
 
     private function requireInboundProviderReference(DkAccessPointMessageReference $reference)
