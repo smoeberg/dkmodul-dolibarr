@@ -234,6 +234,40 @@ if ($provider->markInboundHandled(new DkAccessPointMessageReference('in-1', 'in-
     throw new RuntimeException('204 inbound handled acknowledgement was not accepted');
 }
 
+// Polling documents must carry a provider reference before they can enter the document flow.
+$http->responses['POST /documents/outbound/list'] = array('status' => 200, 'body' => json_encode(array(
+    'documents' => array(array('Status' => 'Pending')),
+)));
+$failed = false;
+try {
+    $provider->listOutbound(new DkAccessPointPollCursor(null));
+} catch (RuntimeException $e) {
+    $failed = strpos($e->getMessage(), 'provider document reference') !== false;
+}
+if (!$failed) throw new RuntimeException('Outbound polling document without provider reference was accepted');
+
+$http->responses['GET /documents/incoming'] = array('status' => 200, 'body' => json_encode(array(
+    'documents' => array(array('Status' => 'Pending')),
+)));
+$failed = false;
+try {
+    $provider->listInbound(new DkAccessPointPollCursor(null));
+} catch (RuntimeException $e) {
+    $failed = strpos($e->getMessage(), 'provider document reference') !== false;
+}
+if (!$failed) throw new RuntimeException('Inbound polling document without provider reference was accepted');
+
+$http->responses['GET /documents/incoming'] = array('status' => 200, 'body' => json_encode(array(
+    'documents' => array('invalid-document'),
+)));
+$failed = false;
+try {
+    $provider->listInbound(new DkAccessPointPollCursor(null));
+} catch (RuntimeException $e) {
+    $failed = strpos($e->getMessage(), 'invalid document') !== false;
+}
+if (!$failed) throw new RuntimeException('Non-object inbound polling document was accepted');
+
 // Polling responses without a documents array must fail closed.
 $http->responses['POST /documents/outbound/list'] = array('status' => 200, 'body' => json_encode(array('Accepted' => true)));
 $failed = false;
