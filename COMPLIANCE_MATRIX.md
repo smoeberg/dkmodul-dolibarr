@@ -149,7 +149,7 @@ Modulet er implementeret som selvstændigt Dolibarr-modul i
   datovindue) + Mistral AI fallback implementeret og testet
   (`ReconciliationEngineTest`, `MistralMatcherTest`). Bokføring sker først
   efter menneskelig godkendelse.
-- `DK-BANK-003` → TODO: afstemningsskærm (UI) mangler.
+- `DK-BANK-003` → ejet af sideprojektet [smoeberg/bankconnect] (afstemningsskærmen lever dér, ikke i dkmodul). Status håndteres i sideprojektets repo.
 
 Testevidens: `tests/unit/` i bankconnect-repoet; CI-workflow
 `.github/workflows/test.yml` på push/PR.
