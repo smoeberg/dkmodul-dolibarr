@@ -156,9 +156,12 @@ final class DkInexchangeAccessPointProvider implements DkAccessPointProvider
     public function outboundStatus(DkAccessPointMessageReference $reference)
     {
         $providerId = $reference->providerReference();
+        $idempotencyKey = $reference->idempotencyKey();
         $path = $providerId !== null && $providerId !== ''
             ? '/invoices/outbound/'.rawurlencode($providerId)
-            : '/invoices/outbound/byerpid/'.rawurlencode($reference->documentId());
+            : ($idempotencyKey !== null && $idempotencyKey !== ''
+                ? '/invoices/outbound/byerpid/'.rawurlencode($idempotencyKey)
+                : '/invoices/outbound/byerpid/'.rawurlencode($reference->documentId()));
 
         $response = $this->request('GET', $path);
         $data = $this->decodeJson($response['body']);
