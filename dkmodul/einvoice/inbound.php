@@ -7,6 +7,11 @@ require_once __DIR__.'/../class/EInvoice/Inbound/InboundWorkflowService.php';
 require_once __DIR__.'/../class/EInvoice/Inbound/InboundSupplierDraftService.php';
 require_once __DIR__.'/../class/EInvoice/Inbound/InboundSupplierValidationService.php';
 require_once __DIR__.'/../class/EInvoice/Inbound/InboundSupplierPostingService.php';
+require_once __DIR__.'/../class/EInvoice/Inbound/InexchangeInboundStagingService.php';
+require_once __DIR__.'/../class/EInvoice/Inbound/InboundInvoiceStagingService.php';
+require_once __DIR__.'/../class/AccessPoint/DkAccessPointConnection.php';
+require_once __DIR__.'/../class/AccessPoint/DkAccessPointCurlHttpClient.php';
+require_once __DIR__.'/../class/AccessPoint/DkInexchangeAccessPointProvider.php';
 
 if (!$user->hasRight('dkmodul', 'inbound', 'read')) accessforbidden();
 
@@ -20,6 +25,45 @@ if ($action !== '') {
     $inboundRowId = GETPOSTINT('inbound_rowid');
 
     try {
+        if ($action === 'sync') {
+            if (!$user->hasRight('dkmodul', 'inbound', 'read')) accessforbidden();
+
+            $apiKey = getenv('DKMODUL_INEXCHANGE_API_KEY');
+            $clientToken = getenv('DKMODUL_INEXCHANGE_CLIENT_TOKEN');
+            $baseUrl = trim((string) getDolGlobalString('DKMODUL_INEXCHANGE_BASE_URL'));
+            if ($baseUrl === '') $baseUrl = 'https://api.inexchange.com';
+
+            if (!is_string($apiKey) || trim($apiKey) === '' || !is_string($clientToken) || trim($clientToken) === '') {
+                throw new RuntimeException('Inexchange inbound sync requires DKMODUL_INEXCHANGE_API_KEY and DKMODUL_INEXCHANGE_CLIENT_TOKEN runtime secrets');
+            }
+
+            $provider = new DkInexchangeAccessPointProvider(new DkAccessPointCurlHttpClient($baseUrl));
+            $provider->connect(new DkAccessPointConnection('inexchange', array(
+                'api_key' => $apiKey,
+                'client_token' => $clientToken,
+            )));
+            $result = (new DkInexchangeInboundStagingService(
+                $provider,
+                new DkInboundInvoiceStagingService($db, $storageRoot)
+            ))->poll($entity, $storageRoot, (int) $user->id);
+
+            if ($result['failed']) {
+                setEventMessages(
+                    'Inexchange sync: '.$result['acknowledged'].' acknowledged, '.count($result['failed']).' failed; failed documents were not acknowledged.',
+                    null,
+                    'warnings'
+                );
+            } else {
+                setEventMessages(
+                    'Inexchange sync completed: '.$result['staged'].' staged and '.$result['acknowledged'].' acknowledged.',
+                    null,
+                    'mesgs'
+                );
+            }
+
+            header('Location: '.$_SERVER['PHP_SELF']);
+            exit;
+        }
         $row = $workflow->get($entity, $inboundRowId);
         if ($action === 'approve') {
             if (!$user->hasRight('dkmodul', 'inbound', 'approve') || $row['state'] !== 'validated') accessforbidden();
@@ -62,6 +106,11 @@ $title = 'Inbound OIOUBL workflow';
 llxHeader('', $title);
 print load_fiche_titre($title, '', 'fa-file-invoice');
 print '<div class="opacitymedium marginbottomonly">Controlled progression from received OIOUBL to immutable bookkeeping. Each action is separately authorized and auditable.</div>';
+print '<form method="post" action="'.dol_escape_htmltag($_SERVER['PHP_SELF']).'" class="marginbottomonly">';
+print '<input type="hidden" name="token" value="'.newToken().'">';
+print '<input type="hidden" name="action" value="sync">';
+print '<button class="button" type="submit">Hent nye Inexchange-fakturaer</button>';
+print '</form>';
 
 print '<div class="div-table-responsive-no-min">';
 print '<table class="noborder centpercent">';
