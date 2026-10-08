@@ -86,6 +86,28 @@ try {
 if (!$failed) throw new RuntimeException('Outbound send without idempotency key was not rejected');
 
 
+
+// If outbound submission fails ambiguously, the adapter must reconcile by ERP id rather than resending.
+$http->responses['POST /documents'] = array('status' => 201, 'body' => json_encode(array('DocumentId' => 'doc-ambiguous', 'DocumentUri' => '/documents/doc-ambiguous')));
+$http->responses['POST /documents/outbound'] = new RuntimeException('simulated timeout after submission');
+$http->responses['GET /invoices/outbound/byerpid/erp-ambiguous'] = array('status' => 200, 'body' => json_encode(array('DocumentId' => 'doc-reconciled', 'Status' => 'Pending')));
+$ambiguous = $provider->send(new DkAccessPointOutboundDocument('inv-ambiguous', 'OIOUBL', '<Invoice/>', array('GLN' => '5798000000000'), 'erp-ambiguous'));
+if (!$ambiguous->accepted() || $ambiguous->providerReference() !== 'doc-reconciled') throw new RuntimeException('Ambiguous outbound submission was not reconciled');
+$reconcileRequest = $http->requests[count($http->requests) - 1];
+if ($reconcileRequest['method'] !== 'GET' || $reconcileRequest['path'] !== '/invoices/outbound/byerpid/erp-ambiguous') throw new RuntimeException('Ambiguous submission did not reconcile by ERP id');
+
+// If reconciliation cannot establish a provider reference, the adapter must remain fail-closed.
+$http->responses['POST /documents'] = array('status' => 201, 'body' => json_encode(array('DocumentId' => 'doc-unresolved', 'DocumentUri' => '/documents/doc-unresolved')));
+$http->responses['POST /documents/outbound'] = new RuntimeException('simulated timeout before response');
+$http->responses['GET /invoices/outbound/byerpid/erp-unresolved'] = array('status' => 200, 'body' => json_encode(array('Status' => 'Pending')));
+$failed = false;
+try {
+    $provider->send(new DkAccessPointOutboundDocument('inv-unresolved', 'OIOUBL', '<Invoice/>', array('GLN' => '5798000000000'), 'erp-unresolved'));
+} catch (RuntimeException $e) {
+    $failed = strpos($e->getMessage(), 'ambiguous') !== false;
+}
+if (!$failed) throw new RuntimeException('Unresolved ambiguous submission was not fail-closed');
+
 // Provider must fail closed on HTTP errors instead of reporting a successful operation.
 $http->responses['POST /documents'] = array('status' => 500, 'body' => json_encode(array('error' => 'server')));
 $failed = false;
