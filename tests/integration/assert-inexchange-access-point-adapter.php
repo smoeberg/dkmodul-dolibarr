@@ -183,4 +183,36 @@ $http->responses['POST /documents/handled'] = array('status' => 202, 'body' => j
 $handled = $provider->markInboundHandled(new DkAccessPointMessageReference('in-1', 'in-1'));
 if (empty($handled['Handled'])) throw new RuntimeException('Inbound handled acknowledgement failed');
 
+// Inbound provider operations must never substitute a local document id for the provider reference.
+$failed = false;
+try {
+    $provider->downloadInbound(new DkAccessPointMessageReference('in-2'));
+} catch (InvalidArgumentException $e) {
+    $failed = strpos($e->getMessage(), 'provider document reference') !== false;
+}
+if (!$failed) throw new RuntimeException('Inbound download without provider reference was not rejected');
+
+$failed = false;
+try {
+    $provider->markInboundHandled(new DkAccessPointMessageReference('in-2'));
+} catch (InvalidArgumentException $e) {
+    $failed = strpos($e->getMessage(), 'provider document reference') !== false;
+}
+if (!$failed) throw new RuntimeException('Inbound handled without provider reference was not rejected');
+
+// A successful HTTP response without an explicit handled acknowledgement must fail closed.
+$http->responses['POST /documents/handled'] = array('status' => 202, 'body' => json_encode(array('Accepted' => true)));
+$failed = false;
+try {
+    $provider->markInboundHandled(new DkAccessPointMessageReference('in-1', 'in-1'));
+} catch (RuntimeException $e) {
+    $failed = strpos($e->getMessage(), 'Handled=true') !== false;
+}
+if (!$failed) throw new RuntimeException('Inbound handled response without acknowledgement was accepted');
+
+$http->responses['POST /documents/handled'] = array('status' => 204, 'body' => '');
+if ($provider->markInboundHandled(new DkAccessPointMessageReference('in-1', 'in-1')) !== true) {
+    throw new RuntimeException('204 inbound handled acknowledgement was not accepted');
+}
+
 echo "Inexchange access point adapter contract: PASS\n";

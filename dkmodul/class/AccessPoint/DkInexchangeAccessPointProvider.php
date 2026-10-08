@@ -234,7 +234,8 @@ final class DkInexchangeAccessPointProvider implements DkAccessPointProvider
 
     public function downloadInbound(DkAccessPointMessageReference $reference)
     {
-        $response = $this->request('GET', '/documents/'.rawurlencode($reference->providerReference() ?: $reference->documentId()));
+        $providerReference = $this->requireInboundProviderReference($reference);
+        $response = $this->request('GET', '/documents/'.rawurlencode($providerReference));
         $this->assertStatus($response, array(200), 'Inexchange inbound document download');
 
         $contentType = 'application/octet-stream';
@@ -242,17 +243,40 @@ final class DkInexchangeAccessPointProvider implements DkAccessPointProvider
             $reference->documentId(),
             $response['body'],
             $contentType,
-            array('provider' => 'inexchange', 'provider_reference' => $reference->providerReference())
+            array('provider' => 'inexchange', 'provider_reference' => $providerReference)
         );
     }
 
     public function markInboundHandled(DkAccessPointMessageReference $reference)
     {
+        $providerReference = $this->requireInboundProviderReference($reference);
         $payload = array(
-            'DocumentId' => $reference->providerReference() ?: $reference->documentId(),
+            'DocumentId' => $providerReference,
         );
-        $response = $this->requestJson('POST', '/documents/handled', $payload, array(200, 201, 202));
-        return $this->decodeJson($response['body']);
+        $response = $this->request('POST', '/documents/handled', array('Content-Type' => 'application/json'), json_encode($payload));
+        $this->assertStatus($response, array(200, 201, 202, 204), 'Inexchange inbound handled acknowledgement');
+
+        if ((int) $response['status'] === 204) {
+            return true;
+        }
+
+        $data = $this->decodeJson($response['body']);
+        $handled = $data['Handled'] ?? $data['handled'] ?? null;
+        if ($handled !== true) {
+            throw new RuntimeException('Inexchange inbound handled response did not confirm Handled=true');
+        }
+
+        return $data;
+    }
+
+    private function requireInboundProviderReference(DkAccessPointMessageReference $reference)
+    {
+        $providerReference = $reference->providerReference();
+        if (!is_string($providerReference) || trim($providerReference) === '') {
+            throw new InvalidArgumentException('Inexchange inbound operations require a provider document reference');
+        }
+
+        return trim($providerReference);
     }
 
     public function createClientToken($erpId, $validTo, array $roles)
