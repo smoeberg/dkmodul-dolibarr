@@ -29,11 +29,11 @@ final class InexchangeFakeHttpClient implements DkAccessPointHttpClient
             'query' => $query,
         );
 
-        foreach ($this->responses as $key => $response) {
-            if ($key === strtoupper($method).' '.$path) {
-                array_shift($this->responses);
-                return $response;
-            }
+        $key = strtoupper($method).' '.$path;
+        if (array_key_exists($key, $this->responses)) {
+            $response = $this->responses[$key];
+            unset($this->responses[$key]);
+            return $response;
         }
         throw new RuntimeException('No fake response for '.strtoupper($method).' '.$path);
     }
