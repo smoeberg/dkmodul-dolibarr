@@ -68,6 +68,58 @@ $http->responses['POST /documents/outbound'] = array('status' => 202, 'body' => 
 $result = $provider->send(new DkAccessPointOutboundDocument('inv-1', 'OIOUBL', '<Invoice/>', array('GLN' => '5798000000000'), 'erp-inv-1'));
 if (!$result->accepted() || $result->providerReference() !== 'doc-1') throw new RuntimeException('Outbound send result mismatch');
 
+
+// Provider must fail closed on HTTP errors instead of reporting a successful operation.
+$http->responses['POST /documents'] = array('status' => 500, 'body' => json_encode(array('error' => 'server')));
+$failed = false;
+try {
+    $provider->send(new DkAccessPointOutboundDocument('inv-http-error', 'OIOUBL', '<Invoice/>', array('GLN' => '5798000000000'), 'erp-http-error'));
+} catch (RuntimeException $e) {
+    $failed = strpos($e->getMessage(), 'HTTP 500') !== false;
+}
+if (!$failed) throw new RuntimeException('HTTP 500 was not fail-closed');
+
+// Successful upload without a provider URI must not continue to outbound submission.
+$http->responses['POST /documents'] = array('status' => 201, 'body' => json_encode(array('DocumentId' => 'doc-missing-uri')));
+$failed = false;
+try {
+    $provider->send(new DkAccessPointOutboundDocument('inv-missing-uri', 'OIOUBL', '<Invoice/>', array('GLN' => '5798000000000'), 'erp-missing-uri'));
+} catch (RuntimeException $e) {
+    $failed = strpos($e->getMessage(), 'DocumentUri') !== false;
+}
+if (!$failed) throw new RuntimeException('Missing DocumentUri was not rejected');
+
+// Successful outbound submission without a provider reference must not be reported as accepted.
+$http->responses['POST /documents'] = array('status' => 201, 'body' => json_encode(array('DocumentId' => 'doc-no-reference', 'DocumentUri' => '/documents/doc-no-reference')));
+$http->responses['POST /documents/outbound'] = array('status' => 202, 'body' => json_encode(array('Accepted' => true)));
+$failed = false;
+try {
+    $provider->send(new DkAccessPointOutboundDocument('inv-no-reference', 'OIOUBL', '<Invoice/>', array('GLN' => '5798000000000'), 'erp-no-reference'));
+} catch (RuntimeException $e) {
+    $failed = strpos($e->getMessage(), 'provider document reference') !== false;
+}
+if (!$failed) throw new RuntimeException('Missing provider reference was not rejected');
+
+// Invalid JSON from the provider must be rejected rather than treated as an empty result.
+$http->responses['GET /invoices/outbound/doc-invalid-json'] = array('status' => 200, 'body' => '{invalid');
+$failed = false;
+try {
+    $provider->outboundStatus(new DkAccessPointMessageReference('inv-invalid-json', 'doc-invalid-json'));
+} catch (RuntimeException $e) {
+    $failed = strpos($e->getMessage(), 'Invalid JSON') !== false;
+}
+if (!$failed) throw new RuntimeException('Invalid JSON was not rejected');
+
+// Unknown provider statuses must fail closed instead of being guessed.
+$http->responses['GET /invoices/outbound/doc-unknown-status'] = array('status' => 200, 'body' => json_encode(array('Status' => 'Mystery')));
+$failed = false;
+try {
+    $provider->outboundStatus(new DkAccessPointMessageReference('inv-unknown-status', 'doc-unknown-status'));
+} catch (RuntimeException $e) {
+    $failed = strpos($e->getMessage(), 'Unsupported Inexchange outbound status') !== false;
+}
+if (!$failed) throw new RuntimeException('Unknown provider status was not rejected');
+
 $http->responses['GET /invoices/outbound/doc-1'] = array('status' => 200, 'body' => json_encode(array('Status' => 'Delivered', 'UpdatedAt' => '2026-10-08T10:00:00Z')));
 $status = $provider->outboundStatus(new DkAccessPointMessageReference('inv-1', 'doc-1'));
 if ($status->status() !== 'DELIVERED') throw new RuntimeException('Outbound status normalization failed');
