@@ -1,5 +1,6 @@
 <?php
 
+require_once __DIR__.'/DkInboundInvoiceStagingContract.php';
 require_once dirname(__DIR__).'/OioUblValidator.php';
 require_once dirname(__DIR__, 2).'/Audit/AuditLedger.php';
 
