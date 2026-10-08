@@ -8,6 +8,7 @@ require_once __DIR__.'/../class/EInvoice/Inbound/InboundSupplierDraftService.php
 require_once __DIR__.'/../class/EInvoice/Inbound/InboundSupplierValidationService.php';
 require_once __DIR__.'/../class/EInvoice/Inbound/InboundSupplierPostingService.php';
 require_once __DIR__.'/../class/EInvoice/Inbound/InexchangeInboundStagingService.php';
+require_once __DIR__.'/../class/EInvoice/Inbound/InboundInvoiceStagingService.php';
 require_once __DIR__.'/../class/AccessPoint/DkAccessPointConnection.php';
 require_once __DIR__.'/../class/AccessPoint/DkAccessPointCurlHttpClient.php';
 require_once __DIR__.'/../class/AccessPoint/DkInexchangeAccessPointProvider.php';
