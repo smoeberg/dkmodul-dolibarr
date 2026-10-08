@@ -183,4 +183,21 @@ $http->responses['POST /documents/handled'] = array('status' => 202, 'body' => j
 $handled = $provider->markInboundHandled(new DkAccessPointMessageReference('in-1', 'in-1'));
 if (empty($handled['Handled'])) throw new RuntimeException('Inbound handled acknowledgement failed');
 
+// Inbound provider operations must never substitute a local document id for the provider reference.
+$failed = false;
+try {
+    $provider->downloadInbound(new DkAccessPointMessageReference('in-2'));
+} catch (InvalidArgumentException $e) {
+    $failed = strpos($e->getMessage(), 'provider document reference') !== false;
+}
+if (!$failed) throw new RuntimeException('Inbound download without provider reference was not rejected');
+
+$failed = false;
+try {
+    $provider->markInboundHandled(new DkAccessPointMessageReference('in-2'));
+} catch (InvalidArgumentException $e) {
+    $failed = strpos($e->getMessage(), 'provider document reference') !== false;
+}
+if (!$failed) throw new RuntimeException('Inbound handled without provider reference was not rejected');
+
 echo "Inexchange access point adapter contract: PASS\n";
