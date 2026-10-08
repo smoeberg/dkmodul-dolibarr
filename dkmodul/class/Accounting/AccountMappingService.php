@@ -55,7 +55,7 @@ class DkAccountMappingService
                 $entity,
                 'accounting.account_mapping.created',
                 'account_mapping',
-                (int) $this->db->last_insert_id($this->db->prefix().'dk_account_mapping'),
+                0,
                 $userId,
                 array(
                     'source_account' => $sourceAccount,
