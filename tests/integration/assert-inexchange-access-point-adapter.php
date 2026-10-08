@@ -215,4 +215,23 @@ if ($provider->markInboundHandled(new DkAccessPointMessageReference('in-1', 'in-
     throw new RuntimeException('204 inbound handled acknowledgement was not accepted');
 }
 
+// Polling responses without a documents array must fail closed.
+$http->responses['POST /documents/outbound/list'] = array('status' => 200, 'body' => json_encode(array('Accepted' => true)));
+$failed = false;
+try {
+    $provider->listOutbound(new DkAccessPointPollCursor(null));
+} catch (RuntimeException $e) {
+    $failed = strpos($e->getMessage(), 'documents array') !== false;
+}
+if (!$failed) throw new RuntimeException('Invalid outbound polling response was accepted');
+
+$http->responses['GET /documents/incoming'] = array('status' => 200, 'body' => json_encode(array('Accepted' => true)));
+$failed = false;
+try {
+    $provider->listInbound(new DkAccessPointPollCursor(null));
+} catch (RuntimeException $e) {
+    $failed = strpos($e->getMessage(), 'documents array') !== false;
+}
+if (!$failed) throw new RuntimeException('Invalid inbound polling response was accepted');
+
 echo "Inexchange access point adapter contract: PASS\n";
