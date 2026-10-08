@@ -18,45 +18,52 @@ class DkAuditLedger
     public function append($entity, $eventType, $objectType, $objectId, $actorId, array $payload = array(), array $metadata = array())
     {
         $entity = (int) $entity;
-        $previousHash = $this->getLastHash($entity);
         $payloadJson = $this->canonicalJson($payload);
         $metadataJson = $this->canonicalJson($metadata);
         $payloadHash = hash('sha256', $payloadJson);
-        $createdAt = gmdate('Y-m-d H:i:s');
-        $eventUuid = $this->uuidV4();
 
-        $eventHash = hash('sha256', implode('|', array(
-            $previousHash,
-            $eventUuid,
-            $eventType,
-            $objectType,
-            (string) ((int) $objectId),
-            (string) ((int) $actorId),
-            $createdAt,
-            $payloadHash,
-            hash('sha256', $metadataJson),
-        )));
+        for ($attempt = 0; $attempt < 3; $attempt++) {
+            $previousHash = $this->getLastHash($entity);
+            $createdAt = gmdate('Y-m-d H:i:s');
+            $eventUuid = $this->uuidV4();
 
-        $sql = 'INSERT INTO '.$this->db->prefix().'dk_audit_event';
-        $sql .= ' (entity,event_uuid,event_type,object_type,object_id,actor_id,created_at,previous_hash,payload_hash,event_hash,payload_json,metadata_json)';
-        $sql .= " VALUES (".$entity;
-        $sql .= ",'".$this->db->escape($eventUuid)."'";
-        $sql .= ",'".$this->db->escape($eventType)."'";
-        $sql .= ",'".$this->db->escape($objectType)."'";
-        $sql .= ",".((int) $objectId);
-        $sql .= ",".((int) $actorId);
-        $sql .= ",'".$this->db->escape($createdAt)."'";
-        $sql .= ",'".$this->db->escape($previousHash)."'";
-        $sql .= ",'".$this->db->escape($payloadHash)."'";
-        $sql .= ",'".$this->db->escape($eventHash)."'";
-        $sql .= ",'".$this->db->escape($payloadJson)."'";
-        $sql .= ",'".$this->db->escape($metadataJson)."')";
+            $eventHash = hash('sha256', implode('|', array(
+                $previousHash,
+                $eventUuid,
+                $eventType,
+                $objectType,
+                (string) ((int) $objectId),
+                (string) ((int) $actorId),
+                $createdAt,
+                $payloadHash,
+                hash('sha256', $metadataJson),
+            )));
 
-        if (!$this->db->query($sql)) {
-            throw new RuntimeException('Unable to append DK audit event: '.$this->db->lasterror());
+            $sql = 'INSERT INTO '.$this->db->prefix().'dk_audit_event';
+            $sql .= ' (entity,event_uuid,event_type,object_type,object_id,actor_id,created_at,previous_hash,payload_hash,event_hash,payload_json,metadata_json)';
+            $sql .= " VALUES (".$entity;
+            $sql .= ",'".$this->db->escape($eventUuid)."'";
+            $sql .= ",'".$this->db->escape($eventType)."'";
+            $sql .= ",'".$this->db->escape($objectType)."'";
+            $sql .= ",".((int) $objectId);
+            $sql .= ",".((int) $actorId);
+            $sql .= ",'".$this->db->escape($createdAt)."'";
+            $sql .= ",'".$this->db->escape($previousHash)."'";
+            $sql .= ",'".$this->db->escape($payloadHash)."'";
+            $sql .= ",'".$this->db->escape($eventHash)."'";
+            $sql .= ",'".$this->db->escape($payloadJson)."'";
+            $sql .= ",'".$this->db->escape($metadataJson)."')";
+
+            if ($this->db->query($sql)) {
+                return $eventHash;
+            }
+
+            if (!$this->isConcurrentPreviousHashConflict($this->db->lasterror())) {
+                throw new RuntimeException('Unable to append DK audit event: '.$this->db->lasterror());
+            }
         }
 
-        return $eventHash;
+        throw new RuntimeException('Unable to append DK audit event after concurrent writer retries');
     }
 
     public function verifyChain($entity)
@@ -97,6 +104,13 @@ class DkAuditLedger
         }
 
         return true;
+    }
+
+    private function isConcurrentPreviousHashConflict($error): bool
+    {
+        $error = strtolower((string) $error);
+        return strpos($error, 'duplicate') !== false
+            && strpos($error, 'uk_dk_audit_previous_hash') !== false;
     }
 
     private function getLastHash($entity)
