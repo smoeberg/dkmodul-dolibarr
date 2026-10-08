@@ -139,8 +139,12 @@ final class DkInexchangeAccessPointProvider implements DkAccessPointProvider
         );
         $payload['ErpDocumentId'] = trim($idempotencyKey);
 
-        $sent = $this->requestJson('POST', '/documents/outbound', $payload, array(200, 201, 202));
-        $sentData = $this->decodeJson($sent['body']);
+        try {
+            $sent = $this->requestJson('POST', '/documents/outbound', $payload, array(200, 201, 202));
+            $sentData = $this->decodeJson($sent['body']);
+        } catch (Throwable $e) {
+            return $this->reconcileAmbiguousOutbound($document, $idempotencyKey, $e);
+        }
         $reference = $sentData['DocumentId'] ?? $sentData['documentId'] ?? $providerDocumentId;
         if (!is_string($reference) || trim($reference) === '') {
             throw new RuntimeException('Inexchange outbound response did not contain a provider document reference');
@@ -151,6 +155,37 @@ final class DkInexchangeAccessPointProvider implements DkAccessPointProvider
             trim($reference),
             array('provider' => 'inexchange', 'response' => $sentData)
         );
+    }
+
+    private function reconcileAmbiguousOutbound(DkAccessPointOutboundDocument $document, $idempotencyKey, Throwable $originalException)
+    {
+        try {
+            $response = $this->request('GET', '/invoices/outbound/byerpid/'.rawurlencode($idempotencyKey));
+            $data = $this->decodeJson($response['body']);
+            $reference = $data['DocumentId'] ?? $data['documentId'] ?? null;
+            if (!is_string($reference) || trim($reference) === '') {
+                throw new RuntimeException('Inexchange reconciliation response did not contain a provider document reference');
+            }
+
+            return new DkAccessPointMessageResult(
+                true,
+                $document->documentId(),
+                trim($reference),
+                array(
+                    'provider' => 'inexchange',
+                    'reconciled_after_ambiguous_submission' => true,
+                    'original_error' => $originalException->getMessage(),
+                    'response' => $data,
+                )
+            );
+        } catch (Throwable $reconciliationException) {
+            throw new RuntimeException(
+                'Inexchange outbound submission was ambiguous; reconciliation did not establish a provider reference: '
+                .$reconciliationException->getMessage(),
+                0,
+                $originalException
+            );
+        }
     }
 
     public function outboundStatus(DkAccessPointMessageReference $reference)
