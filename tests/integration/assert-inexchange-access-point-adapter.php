@@ -141,6 +141,10 @@ $http->responses['GET /invoices/outbound/doc-1'] = array('status' => 200, 'body'
 $status = $provider->outboundStatus(new DkAccessPointMessageReference('inv-1', 'doc-1'));
 if ($status->status() !== 'DELIVERED') throw new RuntimeException('Outbound status normalization failed');
 
+$http->responses['GET /invoices/outbound/byerpid/erp-inv-1'] = array('status' => 200, 'body' => json_encode(array('Status' => 'Sent', 'UpdatedAt' => '2026-10-08T10:05:00Z')));
+$status = $provider->outboundStatus(new DkAccessPointMessageReference('inv-1', null, 'erp-inv-1'));
+if ($status->status() !== 'SENT') throw new RuntimeException('Outbound status did not use preserved idempotency key');
+
 $http->responses['POST /documents/outbound/list'] = array('status' => 200, 'body' => json_encode(array('documents' => array())));
 $list = $provider->listOutbound(new DkAccessPointPollCursor('2026-10-08T09:00:00Z'));
 if (!isset($list['documents'])) throw new RuntimeException('Outbound polling failed');
