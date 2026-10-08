@@ -11,6 +11,18 @@ require_once __DIR__.'/../../dkmodul/class/EInvoice/Inbound/DkInboundInvoiceStag
 require_once __DIR__.'/../../dkmodul/class/EInvoice/Inbound/InboundOioUblEnvelope.php';
 require_once __DIR__.'/../../dkmodul/class/EInvoice/Inbound/InexchangeInboundStagingService.php';
 
+final class FakeInboundAudit
+{
+    public $events = array();
+
+    public function append($entity, $eventType, $objectType, $objectId, $actorId, array $payload = array(), array $metadata = array())
+    {
+        $this->events[] = array('entity' => $entity, 'eventType' => $eventType, 'objectType' => $objectType, 'objectId' => $objectId, 'actorId' => $actorId, 'payload' => $payload, 'metadata' => $metadata);
+        return 'fake-event-hash';
+    }
+}
+
+
 final class FakeInboundProvider implements DkAccessPointProvider
 {
     public $handled = array();
@@ -94,10 +106,18 @@ if (count($result['failed']) !== 1) {
 
 $provider = new FakeInboundProvider();
 $staging = new FakeInboundStaging();
-$service = new DkInexchangeInboundStagingService($provider, $staging);
+$audit = new FakeInboundAudit();
+$service = new DkInexchangeInboundStagingService($provider, $staging, $audit);
 $first = $service->poll(1, '/tmp/dkmodul-inbound-test', 42);
 $staging->reused = true;
 $second = $service->poll(1, '/tmp/dkmodul-inbound-test', 42);
+$eventTypes = array_map(static function ($event) { return $event['eventType']; }, $audit->events);
+if ($eventTypes !== array('einvoice.inbound.acknowledgement_attempted', 'einvoice.inbound.acknowledged', 'einvoice.inbound.reused', 'einvoice.inbound.acknowledgement_attempted', 'einvoice.inbound.acknowledged')) {
+    throw new RuntimeException('Successful and reused inbound acknowledgements did not produce the expected audit sequence');
+}
+if ($audit->events[2]['payload']['reason'] !== 'existing_immutable_message_reused' || $audit->events[3]['payload']['reused'] !== true) {
+    throw new RuntimeException('Inbound reuse/acknowledgement evidence did not identify the retry');
+}
 if ($first['staged'] !== 1 || $second['staged'] !== 0 || $second['reused'] !== 1 || $second['acknowledged'] !== 1 || count($provider->handled) !== 2) {
     throw new RuntimeException('Inbound retry was not reported as idempotent reuse');
 }
@@ -106,7 +126,8 @@ $provider = new FakeInboundProvider();
 $provider->failHandledOnce = true;
 $staging = new FakeInboundStaging();
 $staging->reuseAfterFirstCall = true;
-$service = new DkInexchangeInboundStagingService($provider, $staging);
+$audit = new FakeInboundAudit();
+$service = new DkInexchangeInboundStagingService($provider, $staging, $audit);
 
 $first = $service->poll(1, '/tmp/dkmodul-inbound-test', 42);
 if ($first['staged'] !== 1 || $first['reused'] !== 0 || $first['acknowledged'] !== 0 || count($first['failed']) !== 1 || count($provider->handled) !== 0) {
@@ -116,6 +137,25 @@ if ($first['staged'] !== 1 || $first['reused'] !== 0 || $first['acknowledged'] !
 $second = $service->poll(1, '/tmp/dkmodul-inbound-test', 42);
 if ($second['staged'] !== 0 || $second['reused'] !== 1 || $second['acknowledged'] !== 1 || count($second['failed']) !== 0 || count($provider->handled) !== 1 || $staging->calls !== 2) {
     throw new RuntimeException('Inbound acknowledgement retry did not reuse staging without duplicating persistence');
+}
+
+$provider = new FakeInboundProvider();
+$provider->failHandledOnce = true;
+$staging = new FakeInboundStaging();
+$staging->reuseAfterFirstCall = true;
+$audit = new FakeInboundAudit();
+$service = new DkInexchangeInboundStagingService($provider, $staging, $audit);
+$first = $service->poll(1, '/tmp/dkmodul-inbound-test', 42);
+if (end($audit->events)['eventType'] !== 'einvoice.inbound.acknowledgement_failed') {
+    throw new RuntimeException('Inbound acknowledgement failure was not audited');
+}
+$second = $service->poll(1, '/tmp/dkmodul-inbound-test', 42);
+$eventTypes = array_map(static function ($event) { return $event['eventType']; }, $audit->events);
+if ($eventTypes !== array('einvoice.inbound.acknowledgement_attempted', 'einvoice.inbound.acknowledgement_failed', 'einvoice.inbound.reused', 'einvoice.inbound.acknowledgement_attempted', 'einvoice.inbound.acknowledged')) {
+    throw new RuntimeException('Inbound acknowledgement retry did not produce the expected audit sequence');
+}
+if ($audit->events[0]['payload']['reused'] !== false || $audit->events[2]['payload']['reason'] !== 'existing_immutable_message_reused' || $audit->events[3]['payload']['reused'] !== true) {
+    throw new RuntimeException('Inbound acknowledgement retry evidence did not preserve first-attempt versus reuse state');
 }
 
 echo "Inexchange inbound no-ack-on-staging-failure contract: PASS\n";
