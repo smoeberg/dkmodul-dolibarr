@@ -34,7 +34,7 @@ $plannedBlocked = false;
 try {
     DkProductManifest::load($plannedPath)->assertRegistrable();
 } catch (RuntimeException $e) {
-    $plannedBlocked = strpos($e->getMessage(), 'certified Nemhandel/Peppol access point') !== false;
+    $plannedBlocked = strpos($e->getMessage(), 'certified Inexchange NemHandel/Peppol access point') !== false;
 } finally {
     unlink($plannedPath);
 }
