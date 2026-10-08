@@ -63,6 +63,25 @@ $http->responses['GET /companies/status'] = array('status' => 200, 'body' => jso
 $status = $provider->registrationStatus('reg-1');
 if ($status['Status'] !== 'Completed' || $status['_http_status'] !== 200) throw new RuntimeException('Registration status mismatch');
 
+// Registration status responses without a usable Status must fail closed.
+$http->responses['GET /companies/status'] = array('status' => 200, 'body' => json_encode(array('RegistrationId' => 'reg-1')));
+$failed = false;
+try {
+    $provider->registrationStatus('reg-1');
+} catch (RuntimeException $e) {
+    $failed = strpos($e->getMessage(), 'did not contain Status') !== false;
+}
+if (!$failed) throw new RuntimeException('Registration status without Status was accepted');
+
+$http->responses['GET /companies/status'] = array('status' => 200, 'body' => json_encode(array('Status' => '')));
+$failed = false;
+try {
+    $provider->registrationStatus('reg-1');
+} catch (RuntimeException $e) {
+    $failed = strpos($e->getMessage(), 'did not contain Status') !== false;
+}
+if (!$failed) throw new RuntimeException('Empty registration status was accepted');
+
 $http->responses['POST /documents'] = array('status' => 201, 'body' => json_encode(array('DocumentId' => 'doc-1', 'DocumentUri' => '/documents/doc-1')));
 $http->responses['POST /documents/outbound'] = array('status' => 202, 'body' => json_encode(array('DocumentId' => 'doc-1')));
 $result = $provider->send(new DkAccessPointOutboundDocument('inv-1', 'OIOUBL', '<Invoice/>', array('GLN' => '5798000000000'), 'erp-inv-1'));
