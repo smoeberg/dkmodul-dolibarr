@@ -45,7 +45,8 @@
       "provider_must_be_identified_per_deployment": true
     },
     "access_point": {
-      "model": "own-certified-access-point",
+      "model": "third-party-certified-access-point",
+      "provider": "Inexchange",
       "certification_status": "certified",
       "certification_id": "TEST-AP-CERTIFICATION-001",
       "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
