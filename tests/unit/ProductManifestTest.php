@@ -11,7 +11,8 @@ assert($manifest->value('deployment.backup_policy.eu_eea_copy_required') === tru
 assert($manifest->value('deployment.deployment_attestation.signature_required') === true);
 assert($manifest->value('deployment.deployment_attestation.signature_algorithms') === array('RSA-SHA256'));
 assert($manifest->value('deployment.deployment_attestation.trust_store_sha256') === 'TBD-production-trust-store-sha256');
-assert($manifest->value('deployment.access_point.model') === 'own-certified-access-point');
+assert($manifest->value('deployment.access_point.model') === 'third-party-certified-access-point');
+assert($manifest->value('deployment.access_point.provider') === 'Inexchange');
 assert($manifest->value('deployment.access_point.certification_status') === 'planned');
 
 $blocked = false;
@@ -52,5 +53,19 @@ try {
     unlink($expiredPath);
 }
 assert($expiredBlocked);
+
+$candidateData['deployment']['access_point']['valid_until'] = '2099-12-31';
+$candidateData['deployment']['access_point']['model'] = 'own-certified-access-point';
+$wrongModelPath = tempnam(sys_get_temp_dir(), 'dk-manifest-');
+file_put_contents($wrongModelPath, json_encode($candidateData));
+$wrongModelBlocked = false;
+try {
+    DkProductManifest::load($wrongModelPath)->assertRegistrable();
+} catch (RuntimeException $e) {
+    $wrongModelBlocked = strpos($e->getMessage(), 'certified Inexchange') !== false;
+} finally {
+    unlink($wrongModelPath);
+}
+assert($wrongModelBlocked);
 
 echo "Product manifest tests passed\n";
