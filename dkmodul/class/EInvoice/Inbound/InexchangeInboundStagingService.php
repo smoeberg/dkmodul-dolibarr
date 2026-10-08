@@ -2,7 +2,7 @@
 
 require_once dirname(__DIR__, 2).'/AccessPoint/DkAccessPointProvider.php';
 require_once dirname(__DIR__, 2).'/AccessPoint/DkAccessPointMessageReference.php';
-require_once __DIR__.'/InboundInvoiceStagingService.php';
+require_once __DIR__.'/DkInboundInvoiceStagingContract.php';
 require_once __DIR__.'/InboundOioUblEnvelope.php';
 
 final class DkInexchangeInboundStagingService
@@ -10,7 +10,7 @@ final class DkInexchangeInboundStagingService
     private $provider;
     private $staging;
 
-    public function __construct(DkAccessPointProvider $provider, DkInboundInvoiceStagingService $staging)
+    public function __construct(DkAccessPointProvider $provider, DkInboundInvoiceStagingContract $staging)
     {
         $this->provider = $provider;
         $this->staging = $staging;
