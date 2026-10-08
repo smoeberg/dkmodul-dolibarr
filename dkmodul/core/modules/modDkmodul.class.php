@@ -30,7 +30,7 @@ class modDkmodul extends DolibarrModules
         );
 
         $this->dirs = array('/dkmodul');
-        $this->config_page_url = array();
+        $this->config_page_url = array('dkmodul/admin/inexchange.php@dkmodul');
 
         // Dolibarr Advanced Accounting is part of the product boundary.
         $this->depends = array('modAccounting');
@@ -50,6 +50,8 @@ class modDkmodul extends DolibarrModules
             5 => array('DKMODUL_DEPLOYMENT_ID', 'chaine', '', 'Deployment identifier used for compliance monitoring', 0, 'current', 1),
             6 => array('DKMODUL_REQUIRED_RETAIN_UNTIL', 'chaine', '', 'Current minimum statutory retention date (YYYY-MM-DD)', 0, 'current', 1),
             7 => array('DKMODUL_HOSTING_REGISTRATION', 'chaine', '', 'Legal registration number of the primary hosting operator', 0, 'current', 1),
+            8 => array('DKMODUL_INEXCHANGE_BASE_URL', 'chaine', 'https://api.inexchange.com', 'Inexchange API base URL', 0, 'current', 1),
+            9 => array('DKMODUL_INEXCHANGE_ERP_ID', 'chaine', '', 'Inexchange ERP/company identifier', 0, 'current', 1),
         );
 
         if (!isModEnabled('dkmodul')) {
@@ -76,6 +78,20 @@ class modDkmodul extends DolibarrModules
         );
 
         $this->menu = array();
+        $this->menu[] = array(
+            'fk_menu' => 'fk_mainmenu=billing',
+            'type' => 'left',
+            'titre' => 'Inexchange Access Point',
+            'mainmenu' => 'billing',
+            'leftmenu' => 'dkmodul_inexchange',
+            'url' => '/dkmodul/admin/inexchange.php',
+            'langs' => '',
+            'position' => 90,
+            'enabled' => 'isModEnabled("dkmodul")',
+            'perms' => '$user->hasRight("dkmodul", "compliance", "admin")',
+            'target' => '',
+            'user' => 2,
+        );
         $this->menu[] = array(
             'fk_menu' => 'fk_mainmenu=billing',
             'type' => 'left',
