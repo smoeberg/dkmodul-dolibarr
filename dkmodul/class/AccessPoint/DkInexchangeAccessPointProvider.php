@@ -112,6 +112,11 @@ final class DkInexchangeAccessPointProvider implements DkAccessPointProvider
 
     public function send(DkAccessPointOutboundDocument $document)
     {
+        $idempotencyKey = $document->idempotencyKey();
+        if (!is_string($idempotencyKey) || trim($idempotencyKey) === '') {
+            throw new InvalidArgumentException('Inexchange outbound send requires an idempotency key');
+        }
+
         $upload = $this->request(
             'POST',
             '/documents',
@@ -132,9 +137,7 @@ final class DkInexchangeAccessPointProvider implements DkAccessPointProvider
             'DocumentUri' => $documentUri,
             'RecipientInformation' => $document->recipient(),
         );
-        if ($document->idempotencyKey() !== null) {
-            $payload['ErpDocumentId'] = $document->idempotencyKey();
-        }
+        $payload['ErpDocumentId'] = trim($idempotencyKey);
 
         $sent = $this->requestJson('POST', '/documents/outbound', $payload, array(200, 201, 202));
         $sentData = $this->decodeJson($sent['body']);

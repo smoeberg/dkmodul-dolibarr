@@ -67,6 +67,23 @@ $http->responses['POST /documents'] = array('status' => 201, 'body' => json_enco
 $http->responses['POST /documents/outbound'] = array('status' => 202, 'body' => json_encode(array('DocumentId' => 'doc-1')));
 $result = $provider->send(new DkAccessPointOutboundDocument('inv-1', 'OIOUBL', '<Invoice/>', array('GLN' => '5798000000000'), 'erp-inv-1'));
 if (!$result->accepted() || $result->providerReference() !== 'doc-1') throw new RuntimeException('Outbound send result mismatch');
+if (json_decode($http->requests[4]['body'], true)['ErpDocumentId'] !== 'erp-inv-1') throw new RuntimeException('Outbound idempotency key was not forwarded');
+
+// Repeated sends must carry the exact same ERP idempotency key so the provider can deduplicate them.
+$http->responses['POST /documents'] = array('status' => 201, 'body' => json_encode(array('DocumentId' => 'doc-2', 'DocumentUri' => '/documents/doc-2')));
+$http->responses['POST /documents/outbound'] = array('status' => 202, 'body' => json_encode(array('DocumentId' => 'doc-2')));
+$retry = $provider->send(new DkAccessPointOutboundDocument('inv-1', 'OIOUBL', '<Invoice/>', array('GLN' => '5798000000000'), 'erp-inv-1'));
+if (!$retry->accepted() || $retry->providerReference() !== 'doc-2') throw new RuntimeException('Repeated outbound send failed');
+$lastOutboundBody = json_decode($http->requests[count($http->requests) - 1]['body'], true);
+if ($lastOutboundBody['ErpDocumentId'] !== 'erp-inv-1') throw new RuntimeException('Retry changed outbound idempotency key');
+
+$failed = false;
+try {
+    $provider->send(new DkAccessPointOutboundDocument('inv-no-key', 'OIOUBL', '<Invoice/>', array('GLN' => '5798000000000')));
+} catch (InvalidArgumentException $e) {
+    $failed = strpos($e->getMessage(), 'idempotency key') !== false;
+}
+if (!$failed) throw new RuntimeException('Outbound send without idempotency key was not rejected');
 
 
 // Provider must fail closed on HTTP errors instead of reporting a successful operation.
