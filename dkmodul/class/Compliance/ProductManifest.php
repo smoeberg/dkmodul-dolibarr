@@ -109,9 +109,10 @@ final class DkProductManifest
 
     public function assertCertifiedAccessPoint()
     {
-        if ($this->value('deployment.access_point.model') !== 'own-certified-access-point'
+        if ($this->value('deployment.access_point.model') !== 'third-party-certified-access-point'
+            || $this->value('deployment.access_point.provider') !== 'Inexchange'
             || $this->value('deployment.access_point.certification_status') !== 'certified') {
-            throw new RuntimeException('Registered profile requires an own certified Nemhandel/Peppol access point');
+            throw new RuntimeException('Registered profile requires a certified Inexchange NemHandel/Peppol access point');
         }
 
         $certificationId = $this->value('deployment.access_point.certification_id');
@@ -174,6 +175,7 @@ final class DkProductManifest
             'deployment.backup_policy.eu_eea_copy_required',
             'deployment.backup_policy.provider_must_be_identified_per_deployment',
             'deployment.access_point.model',
+            'deployment.access_point.provider',
             'deployment.access_point.certification_status',
             'deployment.access_point.certification_id',
             'deployment.access_point.certificate_sha256',
