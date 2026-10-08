@@ -4,16 +4,19 @@ require_once dirname(__DIR__, 2).'/AccessPoint/DkAccessPointProvider.php';
 require_once dirname(__DIR__, 2).'/AccessPoint/DkAccessPointMessageReference.php';
 require_once __DIR__.'/DkInboundInvoiceStagingContract.php';
 require_once __DIR__.'/InboundOioUblEnvelope.php';
+require_once dirname(__DIR__, 2).'/Audit/AuditLedger.php';
 
 final class DkInexchangeInboundStagingService
 {
     private $provider;
     private $staging;
+    private $audit;
 
-    public function __construct(DkAccessPointProvider $provider, DkInboundInvoiceStagingContract $staging)
+    public function __construct(DkAccessPointProvider $provider, DkInboundInvoiceStagingContract $staging, ?DkAuditLedger $audit = null)
     {
         $this->provider = $provider;
         $this->staging = $staging;
+        $this->audit = $audit;
     }
 
     public function poll(int $entity, string $storageRoot, int $actorId): array
@@ -64,8 +67,34 @@ final class DkInexchangeInboundStagingService
                 }
 
                 // A provider acknowledgement is only allowed after immutable local persistence.
-                $this->provider->markInboundHandled($reference);
-                $result['acknowledged']++;
+                if ($this->audit) {
+                    $this->audit->append($entity, 'einvoice.inbound.acknowledgement_attempted', 'dk_einvoice_inbound', (int) $staged['rowid'], $actorId, array(
+                        'provider' => 'inexchange',
+                        'providerReference' => $providerReference,
+                        'reused' => !empty($staged['reused']),
+                    ));
+                }
+                try {
+                    $this->provider->markInboundHandled($reference);
+                    if ($this->audit) {
+                        $this->audit->append($entity, 'einvoice.inbound.acknowledged', 'dk_einvoice_inbound', (int) $staged['rowid'], $actorId, array(
+                            'provider' => 'inexchange',
+                            'providerReference' => $providerReference,
+                            'reused' => !empty($staged['reused']),
+                        ));
+                    }
+                    $result['acknowledged']++;
+                } catch (Throwable $ackError) {
+                    if ($this->audit) {
+                        $this->audit->append($entity, 'einvoice.inbound.acknowledgement_failed', 'dk_einvoice_inbound', (int) $staged['rowid'], $actorId, array(
+                            'provider' => 'inexchange',
+                            'providerReference' => $providerReference,
+                            'reused' => !empty($staged['reused']),
+                            'error' => $ackError->getMessage(),
+                        ));
+                    }
+                    throw $ackError;
+                }
             } catch (Throwable $e) {
                 $result['failed'][] = array(
                     'documentId' => $providerReference,
