@@ -43,8 +43,14 @@ final class DkInboundInvoiceStagingService implements DkInboundInvoiceStagingCon
                 if (!hash_equals((string) $existing->content_hash, $contentHash)) {
                     throw new RuntimeException('Inbound message identity was reused with different bytes');
                 }
+                $this->audit->append($entity, 'einvoice.inbound.reused', 'dk_einvoice_inbound', (int) $existing->rowid, $actorId, array(
+                    'channel' => $channel,
+                    'contentHash' => $contentHash,
+                    'messageKey' => $messageKey,
+                    'reason' => 'existing_immutable_message_reused',
+                ));
                 $this->db->commit();
-                return $this->result($entity, $existing);
+                return $this->result($entity, $existing, true);
             }
             $uuid = $this->uuidV4();
             $sql = 'INSERT INTO '.$this->db->prefix().'dk_einvoice_inbound';
@@ -201,10 +207,10 @@ final class DkInboundInvoiceStagingService implements DkInboundInvoiceStagingCon
         return $resql ? $this->db->fetch_object($resql) : false;
     }
 
-    private function result(int $entity, $row): array
+    private function result(int $entity, $row, bool $reused = false): array
     {
         $validation = $this->validation($entity, (int) $row->rowid);
-        return array('rowid' => (int) $row->rowid, 'inboundUuid' => (string) $row->inbound_uuid, 'contentHash' => (string) $row->content_hash, 'state' => $validation ? (string) $validation->event_type : 'received');
+        return array('rowid' => (int) $row->rowid, 'inboundUuid' => (string) $row->inbound_uuid, 'contentHash' => (string) $row->content_hash, 'state' => $validation ? (string) $validation->event_type : 'received', 'reused' => $reused);
     }
 
     private function nullableString(?string $value): string
