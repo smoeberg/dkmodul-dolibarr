@@ -53,12 +53,13 @@ final class FakeInboundStaging implements DkInboundInvoiceStagingContract
 {
     public $calls = 0;
     public $fail = false;
+    public $reused = false;
 
     public function stage(int $entity, string $channel, string $providerMessageId, string $senderScheme, string $senderId, string $xml, int $actorId): array
     {
         $this->calls++;
         if ($this->fail) throw new RuntimeException('simulated staging failure');
-        return array('rowid' => 1, 'state' => 'received');
+        return array('rowid' => 1, 'state' => 'received', 'reused' => $this->reused);
     }
 }
 
@@ -67,7 +68,7 @@ $staging = new FakeInboundStaging();
 $service = new DkInexchangeInboundStagingService($provider, $staging);
 $result = $service->poll(1, '/tmp/dkmodul-inbound-test', 42);
 
-if ($result['staged'] !== 1 || $result['acknowledged'] !== 1 || count($provider->handled) !== 1) {
+if ($result['staged'] !== 1 || $result['reused'] !== 0 || $result['acknowledged'] !== 1 || count($provider->handled) !== 1) {
     throw new RuntimeException('Successful inbound staging was not acknowledged exactly once');
 }
 
@@ -82,6 +83,16 @@ if ($result['staged'] !== 0 || $result['acknowledged'] !== 0 || count($provider-
 }
 if (count($result['failed']) !== 1) {
     throw new RuntimeException('Inbound staging failure was not reported');
+}
+
+$provider = new FakeInboundProvider();
+$staging = new FakeInboundStaging();
+$service = new DkInexchangeInboundStagingService($provider, $staging);
+$first = $service->poll(1, '/tmp/dkmodul-inbound-test', 42);
+$staging->reused = true;
+$second = $service->poll(1, '/tmp/dkmodul-inbound-test', 42);
+if ($first['staged'] !== 1 || $second['staged'] !== 0 || $second['reused'] !== 1 || $second['acknowledged'] !== 1 || count($provider->handled) !== 2) {
+    throw new RuntimeException('Inbound retry was not reported as idempotent reuse');
 }
 
 echo "Inexchange inbound no-ack-on-staging-failure contract: PASS\n";
