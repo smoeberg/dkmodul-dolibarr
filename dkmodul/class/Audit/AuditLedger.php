@@ -68,7 +68,7 @@ class DkAuditLedger
 
     public function verifyChain($entity)
     {
-        $sql = 'SELECT event_uuid,event_type,object_type,object_id,actor_id,created_at,previous_hash,payload_hash,event_hash,metadata_json';
+        $sql = 'SELECT event_uuid,event_type,object_type,object_id,actor_id,created_at,previous_hash,payload_hash,event_hash,payload_json,metadata_json';
         $sql .= ' FROM '.$this->db->prefix().'dk_audit_event';
         $sql .= ' WHERE entity = '.((int) $entity).' ORDER BY rowid ASC';
 
@@ -81,6 +81,10 @@ class DkAuditLedger
 
         while ($row = $this->db->fetch_object($resql)) {
             if ($row->previous_hash !== $previous) {
+                return false;
+            }
+
+            if (!hash_equals($row->payload_hash, hash('sha256', (string) $row->payload_json))) {
                 return false;
             }
 
