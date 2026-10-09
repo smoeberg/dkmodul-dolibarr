@@ -120,6 +120,26 @@ if (!$audit || (int) $audit->nb !== 2) {
     throw new RuntimeException('Application audit does not identify the evidence movement and actor');
 }
 
+// A permitted, pre-validation mutation must also be represented in the audit ledger.
+$mutable = new BookKeeping($db);
+if ($mutable->fetch($lineIds[0]) <= 0) {
+    throw new RuntimeException('Unable to fetch unvalidated evidence row for audit mutation test');
+}
+$mutable->label_operation = 'Core evidence debit audit mutation';
+if ($mutable->update($user, 0, '') < 0) {
+    throw new RuntimeException('Unable to update unvalidated evidence row for audit mutation test');
+}
+$resql = $db->query(
+    'SELECT COUNT(*) AS nb FROM '.$db->prefix().'dk_audit_event'
+    .\" WHERE entity=1 AND event_type='bookkeeping.modified'\"
+    .\" AND object_type='accounting_bookkeeping' AND object_id=\".((int) $lineIds[0])
+    .' AND actor_id='.((int) $user->id)
+);
+$modifiedAudit = $db->fetch_object($resql);
+if (!$modifiedAudit || (int) $modifiedAudit->nb !== 1) {
+    throw new RuntimeException('Application audit does not record the bookkeeping mutation and actor');
+}
+
 if (!$db->query(
     'UPDATE '.$db->prefix().'accounting_bookkeeping SET date_validated=NOW()'
     .' WHERE entity=1 AND piece_num='.$pieceNum
