@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__.'/../Audit/AuditLedger.php';
+
 /**
  * Imports the official Danish standard chart JSON into a versioned local registry.
  *
@@ -68,6 +70,20 @@ class DkStandardChartImporter
                     throw new RuntimeException($this->db->lasterror());
                 }
             }
+
+            (new DkAuditLedger($this->db))->append(
+                1,
+                'accounting.standard_chart.imported',
+                'standard_chart',
+                0,
+                0,
+                array(
+                    'standard_version' => $version,
+                    'valid_from' => $validFrom,
+                    'source_hash' => $sourceHash,
+                    'account_count' => count($accounts),
+                )
+            );
 
             $this->db->commit();
         } catch (Throwable $e) {

@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__.'/../Audit/AuditLedger.php';
+
 class DkAccountMappingService
 {
     private $db;
@@ -43,8 +45,30 @@ class DkAccountMappingService
         $sql .= ",".($validTo === null ? "NULL" : "'".$this->db->escape($validTo)."'");
         $sql .= ",".$userId.",NOW())";
 
-        if (!$this->db->query($sql)) {
-            throw new RuntimeException('Unable to save account mapping: '.$this->db->lasterror());
+        $this->db->begin('DK account mapping');
+        try {
+            if (!$this->db->query($sql)) {
+                throw new RuntimeException('Unable to save account mapping: '.$this->db->lasterror());
+            }
+
+            (new DkAuditLedger($this->db))->append(
+                $entity,
+                'accounting.account_mapping.created',
+                'account_mapping',
+                0,
+                $userId,
+                array(
+                    'source_account' => $sourceAccount,
+                    'standard_version' => $standardVersion,
+                    'standard_account' => $standardAccount,
+                    'valid_from' => $validFrom,
+                    'valid_to' => $validTo,
+                )
+            );
+            $this->db->commit('DK account mapping');
+        } catch (Throwable $e) {
+            $this->db->rollback('DK account mapping failed');
+            throw new RuntimeException('Unable to save account mapping: '.$e->getMessage(), 0, $e);
         }
 
         return 1;
