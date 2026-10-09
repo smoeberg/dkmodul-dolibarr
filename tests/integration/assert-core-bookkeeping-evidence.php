@@ -131,8 +131,8 @@ if ($mutable->update($user, 0, '') < 0) {
 }
 $resql = $db->query(
     'SELECT COUNT(*) AS nb FROM '.$db->prefix().'dk_audit_event'
-    .\" WHERE entity=1 AND event_type='bookkeeping.modified'\"
-    .\" AND object_type='accounting_bookkeeping' AND object_id=\".((int) $lineIds[0])
+    ." WHERE entity=1 AND event_type='bookkeeping.modified'"
+    ." AND object_type='accounting_bookkeeping' AND object_id=".((int) $lineIds[0])
     .' AND actor_id='.((int) $user->id)
 );
 $modifiedAudit = $db->fetch_object($resql);
