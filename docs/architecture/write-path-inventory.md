@@ -55,6 +55,23 @@ We need one of:
 - disabling unsupported direct-insert UI flows in compliance mode,
 - periodic integrity reconciliation proving every ledger row is represented in the audit ledger.
 
+
+## Compliance-mode import policy
+
+**Decision for the registered P0 profile:** the generic Dolibarr accounting import must be unavailable while DK compliance mode is enabled until a controlled importer is implemented and approved. The generic importer can write directly to `accounting_bookkeeping`, including validation state, without the DK actor/audit/correction semantics; documenting the risk is not sufficient mitigation.
+
+The controlled importer must, at minimum:
+
+1. reject attempts to import already-validated/posting-locked rows;
+2. preserve the authenticated actor and source/import identity;
+3. validate account, VAT, period, and transaction-balancing rules before persistence;
+4. write ledger rows and corresponding append-only audit evidence atomically, rolling back on audit failure;
+5. make retries idempotent and record a stable source hash/import identifier;
+6. emit evidence for rejected rows without persisting them as accepted postings;
+7. be covered by negative tests for trigger bypass, forged validation state, duplicate retries, and audit-write failure.
+
+**Implementation status: OPEN.** This policy is not considered enforced until the compliance-mode UI/entry point is actually disabled and integration-tested. Do not mark DK-ACC/SAF-T import coverage complete based on this decision alone.
+
 ## Upgrade gate
 
 For every supported Dolibarr release:
