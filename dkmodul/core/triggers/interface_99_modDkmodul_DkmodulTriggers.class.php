@@ -58,23 +58,29 @@ class InterfaceDkmodulTriggers extends DolibarrTriggers
                 }
             }
 
-            if ($action === 'BOOKKEEPING_CREATE') {
-                $ledger->append(
-                    (int) $conf->entity,
-                    'bookkeeping.created',
-                    'accounting_bookkeeping',
-                    $objectId,
-                    (int) $user->id,
-                    array(
-                        'piece_num' => isset($object->piece_num) ? $object->piece_num : null,
-                        'doc_type' => isset($object->doc_type) ? $object->doc_type : null,
-                        'doc_ref' => isset($object->doc_ref) ? $object->doc_ref : null,
-                        'account' => isset($object->numero_compte) ? $object->numero_compte : null,
-                        'debit' => isset($object->debit) ? $object->debit : null,
-                        'credit' => isset($object->credit) ? $object->credit : null,
-                    )
-                );
-            }
+            $eventType = array(
+                'BOOKKEEPING_CREATE' => 'bookkeeping.created',
+                'BOOKKEEPING_MODIFY' => 'bookkeeping.modified',
+                'BOOKKEEPING_DELETE' => 'bookkeeping.deleted',
+            )[$action];
+
+            // Keep the event payload to accounting identifiers and amounts; never copy free-form
+            // operation labels, supplier/customer details, or invoice text into the audit ledger.
+            $ledger->append(
+                (int) $conf->entity,
+                $eventType,
+                'accounting_bookkeeping',
+                $objectId,
+                (int) $user->id,
+                array(
+                    'piece_num' => isset($object->piece_num) ? (int) $object->piece_num : null,
+                    'doc_type' => isset($object->doc_type) ? (string) $object->doc_type : null,
+                    'doc_ref' => isset($object->doc_ref) ? (string) $object->doc_ref : null,
+                    'account' => isset($object->numero_compte) ? (string) $object->numero_compte : null,
+                    'debit' => isset($object->debit) ? $object->debit : null,
+                    'credit' => isset($object->credit) ? $object->credit : null,
+                )
+            );
         } catch (Throwable $e) {
             $this->error = 'DK compliance trigger failed: '.$e->getMessage();
             dol_syslog($this->error, LOG_ERR);
