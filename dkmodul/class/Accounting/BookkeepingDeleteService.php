@@ -6,7 +6,7 @@ require_once __DIR__.'/../Audit/AuditLedger.php';
  * The only supported application path for deleting bookkeeping rows.
  *
  * The delete connection is deliberately separate from Dolibarr's normal
- * database connection. The database guard checks CURRENT_USER(), so a normal
+ * database connection. The database guard checks USER(), so a normal
  * SQL session cannot self-authorize an unvalidated DELETE.
  */
 class DkBookkeepingDeleteService

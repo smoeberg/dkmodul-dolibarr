@@ -564,6 +564,9 @@ docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-core-bookkeepi
 echo "Proving controlled bookkeeping delete and fail-closed raw SQL paths..."
 docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-controlled-bookkeeping-delete.php
 
+echo "Proving generic Dolibarr accounting import is blocked in compliance mode..."
+docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-compliance-import-policy.php
+
 echo "Staging and analyzing generated SAF-T 2.1 import..."
 docker compose exec -T dolibarr php /var/www/dkmodul-tests/assert-saft21-import-staging.php \
   /tmp/dolibarr-dk-saft21.xml /tmp/saft21.xsd
