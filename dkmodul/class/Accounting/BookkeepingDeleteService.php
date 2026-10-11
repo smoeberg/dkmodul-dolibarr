@@ -14,10 +14,10 @@ class DkBookkeepingDeleteService
     private $db;
     private $audit;
 
-    public function __construct($db)
+    public function __construct($db, $audit = null)
     {
         $this->db = $db;
-        $this->audit = new DkAuditLedger($db);
+        $this->audit = $audit !== null ? $audit : new DkAuditLedger($db);
     }
 
     public function deleteByImportkey($entity, $importKey, $user)
