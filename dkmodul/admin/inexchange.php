@@ -4,6 +4,7 @@ require '../../main.inc.php';
 
 require_once __DIR__.'/../class/AccessPoint/DkAccessPointConnection.php';
 require_once __DIR__.'/../class/AccessPoint/DkAccessPointCurlHttpClient.php';
+require_once __DIR__.'/../class/AccessPoint/DkInexchangeEndpointPolicy.php';
 require_once __DIR__.'/../class/AccessPoint/DkInexchangeAccessPointProvider.php';
 
 if (!$user->hasRight('dkmodul', 'compliance', 'admin')) {
@@ -16,7 +17,7 @@ $action = GETPOST('action', 'aZ09');
 
 $baseUrl = isset($conf->global->DKMODUL_INEXCHANGE_BASE_URL)
     ? trim((string) $conf->global->DKMODUL_INEXCHANGE_BASE_URL)
-    : 'https://api.inexchange.com';
+    : DkInexchangeEndpointPolicy::defaultBaseUrl();
 
 $erpId = isset($conf->global->DKMODUL_INEXCHANGE_ERP_ID)
     ? trim((string) $conf->global->DKMODUL_INEXCHANGE_ERP_ID)
