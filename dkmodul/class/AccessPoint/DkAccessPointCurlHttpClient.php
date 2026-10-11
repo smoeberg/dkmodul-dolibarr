@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__.'/DkInexchangeEndpointPolicy.php';
+
 final class DkAccessPointCurlHttpClient implements DkAccessPointHttpClient
 {
     private $baseUrl;
@@ -7,14 +9,11 @@ final class DkAccessPointCurlHttpClient implements DkAccessPointHttpClient
 
     public function __construct($baseUrl, $timeout = 30)
     {
-        if (!is_string($baseUrl) || trim($baseUrl) === '') {
-            throw new InvalidArgumentException('Access Point base URL is required');
-        }
+        $this->baseUrl = DkInexchangeEndpointPolicy::assertAllowed($baseUrl);
         if (!is_int($timeout) || $timeout < 1) {
             throw new InvalidArgumentException('Access Point HTTP timeout must be a positive integer');
         }
 
-        $this->baseUrl = rtrim(trim($baseUrl), '/');
         $this->timeout = $timeout;
     }
 
@@ -27,7 +26,12 @@ final class DkAccessPointCurlHttpClient implements DkAccessPointHttpClient
             throw new InvalidArgumentException('HTTP method and path are required');
         }
 
-        $url = $this->baseUrl.'/'.ltrim($path, '/');
+        $path = '/'.ltrim($path, '/');
+        if (strpos($path, '/../') !== false || substr($path, -3) === '/..' || strpos($path, '/./') !== false) {
+            throw new InvalidArgumentException('Access Point request path contains traversal segments');
+        }
+
+        $url = $this->baseUrl.$path;
         if (count($query)) {
             $encoded = http_build_query($query, '', '&', PHP_QUERY_RFC3986);
             if ($encoded !== '') $url .= '?'.$encoded;

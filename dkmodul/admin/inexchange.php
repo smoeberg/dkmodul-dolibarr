@@ -4,6 +4,7 @@ require '../../main.inc.php';
 
 require_once __DIR__.'/../class/AccessPoint/DkAccessPointConnection.php';
 require_once __DIR__.'/../class/AccessPoint/DkAccessPointCurlHttpClient.php';
+require_once __DIR__.'/../class/AccessPoint/DkInexchangeEndpointPolicy.php';
 require_once __DIR__.'/../class/AccessPoint/DkInexchangeAccessPointProvider.php';
 
 if (!$user->hasRight('dkmodul', 'compliance', 'admin')) {
@@ -16,7 +17,7 @@ $action = GETPOST('action', 'aZ09');
 
 $baseUrl = isset($conf->global->DKMODUL_INEXCHANGE_BASE_URL)
     ? trim((string) $conf->global->DKMODUL_INEXCHANGE_BASE_URL)
-    : 'https://api.inexchange.com';
+    : DkInexchangeEndpointPolicy::defaultBaseUrl();
 
 $erpId = isset($conf->global->DKMODUL_INEXCHANGE_ERP_ID)
     ? trim((string) $conf->global->DKMODUL_INEXCHANGE_ERP_ID)
@@ -29,17 +30,23 @@ if ($action === 'save') {
     $baseUrlInput = trim(GETPOST('base_url', 'alphanohtml'));
     $erpIdInput = trim(GETPOST('erp_id', 'alphanohtml'));
 
-    if ($baseUrlInput === '' || !preg_match('/^https:\/\//i', $baseUrlInput)) {
-        $message = 'Inexchange base URL skal være en HTTPS-URL.';
+    try {
+        $baseUrlInput = DkInexchangeEndpointPolicy::assertAllowed($baseUrlInput);
+    } catch (InvalidArgumentException $e) {
+        $message = $e->getMessage();
         $messageType = 'error';
+    }
+
+    if ($messageType === 'error') {
+        // Do not persist an unapproved destination.
     } elseif ($erpIdInput === '') {
         $message = 'ERP/company ID skal udfyldes.';
         $messageType = 'error';
     } else {
-        dolibarr_set_const($db, 'DKMODUL_INEXCHANGE_BASE_URL', rtrim($baseUrlInput, '/'), 'chaine', 0, '', $conf->entity);
+        dolibarr_set_const($db, 'DKMODUL_INEXCHANGE_BASE_URL', $baseUrlInput, 'chaine', 0, '', $conf->entity);
         dolibarr_set_const($db, 'DKMODUL_INEXCHANGE_ERP_ID', $erpIdInput, 'chaine', 0, '', $conf->entity);
 
-        $baseUrl = rtrim($baseUrlInput, '/');
+        $baseUrl = $baseUrlInput;
         $erpId = $erpIdInput;
         $message = 'Inexchange-indstillingerne er gemt.';
     }
