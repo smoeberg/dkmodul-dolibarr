@@ -42,7 +42,7 @@ For the registered product, generic direct ledger import must either:
 - be disabled in DK compliance mode, or
 - route through a controlled DK importer that preserves actor, audit and validation semantics.
 
-Decision remains open and is required before DK-ACC-004/005 and SAF-T import can be marked complete.
+Decision is now implemented at the Dolibarr import entry point, but DK-ACC-004/005 and SAF-T import remain gated on the controlled importer and its evidence.
 
 ### F-004 — clone/reversal inserts need audit coverage
 
