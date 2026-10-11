@@ -26,7 +26,7 @@ class modDkmodul extends DolibarrModules
 
         $this->module_parts = array(
             'triggers' => 1,
-            'hooks' => array(),
+            'hooks' => array('imports'),
         );
 
         $this->dirs = array('/dkmodul');
