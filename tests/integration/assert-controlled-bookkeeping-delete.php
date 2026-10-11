@@ -66,8 +66,8 @@ if (sqlCount($db, "SELECT COUNT(*) AS nb FROM {$prefix}dk_audit_event WHERE enti
 /* Controlled delete by year + journal. */
 $piece2 = $piece + 1;
 $yearJournalKey = 'DKYJ-'.$piece2;
-insertBookkeeping($db, $piece2, $yearJournalKey, 'OD');
-if ($service->deleteByYearAndJournal(1, 2026, 'OD', $user) < 2) {
+insertBookkeeping($db, $piece2, $yearJournalKey, 'DDEL');
+if ($service->deleteByYearAndJournal(1, 2026, 'DDEL', $user) < 2) {
     throw new RuntimeException('Controlled year+journal delete did not remove the target rows');
 }
 if (sqlCount($db, "SELECT COUNT(*) AS nb FROM {$prefix}accounting_bookkeeping WHERE import_key='".$db->escape($yearJournalKey)."'") !== 0) {
