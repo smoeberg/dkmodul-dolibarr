@@ -82,3 +82,28 @@ For every supported Dolibarr release:
 4. run DB guard tests;
 5. run application integration tests;
 6. approve the version before production deployment.
+
+
+## Controlled deletion policy for bookkeeping
+
+**Status: design requirement; implementation and integration evidence are still open.** The normal Dolibarr delete methods are not interchangeable: `deleteMvtNum()` emits the application trigger unless `$notrigger` is set, while `deleteByImportkey()` and `deleteByYearAndJournal()` use direct SQL and do not provide equivalent per-row trigger evidence.
+
+### Required enforcement
+
+1. Keep a database `BEFORE DELETE` guard on `accounting_bookkeeping`. It must reject every delete where `date_validated IS NOT NULL`, regardless of the caller or trigger setting.
+2. Fail closed for unvalidated rows too, unless the operation uses an explicit, guard-visible controlled-delete context. The context must be transaction-scoped and protected against stale/reused authorization; ordinary direct SQL must not be able to self-authorize by supplying an arbitrary user variable or payload.
+3. Expose one DK-owned delete service as the supported deletion path. It must resolve the exact target rows/import key/year+journal, capture the authenticated Dolibarr actor and row-level before-state, append `bookkeeping.deleted` audit events using `DkAuditLedger`, and perform the deletes in the same database transaction. Audit-write or delete failure must roll back the whole operation.
+4. Route controlled deletion through one implementation that does not double-emit or omit per-row events. Do not have a database trigger manufacture rows in `dk_audit_event`: the trigger does not possess trustworthy application actor identity and must not reimplement the ledger's canonical JSON/hash-chain algorithm.
+5. `deleteByImportkey()` and `deleteByYearAndJournal()` must be rejected by the DB guard when called as raw direct-SQL paths; callers in compliance mode must use the DK service. Any integration with upstream Dolibarr methods must be verified against the exact supported core version.
+
+### Required negative integration evidence
+
+- Separate case for `deleteMvtNum()`: a validated row remains unchanged, the DB guard is the rejecting control, and existing audit evidence remains verifiable. Do not count a core pre-filter alone as proof that the DB guard fired.
+- Separate raw `deleteByImportkey()` case (and `deleteByYearAndJournal()`): direct path is rejected by the DB guard.
+- Controlled-wrapper case: an unvalidated target is deleted only when its per-row `bookkeeping.deleted` event is committed with the authenticated actor ID and target row ID; audit failure or delete failure leaves both ledger and audit state unchanged.
+- Trigger-bypass case: `$notrigger = 1` does not bypass DB protection.
+- Forged-validation case: attempts to set or tamper with `date_validated` cannot authorize a delete or modify a validated row.
+- Audit-failure case: mutation is rejected/rolled back when the audit append fails.
+- Append-only case: UPDATE and DELETE attempts against the committed audit event are rejected, and `DkAuditLedger::verifyChain()` still verifies the chain.
+
+Do not mark `audit-write-paths` complete until these tests prove the database rejection and application evidence independently. A row merely surviving a core API call is not enough to prove the database guard fired.
