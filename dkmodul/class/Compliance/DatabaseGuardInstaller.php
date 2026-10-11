@@ -108,6 +108,9 @@ class DkDatabaseGuardInstaller
             .' FOR EACH ROW BEGIN '
             .'IF OLD.date_validated IS NOT NULL THEN '
             ."SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'DK compliance: validated bookkeeping entries cannot be deleted'; "
+            .'END IF; '
+            .'IF OLD.date_validated IS NULL AND USER() NOT LIKE \'dkmodul_delete@%\' THEN '
+            ."SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'DK compliance: unvalidated bookkeeping rows require the controlled DK delete database identity'; "
             .'END IF; END';
     }
 
