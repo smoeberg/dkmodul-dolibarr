@@ -26,6 +26,9 @@ services:
       DOLI_DB_NAME: dolidb
       DOLI_DB_USER: dolidbuser
       DOLI_DB_PASSWORD: dolidbpass
+      # Integration-only credentials; production values must come from deployment secrets.
+      DOLI_DKMODUL_DELETE_DB_USER: ${DOLI_DKMODUL_DELETE_DB_USER:-dkmodul_delete}
+      DOLI_DKMODUL_DELETE_DB_PASSWORD: ${DOLI_DKMODUL_DELETE_DB_PASSWORD:-integration-only}
       DOLI_ADMIN_LOGIN: admintest
       DOLI_ADMIN_PASSWORD: admintest
       DOLI_COMPANY_NAME: Dolibarr DK Test

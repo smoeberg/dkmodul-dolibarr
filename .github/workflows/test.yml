@@ -31,5 +31,22 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Provision dedicated controlled-delete database identity
+        run: |
+          docker compose -f tests/integration/docker-compose.yml up -d
+          for _ in $(seq 1 120); do
+            if docker compose -f tests/integration/docker-compose.yml exec -T dolibarr test -f /var/www/documents/install.lock >/dev/null 2>&1; then
+              break
+            fi
+            sleep 2
+          done
+          docker compose -f tests/integration/docker-compose.yml exec -T mariadb mariadb -uroot -proot dolidb -e "
+            CREATE USER IF NOT EXISTS 'dkmodul_delete'@'%' IDENTIFIED BY 'integration-only';
+            ALTER USER 'dkmodul_delete'@'%' IDENTIFIED BY 'integration-only';
+            GRANT SELECT, DELETE ON dolidb.llx_accounting_bookkeeping TO 'dkmodul_delete'@'%';
+            GRANT SELECT, INSERT ON dolidb.llx_dk_audit_event TO 'dkmodul_delete'@'%';
+            FLUSH PRIVILEGES;
+          "
+
       - name: Dolibarr 24.0.1 / MariaDB integration test
         run: bash tests/integration/test-bookkeeping-immutability.sh
