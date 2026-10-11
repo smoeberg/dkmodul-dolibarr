@@ -30,17 +30,23 @@ if ($action === 'save') {
     $baseUrlInput = trim(GETPOST('base_url', 'alphanohtml'));
     $erpIdInput = trim(GETPOST('erp_id', 'alphanohtml'));
 
-    if ($baseUrlInput === '' || !preg_match('/^https:\/\//i', $baseUrlInput)) {
-        $message = 'Inexchange base URL skal være en HTTPS-URL.';
+    try {
+        $baseUrlInput = DkInexchangeEndpointPolicy::assertAllowed($baseUrlInput);
+    } catch (InvalidArgumentException $e) {
+        $message = $e->getMessage();
         $messageType = 'error';
+    }
+
+    if ($messageType === 'error') {
+        // Do not persist an unapproved destination.
     } elseif ($erpIdInput === '') {
         $message = 'ERP/company ID skal udfyldes.';
         $messageType = 'error';
     } else {
-        dolibarr_set_const($db, 'DKMODUL_INEXCHANGE_BASE_URL', rtrim($baseUrlInput, '/'), 'chaine', 0, '', $conf->entity);
+        dolibarr_set_const($db, 'DKMODUL_INEXCHANGE_BASE_URL', $baseUrlInput, 'chaine', 0, '', $conf->entity);
         dolibarr_set_const($db, 'DKMODUL_INEXCHANGE_ERP_ID', $erpIdInput, 'chaine', 0, '', $conf->entity);
 
-        $baseUrl = rtrim($baseUrlInput, '/');
+        $baseUrl = $baseUrlInput;
         $erpId = $erpIdInput;
         $message = 'Inexchange-indstillingerne er gemt.';
     }
