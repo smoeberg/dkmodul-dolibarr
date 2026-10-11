@@ -5,19 +5,20 @@ require_once __DIR__.'/../Audit/AuditLedger.php';
 /**
  * The only supported application path for deleting bookkeeping rows.
  *
- * Validated rows are always rejected. Unvalidated rows require a transaction-
- * scoped database context set immediately before the DELETE. The DB trigger
- * remains the final enforcement point for callers that bypass this service.
+ * The delete connection is deliberately separate from Dolibarr's normal
+ * database connection. The database guard checks CURRENT_USER(), so a normal
+ * SQL session cannot self-authorize an unvalidated DELETE.
  */
 class DkBookkeepingDeleteService
 {
     private $db;
     private $audit;
 
-    public function __construct($db, $audit = null)
+    public function __construct($db, $audit = null, $deleteDb = null)
     {
         $this->db = $db;
-        $this->audit = $audit !== null ? $audit : new DkAuditLedger($db);
+        $this->deleteDb = $deleteDb !== null ? $deleteDb : $this->createControlledDeleteDb();
+        $this->audit = $audit !== null ? $audit : new DkAuditLedger($this->deleteDb);
     }
 
     public function deleteByImportkey($entity, $importKey, $user)
@@ -25,7 +26,7 @@ class DkBookkeepingDeleteService
         return $this->deleteMatching(
             (int) $entity,
             'import_key = \''
-                .$this->db->escape((string) $importKey)
+                .$this->deleteDb->escape((string) $importKey)
                 .'\'',
             $user,
             'import_key',
@@ -44,7 +45,7 @@ class DkBookkeepingDeleteService
         return $this->deleteMatching(
             (int) $entity,
             'YEAR(doc_date) = '.$year
-                ." AND code_journal = '".$this->db->escape($journal)."'",
+                ." AND code_journal = '".$this->deleteDb->escape($journal)."'",
             $user,
             'year_and_journal',
             $year.'|'.$journal
@@ -69,7 +70,7 @@ class DkBookkeepingDeleteService
             throw new InvalidArgumentException('Entity and authenticated user are required');
         }
 
-        $this->db->begin('DK controlled bookkeeping delete');
+        $this->deleteDb->begin('DK controlled bookkeeping delete');
 
         try {
             $rows = $this->loadRowsForUpdate($entity, $where);
@@ -100,25 +101,19 @@ class DkBookkeepingDeleteService
                 );
             }
 
-            $nonce = bin2hex(random_bytes(32));
-            $this->setDeleteContext($entity, (int) $user->id, $nonce);
-
             $ids = implode(',', array_map('intval', array_column($rows, 'rowid')));
-            $sql = 'DELETE FROM '.$this->db->prefix().'accounting_bookkeeping';
+            $sql = 'DELETE FROM '.$this->deleteDb->prefix().'accounting_bookkeeping';
             $sql .= ' WHERE entity = '.$entity.' AND rowid IN ('.$ids.')';
-            if (!$this->db->query($sql)) {
+            if (!$this->deleteDb->query($sql)) {
                 throw new RuntimeException(
-                    'Controlled bookkeeping delete failed: '.$this->db->lasterror()
+                    'Controlled bookkeeping delete failed: '.$this->deleteDb->lasterror()
                 );
             }
 
-            $this->clearDeleteContext();
-            $this->db->commit('DK controlled bookkeeping delete');
-
+            $this->deleteDb->commit('DK controlled bookkeeping delete');
             return count($rows);
         } catch (Throwable $e) {
-            $this->clearDeleteContext();
-            $this->db->rollback('DK controlled bookkeeping delete failed');
+            $this->deleteDb->rollback('DK controlled bookkeeping delete failed');
             throw new RuntimeException('DK controlled delete failed: '.$e->getMessage(), 0, $e);
         }
     }
@@ -127,17 +122,17 @@ class DkBookkeepingDeleteService
     {
         $sql = 'SELECT rowid,entity,ref,piece_num,doc_date,doc_type,doc_ref,fk_doc,fk_docdet,';
         $sql .= 'numero_compte,debit,credit,fk_user_author,date_creation,date_validated';
-        $sql .= ' FROM '.$this->db->prefix().'accounting_bookkeeping';
+        $sql .= ' FROM '.$this->deleteDb->prefix().'accounting_bookkeeping';
         $sql .= ' WHERE entity = '.$entity.' AND '.$where;
         $sql .= ' ORDER BY rowid ASC FOR UPDATE';
 
-        $resql = $this->db->query($sql);
+        $resql = $this->deleteDb->query($sql);
         if (!$resql) {
-            throw new RuntimeException('Unable to load bookkeeping rows: '.$this->db->lasterror());
+            throw new RuntimeException('Unable to load bookkeeping rows: '.$this->deleteDb->lasterror());
         }
 
         $rows = array();
-        while ($row = $this->db->fetch_object($resql)) {
+        while ($row = $this->deleteDb->fetch_object($resql)) {
             $rows[] = $row;
         }
 
@@ -165,28 +160,31 @@ class DkBookkeepingDeleteService
         );
     }
 
-    private function setDeleteContext($entity, $actorId, $nonce)
+    private function createControlledDeleteDb()
     {
-        $sql = 'SET @dkmodul_controlled_delete_entity = '.((int) $entity);
-        if (!$this->db->query($sql)) {
-            throw new RuntimeException('Unable to establish controlled-delete entity context');
+        global $conf;
+
+        $user = getenv('DOLI_DKMODUL_DELETE_DB_USER');
+        $password = getenv('DOLI_DKMODUL_DELETE_DB_PASSWORD');
+
+        if ($user === false || $password === false || $user === '' || $password === '') {
+            throw new RuntimeException(
+                'DK controlled bookkeeping delete requires dedicated database credentials'
+            );
         }
 
-        $sql = 'SET @dkmodul_controlled_delete_actor = '.((int) $actorId);
-        if (!$this->db->query($sql)) {
-            throw new RuntimeException('Unable to establish controlled-delete actor context');
+        $type = isset($conf->db->type) ? $conf->db->type : '';
+        if (!in_array(strtolower($type), array('mysqli', 'mysql'), true)) {
+            throw new RuntimeException('DK controlled bookkeeping delete requires MariaDB/MySQL');
         }
 
-        $sql = "SET @dkmodul_controlled_delete_nonce = '".$this->db->escape($nonce)."'";
-        if (!$this->db->query($sql)) {
-            throw new RuntimeException('Unable to establish controlled-delete nonce');
-        }
-    }
-
-    private function clearDeleteContext()
-    {
-        $this->db->query('SET @dkmodul_controlled_delete_entity = NULL');
-        $this->db->query('SET @dkmodul_controlled_delete_actor = NULL');
-        $this->db->query('SET @dkmodul_controlled_delete_nonce = NULL');
+        return getDoliDBInstance(
+            $type,
+            $conf->db->host,
+            $user,
+            $password,
+            $conf->db->name,
+            (int) $conf->db->port
+        );
     }
 }
