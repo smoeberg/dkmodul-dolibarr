@@ -36,11 +36,11 @@ function insertBookkeeping($db, $piece, $importKey, $journal = 'OD', $validated 
     $prefix = $db->prefix();
     $dateValidated = $validated ? 'NOW()' : 'NULL';
     $sql = "INSERT INTO {$prefix}accounting_bookkeeping
-(entity,ref,piece_num,doc_date,doc_type,doc_ref,fk_doc,fk_docdet,numero_compte,label_operation,debit,credit,
+(entity,ref,piece_num,doc_date,doc_type,doc_ref,fk_doc,fk_docdet,numero_compte,label_compte,label_operation,debit,credit,
  fk_user_author,date_creation,code_journal,journal_label,date_validated,import_key)
 VALUES
-(1,'DK-DEL-".$piece."',".$piece.",'2026-10-01','dk_delete_test','DEL-".$piece."',0,0,'1000','delete test',10,0,1,NOW(),'".$db->escape($journal)."','Delete test',".$dateValidated.",'".$db->escape($importKey)."'),
-(1,'DK-DEL-".$piece."',".$piece.",'2026-10-01','dk_delete_test','DEL-".$piece."',0,0,'3000','delete test',0,10,1,NOW(),'".$db->escape($journal)."','Delete test',".$dateValidated.",'".$db->escape($importKey)."')";
+(1,'DK-DEL-".$piece."',".$piece.",'2026-10-01','dk_delete_test','DEL-".$piece."',0,0,'1000','1000','delete test',10,0,1,NOW(),'".$db->escape($journal)."','Delete test',".$dateValidated.",'".$db->escape($importKey)."'),
+(1,'DK-DEL-".$piece."',".$piece.",'2026-10-01','dk_delete_test','DEL-".$piece."',0,0,'3000','3000','delete test',0,10,1,NOW(),'".$db->escape($journal)."','Delete test',".$dateValidated.",'".$db->escape($importKey)."')";
     if (!$db->query($sql)) {
         throw new RuntimeException($db->lasterror());
     }
