@@ -5,9 +5,9 @@ define('NOREQUIREMENU', 1);
 define('NOREQUIREHTML', 1);
 
 require '/var/www/html/main.inc.php';
-require_once DOL_DOCUMENT_ROOT.'/dkmodul/class/Accounting/BookkeepingDeleteService.php';
+require_once DOL_DOCUMENT_ROOT.'/custom/dkmodul/class/Accounting/BookkeepingDeleteService.php';
 require_once DOL_DOCUMENT_ROOT.'/accountancy/class/bookkeeping.class.php';
-require_once DOL_DOCUMENT_ROOT.'/dkmodul/class/Audit/AuditLedger.php';
+require_once DOL_DOCUMENT_ROOT.'/custom/dkmodul/class/Audit/AuditLedger.php';
 
 $user = new User($db);
 if ($user->fetch(1) <= 0 || empty($user->id)) {
