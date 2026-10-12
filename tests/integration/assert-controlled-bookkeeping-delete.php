@@ -40,7 +40,7 @@ function insertBookkeeping($db, $piece, $importKey, $journal = 'OD', $validated 
  fk_user_author,date_creation,code_journal,journal_label,date_validated,import_key)
 VALUES
 (1,'DK-DEL-".$piece."',".$piece.",'2026-10-01','dk_delete_test','DEL-".$piece."',0,'1000','delete test',10,0,1,NOW(),'".$db->escape($journal)."','Delete test',".$dateValidated.",'".$db->escape($importKey)."'),
-(1,'DK-DEL-".$piece."',".$piece.",'2026-10-01','dk_delete_test','DEL-".$piece."','3000','delete test',0,10,1,NOW(),'".$db->escape($journal)."','Delete test',".$dateValidated.",'".$db->escape($importKey)."')";
+(1,'DK-DEL-".$piece."',".$piece.",'2026-10-01','dk_delete_test','DEL-".$piece."',0,'3000','delete test',0,10,1,NOW(),'".$db->escape($journal)."','Delete test',".$dateValidated.",'".$db->escape($importKey)."')";
     if (!$db->query($sql)) {
         throw new RuntimeException($db->lasterror());
     }
