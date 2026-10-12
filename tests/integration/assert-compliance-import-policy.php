@@ -5,7 +5,7 @@ define('NOREQUIREMENU', 1);
 define('NOREQUIREHTML', 1);
 
 require '/var/www/html/main.inc.php';
-require_once DOL_DOCUMENT_ROOT.'/dkmodul/class/actions_dkmodul.class.php';
+require_once DOL_DOCUMENT_ROOT.'/custom/dkmodul/class/actions_dkmodul.class.php';
 
 function setComplianceMode($db, $enabled)
 {
