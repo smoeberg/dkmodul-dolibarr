@@ -1,6 +1,6 @@
 <?php
 
-require_once DOL_DOCUMENT_ROOT.'/dkmodul/class/Compliance/ImportPolicy.php';
+require_once DOL_DOCUMENT_ROOT.'/custom/dkmodul/class/Compliance/ImportPolicy.php';
 
 /**
  * Dolibarr imports hook for DK compliance enforcement.
