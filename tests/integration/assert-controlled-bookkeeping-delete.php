@@ -50,7 +50,7 @@ $prefix = $db->prefix();
 $piece = 990100 + random_int(1, 800);
 
 /* Controlled delete by import key: per-row audit + authenticated actor. */
-$importKey = 'DKDEL-'.$piece;
+$importKey = 'D1-'.$piece;
 insertBookkeeping($db, $piece, $importKey);
 $service = new DkBookkeepingDeleteService($db);
 if ($service->deleteByImportkey(1, $importKey, $user) !== 2) {
@@ -65,7 +65,7 @@ if (sqlCount($db, "SELECT COUNT(*) AS nb FROM {$prefix}dk_audit_event WHERE enti
 
 /* Controlled delete by year + journal. */
 $piece2 = $piece + 1;
-$yearJournalKey = 'DKYJ-'.$piece2;
+$yearJournalKey = 'D2-'.$piece2;
 insertBookkeeping($db, $piece2, $yearJournalKey, 'DDEL');
 if ($service->deleteByYearAndJournal(1, 2026, 'DDEL', $user) < 2) {
     throw new RuntimeException('Controlled year+journal delete did not remove the target rows');
@@ -76,7 +76,7 @@ if (sqlCount($db, "SELECT COUNT(*) AS nb FROM {$prefix}accounting_bookkeeping WH
 
 /* Controlled delete by movement number. */
 $piece3 = $piece + 2;
-$mvtKey = 'DKMVT-'.$piece3;
+$mvtKey = 'D3-'.$piece3;
 insertBookkeeping($db, $piece3, $mvtKey, 'OD');
 if ($service->deleteMvtNum(1, $piece3, $user) !== 2) {
     throw new RuntimeException('Controlled movement-number delete did not remove both rows');
@@ -87,7 +87,7 @@ if (sqlCount($db, "SELECT COUNT(*) AS nb FROM {$prefix}accounting_bookkeeping WH
 
 /* Raw direct SQL is rejected for unvalidated rows. */
 $piece4 = $piece + 3;
-$rawKey = 'DKRAW-'.$piece4;
+$rawKey = 'D4-'.$piece4;
 insertBookkeeping($db, $piece4, $rawKey);
 expectSqlFailure($db, "DELETE FROM {$prefix}accounting_bookkeeping WHERE import_key='".$db->escape($rawKey)."'");
 if (sqlCount($db, "SELECT COUNT(*) AS nb FROM {$prefix}accounting_bookkeeping WHERE import_key='".$db->escape($rawKey)."'") !== 2) {
@@ -96,7 +96,7 @@ if (sqlCount($db, "SELECT COUNT(*) AS nb FROM {$prefix}accounting_bookkeeping WH
 
 /* Trigger-bypass / validated-row case: validated rows remain immutable. */
 $piece5 = $piece + 4;
-$validatedKey = 'DKVAL-'.$piece5;
+$validatedKey = 'D5-'.$piece5;
 insertBookkeeping($db, $piece5, $validatedKey, 'OD', true);
 expectSqlFailure($db, "DELETE FROM {$prefix}accounting_bookkeeping WHERE import_key='".$db->escape($validatedKey)."'");
 if (sqlCount($db, "SELECT COUNT(*) AS nb FROM {$prefix}accounting_bookkeeping WHERE import_key='".$db->escape($validatedKey)."'") !== 2) {
@@ -105,7 +105,7 @@ if (sqlCount($db, "SELECT COUNT(*) AS nb FROM {$prefix}accounting_bookkeeping WH
 
 /* Forged validation cannot authorize deletion: the guard remains fail-closed. */
 $piece6 = $piece + 5;
-$forgedKey = 'DKFORGED-'.$piece6;
+$forgedKey = 'D6-'.$piece6;
 insertBookkeeping($db, $piece6, $forgedKey);
 if (!$db->query("UPDATE {$prefix}accounting_bookkeeping SET date_validated=NOW() WHERE import_key='".$db->escape($forgedKey)."'")) {
     throw new RuntimeException('Unable to set validation fixture');
@@ -124,7 +124,7 @@ class FailingDkAuditLedger
     }
 }
 $piece7 = $piece + 6;
-$auditFailureKey = 'DKAUDITFAIL-'.$piece7;
+$auditFailureKey = 'D7-'.$piece7;
 insertBookkeeping($db, $piece7, $auditFailureKey);
 $failedService = new DkBookkeepingDeleteService($db, new FailingDkAuditLedger());
 try {
