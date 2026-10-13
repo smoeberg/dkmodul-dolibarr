@@ -1,5 +1,6 @@
 <?php
 
+require_once __DIR__.'/DkAccessPointHttpClient.php';
 require_once __DIR__.'/DkInexchangeEndpointPolicy.php';
 
 final class DkAccessPointCurlHttpClient implements DkAccessPointHttpClient
