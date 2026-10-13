@@ -52,15 +52,91 @@ final class DkComplianceMonitorRepository
     public function appendDelivery($entity, $alertUuid, array $delivery, DateTimeImmutable $attemptedAt)
     {
         $uuid = self::uuidV4();
+        $status = (string) ($delivery['status'] ?? '');
+        if (!in_array($status, array('queued', 'retry', 'delivered', 'escalated', 'failed'), true)) {
+            throw new RuntimeException('Unsupported compliance alert delivery status');
+        }
+        $nextAttemptAt = isset($delivery['next_attempt_at']) ? $delivery['next_attempt_at'] : null;
+        $nextAttemptSql = $nextAttemptAt instanceof DateTimeImmutable
+            ? $this->quote($nextAttemptAt->format('Y-m-d H:i:s'))
+            : 'NULL';
         $sql = 'INSERT INTO '.$this->db->prefix().'dk_compliance_alert_delivery'
-            .' (entity,delivery_uuid,alert_uuid,channel,status,external_reference,attempted_at,created_at) VALUES ('
-            .(int) $entity.','.$this->quote($uuid).','.$this->quote($alertUuid).','.$this->quote($delivery['channel']).','
-            .$this->quote($delivery['status']).','.$this->quote($delivery['external_reference'] ?? '').','
+            .' (entity,delivery_uuid,alert_uuid,channel,status,attempt_count,next_attempt_at,external_reference,error_code,attempted_at,created_at) VALUES ('
+            .(int) $entity.','.$this->quote($uuid).','.$this->quote($alertUuid).','.$this->quote($delivery['channel'] ?? 'outbox').','
+            .$this->quote($status).','.(int) ($delivery['attempt_count'] ?? 0).','.$nextAttemptSql.','
+            .$this->quote($delivery['external_reference'] ?? '').','.$this->quote($delivery['error_code'] ?? '').','
             .$this->quote($attemptedAt->format('Y-m-d H:i:s')).',NOW())';
         $this->execute($sql, 'append compliance alert delivery');
 
         return $uuid;
     }
+
+    public function recoverStaleProcessing($entity, DateTimeImmutable $cutoff)
+    {
+        $sql = 'UPDATE '.$this->db->prefix().'dk_compliance_alert_delivery SET status=\'retry\','
+            .'next_attempt_at='.$this->quote($cutoff->format('Y-m-d H:i:s'))
+            .' WHERE entity='.(int) $entity
+            ." AND status='processing'"
+            .' AND attempted_at <= '.$this->quote($cutoff->format('Y-m-d H:i:s'));
+        if (!$this->db->query($sql)) {
+            throw new RuntimeException('Unable to recover stale compliance alert deliveries: '.$this->db->lasterror());
+        }
+    }
+
+    public function pendingDeliveries($entity, DateTimeImmutable $now, $limit)
+    {
+        $limit = max(1, min(100, (int) $limit));
+        $sql = 'SELECT d.rowid,d.delivery_uuid,d.alert_uuid,d.channel,d.status,d.attempt_count,'
+            .'a.deployment_id,a.check_type,a.event_type,a.severity,a.reason_codes,a.check_uuid '
+            .'FROM '.$this->db->prefix().'dk_compliance_alert_delivery d '
+            .'INNER JOIN '.$this->db->prefix().'dk_compliance_alert a ON a.entity=d.entity AND a.alert_uuid=d.alert_uuid '
+            .'WHERE d.entity='.(int) $entity
+            ." AND d.status IN ('queued','retry')"
+            ." AND (d.next_attempt_at IS NULL OR d.next_attempt_at <= ".$this->quote($now->format('Y-m-d H:i:s')).') '
+            .'ORDER BY d.rowid ASC LIMIT '.$limit;
+        $result = $this->db->query($sql);
+        if (!$result) {
+            throw new RuntimeException('Unable to read compliance alert delivery queue: '.$this->db->lasterror());
+        }
+        $rows = array();
+        while ($object = $this->db->fetch_object($result)) {
+            $rows[] = $object;
+        }
+
+        return $rows;
+    }
+
+    public function claimDelivery($deliveryUuid, DateTimeImmutable $now)
+    {
+        $sql = 'UPDATE '.$this->db->prefix().'dk_compliance_alert_delivery SET status=\'processing\',attempt_count=attempt_count+1,'
+            .'attempted_at='.$this->quote($now->format('Y-m-d H:i:s'))
+            .' WHERE delivery_uuid='.$this->quote($deliveryUuid)
+            ." AND status IN ('queued','retry')";
+        if (!$this->db->query($sql)) {
+            throw new RuntimeException('Unable to claim compliance alert delivery: '.$this->db->lasterror());
+        }
+
+        return $this->db->affected_rows() === 1;
+    }
+
+    public function markDelivery($deliveryUuid, $status, $attemptCount, $nextAttemptAt, $externalReference, $errorCode, DateTimeImmutable $attemptedAt)
+    {
+        if (!in_array($status, array('retry', 'delivered', 'escalated', 'failed'), true)) {
+            throw new RuntimeException('Unsupported compliance alert delivery result status');
+        }
+        $nextSql = $nextAttemptAt instanceof DateTimeImmutable
+            ? $this->quote($nextAttemptAt->format('Y-m-d H:i:s'))
+            : 'NULL';
+        $sql = 'UPDATE '.$this->db->prefix().'dk_compliance_alert_delivery SET status='.$this->quote($status)
+            .',attempt_count='.(int) $attemptCount
+            .',next_attempt_at='.$nextSql
+            .',external_reference='.$this->quote($externalReference)
+            .',error_code='.$this->quote($errorCode)
+            .',attempted_at='.$this->quote($attemptedAt->format('Y-m-d H:i:s'))
+            .' WHERE delivery_uuid='.$this->quote($deliveryUuid);
+        $this->execute($sql, 'update compliance alert delivery');
+    }
+
 
     private function quote($value)
     {
