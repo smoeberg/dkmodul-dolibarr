@@ -71,6 +71,18 @@ final class DkComplianceMonitorRepository
         return $uuid;
     }
 
+    public function recoverStaleProcessing($entity, DateTimeImmutable $cutoff)
+    {
+        $sql = 'UPDATE '.$this->db->prefix().'dk_compliance_alert_delivery SET status=\'retry\','
+            .'next_attempt_at='.$this->quote($cutoff->format('Y-m-d H:i:s'))
+            .' WHERE entity='.(int) $entity
+            ." AND status='processing'"
+            .' AND attempted_at <= '.$this->quote($cutoff->format('Y-m-d H:i:s'));
+        if (!$this->db->query($sql)) {
+            throw new RuntimeException('Unable to recover stale compliance alert deliveries: '.$this->db->lasterror());
+        }
+    }
+
     public function pendingDeliveries($entity, DateTimeImmutable $now, $limit)
     {
         $limit = max(1, min(100, (int) $limit));
