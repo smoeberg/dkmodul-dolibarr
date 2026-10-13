@@ -29,7 +29,7 @@ class DkSaft21ImportStagingService
             $this->assertImportUser($userId);
 
             $this->db->begin('DK SAF-T import staging');
-            // Serialize source-hash admission per entity. A pre-flight lookup
+            // The unique (entity, source_hash) key is the concurrency gate. A pre-flight lookup
             // alone permits two concurrent requests to admit the same source.
             $this->lockEntity($entity);
             $this->assertNotAlreadyImported($entity, $package->sourceHash);
