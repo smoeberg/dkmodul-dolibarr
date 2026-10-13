@@ -83,7 +83,16 @@ class DkSaft21ImportStagingService
                 'lineCount' => $package->lineCount(),
             );
         } catch (Throwable $e) {
-            $this->db->rollback();
+            $this->db->rollback('DK SAF-T import staging failed');
+            try {
+                $this->appendRejectedEvidence($entity, $userId, $package, $e);
+            } catch (Throwable $evidenceError) {
+                throw new RuntimeException(
+                    'SAF-T staging rejected and rejection evidence could not be recorded: '.$evidenceError->getMessage(),
+                    0,
+                    $evidenceError
+                );
+            }
             throw new RuntimeException('Unable to stage SAF-T import: '.$e->getMessage(), 0, $e);
         }
     }
@@ -183,6 +192,58 @@ class DkSaft21ImportStagingService
         if (!$this->db->query($sql)) {
             throw new RuntimeException($this->db->lasterror());
         }
+    }
+
+    private function lockEntity($entity)
+    {
+        $sql = 'SELECT rowid FROM '.$this->db->prefix().'entity';
+        $sql .= ' WHERE rowid = '.((int) $entity).' LIMIT 1 FOR UPDATE';
+
+        $resql = $this->db->query($sql);
+        if (!$resql) {
+            throw new RuntimeException('Unable to lock Dolibarr entity for SAF-T staging: '.$this->db->lasterror());
+        }
+        if (!$this->db->fetch_object($resql)) {
+            throw new InvalidArgumentException('Dolibarr entity does not exist');
+        }
+    }
+
+    private function appendRejectedEvidence($entity, $userId, DkSaft21ImportPackage $package, Throwable $reason)
+    {
+        require_once __DIR__.'/../../Audit/AuditLedger.php';
+
+        $rows = array();
+        foreach ($package->transactions as $transaction) {
+            $lineIds = array();
+            foreach ($transaction->lines as $line) {
+                $lineIds[] = (string) $line->lineId;
+            }
+            $rows[] = array(
+                'transaction_id' => (string) $transaction->transactionId,
+                'actor' => (string) $transaction->actor,
+                'transaction_date' => (string) $transaction->transactionDate,
+                'line_ids' => $lineIds,
+            );
+        }
+
+        $audit = new DkAuditLedger($this->db);
+        $audit->append(
+            $entity,
+            'saft.import.rejected',
+            'saft_source',
+            0,
+            $userId,
+            array(
+                'source_hash' => (string) $package->sourceHash,
+                'reason' => (string) $reason->getMessage(),
+                'selection_start' => $package->header['selectionStartDate'] ?? null,
+                'selection_end' => $package->header['selectionEndDate'] ?? null,
+                'transactions' => $rows,
+                'transaction_count' => count($package->transactions),
+                'line_count' => $package->lineCount(),
+            ),
+            array('evidence' => 'rejected SAF-T staging attempt')
+        );
     }
 
     private function assertNotAlreadyImported($entity, $sourceHash)
