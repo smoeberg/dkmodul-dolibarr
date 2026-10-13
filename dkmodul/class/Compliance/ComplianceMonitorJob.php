@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__.'/BackupComplianceMonitor.php';
+require_once __DIR__.'/BackupConfiguration.php';
 require_once __DIR__.'/ComplianceLock.php';
 require_once __DIR__.'/ComplianceMonitorRepository.php';
 require_once __DIR__.'/ComplianceMonitoringService.php';
@@ -66,12 +67,25 @@ final class DkComplianceMonitorJob
 
         $backupReasons = array();
         try {
+            $settings = array(
+                'DKMODUL_COMPLIANCE_MODE' => getDolGlobalInt('DKMODUL_COMPLIANCE_MODE'),
+                'DKMODUL_DEPLOYMENT_ATTESTATION_PATH' => getDolGlobalString('DKMODUL_DEPLOYMENT_ATTESTATION_PATH'),
+                'DKMODUL_ATTESTATION_TRUST_STORE_PATH' => getDolGlobalString('DKMODUL_ATTESTATION_TRUST_STORE_PATH'),
+                'DKMODUL_DEPLOYMENT_ID' => $deploymentId,
+                'DKMODUL_REQUIRED_RETAIN_UNTIL' => getDolGlobalString('DKMODUL_REQUIRED_RETAIN_UNTIL'),
+                'DKMODUL_HOSTING_REGISTRATION' => getDolGlobalString('DKMODUL_HOSTING_REGISTRATION'),
+            );
+            $configuration = DkBackupConfiguration::resolve(
+                $settings,
+                dirname(__DIR__, 2).'/product-manifest.json'
+            );
             $status = (new DkBackupComplianceMonitor($this->db))->status(
                 $entity,
                 $deploymentId,
                 getDolGlobalString('DKMODUL_REQUIRED_RETAIN_UNTIL'),
                 getDolGlobalString('DKMODUL_HOSTING_REGISTRATION'),
-                $checkedAt
+                $checkedAt,
+                $configuration['backup']
             );
             $backupReasons = $status['reasons'];
         } catch (Throwable $e) {

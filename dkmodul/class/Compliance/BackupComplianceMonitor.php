@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__.'/BackupComplianceStatus.php';
+require_once __DIR__.'/BackupOperationalPolicy.php';
 
 final class DkBackupComplianceMonitor
 {
@@ -11,8 +12,9 @@ final class DkBackupComplianceMonitor
         $this->db = $db;
     }
 
-    public function status($entity, $deploymentId, $requiredRetainUntil, $hostingRegistration, DateTimeImmutable $now = null)
+    public function status($entity, $deploymentId, $requiredRetainUntil, $hostingRegistration, DateTimeImmutable $now = null, array $backupConfiguration = null)
     {
+        $now = $now ?: new DateTimeImmutable('now');
         $entity = (int) $entity;
         $deploymentId = $this->db->escape((string) $deploymentId);
         $backups = $this->rows(
@@ -27,13 +29,23 @@ final class DkBackupComplianceMonitor
             .' WHERE entity='.$entity." AND deployment_id='".$deploymentId."' ORDER BY completed_at DESC"
         );
 
-        return DkBackupComplianceStatus::evaluate(
+        $status = DkBackupComplianceStatus::evaluate(
             $backups,
             $restores,
-            $now ?: new DateTimeImmutable('now'),
+            $now,
             $requiredRetainUntil,
             $hostingRegistration
         );
+
+        if ($backupConfiguration !== null) {
+            $status['reasons'] = array_values(array_unique(array_merge(
+                $status['reasons'],
+                DkBackupOperationalPolicy::validate($backupConfiguration, $now, $requiredRetainUntil)
+            )));
+            $status['compliant'] = count($status['reasons']) === 0;
+        }
+
+        return $status;
     }
 
     private function rows($sql)
