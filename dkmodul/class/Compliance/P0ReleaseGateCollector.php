@@ -47,19 +47,23 @@ final class DkP0ReleaseGateCollector
             }
         }
         $results = array($manifestGate);
+        $accessPointManifestReady = true;
         try {
             $manifest->assertCertifiedAccessPoint();
-            $results[] = $candidate ? $this->pass('access-point-certification', $manifestHash)
-                : $this->blocked('access-point-certification', array('product-profile-not-registered-candidate'), $manifestHash);
         } catch (Throwable $e) {
-            $results[] = $this->blocked('access-point-certification', array('access-point-certification-not-ready'), $manifestHash);
+            $accessPointManifestReady = false;
         }
         $attestation = $this->checkGate($entity, $deploymentId, 'deployment-attestation', 'deployment-attestation', $now);
         $backup = $this->checkGate($entity, $deploymentId, 'backup-restore', 'backup-retention-restore', $now);
+        $accessPoint = $this->checkGate($entity, $deploymentId, 'access-point-certification', 'access-point-certification', $now);
+        if (!$accessPointManifestReady) {
+            $accessPoint['gate'] = $this->blocked('access-point-certification', array('access-point-certification-not-ready'), $manifestHash);
+        }
         $results[] = $attestation['gate'];
         $results[] = $backup['gate'];
+        $results[] = $accessPoint['gate'];
         $configuration = $this->readFreshCheck($entity, $deploymentId, 'configuration', $now);
-        $sources = array($configuration, $attestation['check'], $backup['check']);
+        $sources = array($configuration, $attestation['check'], $backup['check'], $accessPoint['check']);
         $reasons = array();
         $failed = false;
         foreach ($sources as $source) {
