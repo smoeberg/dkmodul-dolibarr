@@ -5,6 +5,7 @@ require_once __DIR__.'/P0ReleaseGateRepository.php';
 require_once __DIR__.'/P0SecurityRiskEvidence.php';
 require_once __DIR__.'/P0ReleaseReportSigner.php';
 require_once __DIR__.'/P0ReleaseSigningKeyProvider.php';
+require_once __DIR__.'/P0ReleaseSigningPolicy.php';
 require_once __DIR__.'/ProductManifest.php';
 
 final class DkP0ReleaseGateCollector
@@ -24,6 +25,7 @@ final class DkP0ReleaseGateCollector
         $manifestHash = hash_file('sha256', $manifestPath);
         if (!is_string($manifestHash)) throw new RuntimeException('Unable to hash P0 product manifest');
         $candidate = $manifest->value('product.profile_status') === 'registered-candidate';
+        $signingApproved = false;
         $manifestGate = $candidate
             ? $this->pass('product-manifest', $manifestHash)
             : $this->blocked('product-manifest', array('product-profile-not-registered-candidate'), $manifestHash);
@@ -32,12 +34,16 @@ final class DkP0ReleaseGateCollector
                 $manifest->assertReleaseSigningContract();
                 if ($this->signingKeyProvider === null) {
                     $manifestGate = $this->blocked('product-manifest', array('release-signing-not-configured'), $manifestHash);
-                } elseif ($this->signingKeyProvider->keyId() !== $manifest->value('release_signing.key_id')
-                    || $this->signingKeyProvider->publicKeySha256() !== $manifest->value('release_signing.public_key_sha256')) {
-                    $manifestGate = $this->blocked('product-manifest', array('release-signing-key-not-approved'), $manifestHash);
+                } else {
+                    DkP0ReleaseSigningPolicy::assertApproved(
+                        $this->signingKeyProvider,
+                        $manifest->value('release_signing.key_id'),
+                        $manifest->value('release_signing.public_key_sha256')
+                    );
+                    $signingApproved = true;
                 }
             } catch (Throwable $e) {
-                $manifestGate = $this->blocked('product-manifest', array('release-signing-contract-invalid'), $manifestHash);
+                $manifestGate = $this->blocked('product-manifest', array('release-signing-key-not-approved'), $manifestHash);
             }
         }
         $results = array($manifestGate);
@@ -69,15 +75,13 @@ final class DkP0ReleaseGateCollector
         $results[] = $this->collectSecurityRiskEvidence($deploymentId, $manifest, $now);
 
         $report = DkP0ReleaseGate::evaluate($manifest->value('product.id'), $manifest->value('product.release'), $deploymentId, $results, $now);
-        if ($this->signingKeyProvider !== null) {
+        if ($signingApproved) {
             $signature = DkP0ReleaseReportSigner::sign(
                 $report,
                 $this->signingKeyProvider->privateKeyPem(),
                 $this->signingKeyProvider->keyId()
             );
-            if (!DkP0ReleaseReportSigner::verify($report, $signature, $this->signingKeyProvider->publicKeyPem())) {
-                throw new RuntimeException('P0 release report signature self-verification failed');
-            }
+            DkP0ReleaseSigningPolicy::assertSignatureMatchesProvider($report, $signature, $this->signingKeyProvider);
             $report['signature'] = $signature;
         }
 
