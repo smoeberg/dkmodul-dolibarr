@@ -11,7 +11,7 @@ class DkSaft21ImportStagingService
         $this->db = $db;
     }
 
-    public function stage($entity, DkSaft21ImportPackage $package, $userId)
+    public function stage($entity, DkSaft21ImportPackage $package, $userId, array $options = array())
     {
         $entity = (int) $entity;
         $userId = (int) $userId;
@@ -20,12 +20,21 @@ class DkSaft21ImportStagingService
             throw new InvalidArgumentException('Entity and importing user are required');
         }
 
-        $this->assertNotAlreadyImported($entity, $package->sourceHash);
-
-        $uuid = $this->uuidV4();
-        $this->db->begin();
-
         try {
+            if (!preg_match('/^[a-f0-9]{64}$/', $package->sourceHash)) {
+                throw new InvalidArgumentException('SAF-T source hash must be a SHA-256 hex digest');
+            }
+            $this->assertCompanyIdentity($package, $options);
+            $this->assertPeriod($package);
+            $this->assertImportUser($userId);
+
+            $this->db->begin('DK SAF-T import staging');
+            // Serialize source-hash admission per entity. A pre-flight lookup
+            // alone permits two concurrent requests to admit the same source.
+            $this->lockEntity($entity);
+            $this->assertNotAlreadyImported($entity, $package->sourceHash);
+
+            $uuid = $this->uuidV4();
             $sql = 'INSERT INTO '.$this->db->prefix().'dk_saft_import';
             $sql .= ' (entity,import_uuid,source_hash,audit_file_version,source_company_registration,source_company_name,';
             $sql .= ' default_currency_code,standard_account_name,standard_account_version,selection_start_date,selection_end_date,status,transaction_count,line_count,';
@@ -191,6 +200,61 @@ class DkSaft21ImportStagingService
 
         if (!$this->db->query($sql)) {
             throw new RuntimeException($this->db->lasterror());
+        }
+    }
+
+    private function assertCompanyIdentity(DkSaft21ImportPackage $package, array $options)
+    {
+        $expectedRegistration = isset($options['companyRegistrationNumber']) ? trim((string) $options['companyRegistrationNumber']) : '';
+        $expectedName = isset($options['companyName']) ? trim((string) $options['companyName']) : '';
+        $sourceRegistration = trim((string) ($package->header['companyRegistrationNumber'] ?? ''));
+        $sourceName = trim((string) ($package->header['companyName'] ?? ''));
+
+        if ($expectedRegistration !== '' && ($sourceRegistration === '' || $sourceRegistration !== $expectedRegistration)) {
+            throw new InvalidArgumentException('SAF-T source company registration does not match the active entity');
+        }
+        if ($expectedName !== '' && ($sourceName === '' || strcasecmp($sourceName, $expectedName) !== 0)) {
+            throw new InvalidArgumentException('SAF-T source company name does not match the active entity');
+        }
+    }
+
+    private function assertPeriod(DkSaft21ImportPackage $package)
+    {
+        $start = trim((string) ($package->header['selectionStartDate'] ?? ''));
+        $end = trim((string) ($package->header['selectionEndDate'] ?? ''));
+
+        if (($start === '') !== ($end === '')) {
+            throw new InvalidArgumentException('SAF-T selection period must contain both start and end dates');
+        }
+        if ($start === '' && $end === '') {
+            return;
+        }
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $start) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $end)) {
+            throw new InvalidArgumentException('SAF-T selection period must use YYYY-MM-DD');
+        }
+        if ($start > $end) {
+            throw new InvalidArgumentException('SAF-T selection period start is after end');
+        }
+
+        foreach ($package->transactions as $transaction) {
+            $date = (string) $transaction->transactionDate;
+            if ($date < $start || $date > $end) {
+                throw new InvalidArgumentException(
+                    'SAF-T transaction '.$transaction->transactionId.' falls outside the declared selection period'
+                );
+            }
+        }
+    }
+
+    private function assertImportUser($userId)
+    {
+        $sql = 'SELECT rowid FROM '.$this->db->prefix().'user WHERE rowid = '.((int) $userId).' LIMIT 1';
+        $resql = $this->db->query($sql);
+        if (!$resql) {
+            throw new RuntimeException($this->db->lasterror());
+        }
+        if (!$this->db->fetch_object($resql)) {
+            throw new InvalidArgumentException('Importing Dolibarr user does not exist');
         }
     }
 
