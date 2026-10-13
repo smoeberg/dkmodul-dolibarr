@@ -237,6 +237,11 @@ class DkSaft21Importer
 
     private function assertPackageConsistency(DkSaft21ImportPackage $package)
     {
+        $this->assertSourceIdentity($package);
+        $this->assertSelectionPeriod($package);
+        $this->assertTaxReferences($package);
+        $this->assertNonNegativeAmounts($package);
+
         if ($package->declaredNumberOfEntries !== $package->lineCount()) {
             throw new InvalidArgumentException(
                 'SAF-T NumberOfEntries does not match parsed line count'
@@ -252,6 +257,79 @@ class DkSaft21Importer
         }
 
         return true;
+    }
+
+    private function assertSourceIdentity(DkSaft21ImportPackage $package)
+    {
+        foreach ($package->transactions as $transaction) {
+            $actor = trim((string) $transaction->actor);
+            if ($actor === '' || $actor === 'saft-import') {
+                throw new InvalidArgumentException(
+                    'SAF-T transaction '.$transaction->transactionId.' is missing mandatory SourceID/actor identity'
+                );
+            }
+        }
+    }
+
+    private function assertSelectionPeriod(DkSaft21ImportPackage $package)
+    {
+        $start = isset($package->header['selectionStartDate']) ? trim((string) $package->header['selectionStartDate']) : '';
+        $end = isset($package->header['selectionEndDate']) ? trim((string) $package->header['selectionEndDate']) : '';
+
+        if (($start === '') !== ($end === '')) {
+            throw new InvalidArgumentException('SAF-T selection period must contain both start and end dates');
+        }
+        if ($start === '' && $end === '') {
+            return;
+        }
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $start) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $end)) {
+            throw new InvalidArgumentException('SAF-T selection period must use YYYY-MM-DD');
+        }
+        if ($start > $end) {
+            throw new InvalidArgumentException('SAF-T selection period start is after end');
+        }
+
+        foreach ($package->transactions as $transaction) {
+            $date = (string) $transaction->transactionDate;
+            if ($date < $start || $date > $end) {
+                throw new InvalidArgumentException(
+                    'SAF-T transaction '.$transaction->transactionId.' falls outside the declared selection period'
+                );
+            }
+        }
+    }
+
+    private function assertTaxReferences(DkSaft21ImportPackage $package)
+    {
+        $declared = array();
+        foreach ($package->taxCodes as $taxCode) {
+            $declared[(string) $taxCode['taxType'].'|'.(string) $taxCode['taxCode']] = true;
+        }
+
+        foreach ($package->transactions as $transaction) {
+            foreach ($transaction->lines as $line) {
+                foreach ($line->taxInformation as $taxInformation) {
+                    $taxType = trim((string) $taxInformation->taxType);
+                    $taxCode = trim((string) $taxInformation->taxCode);
+                    if (!isset($declared[$taxType.'|'.$taxCode])) {
+                        throw new InvalidArgumentException(
+                            'SAF-T line '.$line->lineId.' references undeclared tax code '.$taxType.'/'.$taxCode
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    private function assertNonNegativeAmounts(DkSaft21ImportPackage $package)
+    {
+        foreach ($package->transactions as $transaction) {
+            foreach ($transaction->lines as $line) {
+                if (strpos((string) $line->debit, '-') === 0 || strpos((string) $line->credit, '-') === 0) {
+                    throw new InvalidArgumentException('SAF-T line '.$line->lineId.' contains a negative debit/credit amount');
+                }
+            }
+        }
     }
 
     private function value(DOMXPath $xpath, $expression)
