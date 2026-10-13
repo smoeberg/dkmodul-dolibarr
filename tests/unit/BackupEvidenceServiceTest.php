@@ -23,8 +23,12 @@ assert($result['record']['artifactBytes'] === 123456);
 
 $original = file_get_contents($result['path']);
 assert(is_string($original));
-file_put_contents($result['path'], str_replace('123456', '123457', $original));
-assert($service->verify($result['path']) === false);
+
+$tampered = $root.'/tampered.json';
+assert(file_put_contents($tampered, $original) !== false);
+assert(chmod($tampered, 0600) === true);
+assert(file_put_contents($tampered, str_replace('123456', '123457', $original)) !== false);
+assert($service->verify($tampered) === false);
 
 $throws = false;
 try {
