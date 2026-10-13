@@ -29,9 +29,9 @@ class DkSaft21ImportStagingService
             $this->assertImportUser($userId);
 
             $this->db->begin('DK SAF-T import staging');
-            // The unique (entity, source_hash) key is the concurrency gate. A pre-flight lookup
-            // alone permits two concurrent requests to admit the same source.
-            $this->lockEntity($entity);
+            // The (entity, source_hash) UNIQUE KEY is the concurrency gate.
+            // The pre-flight lookup is only a fast rejection path; concurrent
+            // requests are serialized by InnoDB at the INSERT below.
             $this->assertNotAlreadyImported($entity, $package->sourceHash);
 
             $uuid = $this->uuidV4();
@@ -255,20 +255,6 @@ class DkSaft21ImportStagingService
         }
         if (!$this->db->fetch_object($resql)) {
             throw new InvalidArgumentException('Importing Dolibarr user does not exist');
-        }
-    }
-
-    private function lockEntity($entity)
-    {
-        $sql = 'SELECT rowid FROM '.$this->db->prefix().'entity';
-        $sql .= ' WHERE rowid = '.((int) $entity).' LIMIT 1 FOR UPDATE';
-
-        $resql = $this->db->query($sql);
-        if (!$resql) {
-            throw new RuntimeException('Unable to lock Dolibarr entity for SAF-T staging: '.$this->db->lasterror());
-        }
-        if (!$this->db->fetch_object($resql)) {
-            throw new InvalidArgumentException('Dolibarr entity does not exist');
         }
     }
 
