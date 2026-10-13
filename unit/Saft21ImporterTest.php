@@ -72,4 +72,22 @@ try {
 }
 assert($failed === true);
 
+$negativeAmountXml = preg_replace('/<Amount>100<\\/Amount>/', '<Amount>-100<\\/Amount>', $xml, 1);
+$failed = false;
+try {
+    $importer->importXml($negativeAmountXml, 'not-used.xsd');
+} catch (InvalidArgumentException $e) {
+    $failed = str_contains($e->getMessage(), 'negative debit/credit');
+}
+assert($failed === true);
+
+$outOfPeriodXml = preg_replace('/<TransactionDate>2026-09-18<\\/TransactionDate>/', '<TransactionDate>2027-01-01<\\/TransactionDate>', $xml, 1);
+$failed = false;
+try {
+    $importer->importXml($outOfPeriodXml, 'not-used.xsd');
+} catch (InvalidArgumentException $e) {
+    $failed = str_contains($e->getMessage(), 'outside the declared selection period');
+}
+assert($failed === true);
+
 echo "SAF-T 2.1 importer unit tests passed\n";
