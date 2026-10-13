@@ -60,6 +60,17 @@ if (!$identityBlocked) {
     exit(1);
 }
 
+$rejectedEvidenceCount = dkFetchCount(
+    $db,
+    "SELECT COUNT(*) AS nb FROM ".$db->prefix()."dk_audit_event"
+    ." WHERE entity=1 AND event_type='saft.import.rejected'"
+    ." AND payload_json LIKE '%".str_replace('%', '\\%', $package->sourceHash)."%'" 
+);
+if ($rejectedEvidenceCount < 1) {
+    fwrite(STDERR, "Rejected SAF-T staging attempt did not create audit evidence\n");
+    exit(1);
+}
+
 $analyzer = new DkSaft21ImportAnalyzer($db);
 $analysis = $analyzer->analyze(1, $result['id'], '2026-09-18');
 
