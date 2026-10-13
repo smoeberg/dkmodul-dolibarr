@@ -325,7 +325,7 @@ class DkSaft21Importer
     {
         foreach ($package->transactions as $transaction) {
             foreach ($transaction->lines as $line) {
-                if (DkCanonicalDecimal::compare((string) $line->debit, '0') < 0 || DkCanonicalDecimal::compare((string) $line->credit, '0') < 0) {
+                if (strpos((string) $line->debit, '-') === 0 || strpos((string) $line->credit, '-') === 0) {
                     throw new InvalidArgumentException('SAF-T line '.$line->lineId.' contains a negative debit/credit amount');
                 }
             }
