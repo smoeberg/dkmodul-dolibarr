@@ -9,6 +9,7 @@ require_once __DIR__.'/DkAccessPointCertificationPolicy.php';
 require_once __DIR__.'/OutboxAlertTransport.php';
 require_once __DIR__.'/P0ReleaseGateCollector.php';
 require_once __DIR__.'/DeploymentAttestation.php';
+require_once __DIR__.'/ProductManifest.php';
 
 final class DkComplianceMonitorJob
 {
