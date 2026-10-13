@@ -40,6 +40,29 @@ if (!$service->verify(1, (int) $archived['rowid'])) {
     throw new RuntimeException('Archived document failed content verification');
 }
 
+$duplicateFailed = false;
+try {
+    $service->archive(
+        1,
+        (int) $row->rowid,
+        'bookkeeping_evidence',
+        990001,
+        $source,
+        'bilag-990001.pdf',
+        '2031-12-31',
+        1,
+        'application/pdf'
+    );
+} catch (Throwable $e) {
+    $duplicateFailed = true;
+}
+if (!$duplicateFailed) {
+    throw new RuntimeException('Duplicate immutable document admission must be rejected');
+}
+if (!$service->verify(1, (int) $archived['rowid'])) {
+    throw new RuntimeException('Duplicate archive rejection must not remove the original evidence file');
+}
+
 $resql = $db->query("SELECT event_type,payload_json FROM ".$db->prefix()."dk_audit_event WHERE object_type='dk_document_archive' AND object_id=".((int) $archived['rowid']));
 $audit = $resql ? $db->fetch_object($resql) : false;
 if (!$audit || $audit->event_type !== 'document.archived' || strpos($audit->payload_json, $archived['contentHash']) === false) {
