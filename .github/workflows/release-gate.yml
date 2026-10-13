@@ -1,0 +1,26 @@
+name: release-gate
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+      - name: PHP syntax
+        run: find dkmodul tests -name '*.php' -print0 | xargs -0 -n1 php -l
+      - name: Domain unit tests
+        run: |
+          for test in tests/unit/*Test.php; do
+            php -d zend.assertions=1 -d assert.exception=1 "$test"
+          done
+      - name: Deterministic P0 release gate
+        run: php tests/release/assert-release-gate.php
