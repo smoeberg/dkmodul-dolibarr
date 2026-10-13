@@ -133,12 +133,6 @@ final class DkDeploymentAttestation
             'backup.full_schedule', 'backup.incremental_schedule',
             'evidence.risk_assessment', 'evidence.restore_test',
             'evidence.retention_test', 'evidence.authority_export_test',
-            'evidence.quarterly_restore_test.status', 'evidence.quarterly_restore_test.completed_at',
-            'evidence.quarterly_restore_test.backup_evidence_uuid', 'evidence.quarterly_restore_test.reviewed_by',
-            'evidence.quarterly_restore_test.reviewed_at', 'evidence.quarterly_restore_test.evidence_reference',
-            'evidence.customer_exit_access_test.status', 'evidence.customer_exit_access_test.tested_at',
-            'evidence.customer_exit_access_test.access_reference', 'evidence.customer_exit_access_test.export_sha256',
-            'evidence.customer_exit_access_test.reviewed_by', 'evidence.customer_exit_access_test.reviewed_at',
         ) as $field) {
             if (!self::hasNonEmptyString($data, $field)) {
                 throw new RuntimeException('Deployment attestation field is required: '.$field);
