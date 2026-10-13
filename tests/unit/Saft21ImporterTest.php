@@ -54,4 +54,27 @@ try {
 }
 assert($failed === true);
 
+$unsafe = preg_replace(
+    '/<AuditFile/',
+    '<!DOCTYPE AuditFile [<!ENTITY xxe "blocked">]><AuditFile',
+    $xml,
+    1
+);
+$unsafeFailed = false;
+try {
+    $importer->importXml($unsafe, 'not-used.xsd');
+} catch (InvalidArgumentException $e) {
+    $unsafeFailed = str_contains($e->getMessage(), 'DOCTYPE') || str_contains($e->getMessage(), 'ENTITY');
+}
+assert($unsafeFailed === true);
+
+$oversized = str_repeat(' ', DkSaftValidator::MAX_XML_BYTES + 1);
+$sizeFailed = false;
+try {
+    $importer->importXml($oversized, 'not-used.xsd');
+} catch (InvalidArgumentException $e) {
+    $sizeFailed = str_contains($e->getMessage(), 'maximum accepted size');
+}
+assert($sizeFailed === true);
+
 echo "SAF-T 2.1 importer unit tests passed\n";
