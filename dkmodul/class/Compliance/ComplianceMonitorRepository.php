@@ -94,6 +94,19 @@ final class DkComplianceMonitorRepository
         return $rows;
     }
 
+    public function claimDelivery($deliveryUuid, DateTimeImmutable $now)
+    {
+        $sql = 'UPDATE '.$this->db->prefix().'dk_compliance_alert_delivery SET status=\'processing\',attempt_count=attempt_count+1,'
+            .'attempted_at='.$this->quote($now->format('Y-m-d H:i:s'))
+            .' WHERE delivery_uuid='.$this->quote($deliveryUuid)
+            ." AND status IN ('queued','retry')";
+        if (!$this->db->query($sql)) {
+            throw new RuntimeException('Unable to claim compliance alert delivery: '.$this->db->lasterror());
+        }
+
+        return $this->db->affected_rows() === 1;
+    }
+
     public function markDelivery($deliveryUuid, $status, $attemptCount, $nextAttemptAt, $externalReference, $errorCode, DateTimeImmutable $attemptedAt)
     {
         if (!in_array($status, array('retry', 'delivered', 'escalated', 'failed'), true)) {
