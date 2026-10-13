@@ -8,6 +8,7 @@ require_once __DIR__.'/ComplianceMonitoringService.php';
 require_once __DIR__.'/DkAccessPointCertificationPolicy.php';
 require_once __DIR__.'/OutboxAlertTransport.php';
 require_once __DIR__.'/P0ReleaseGateCollector.php';
+require_once __DIR__.'/P0DeploymentReceiptEvidence.php';
 require_once __DIR__.'/DeploymentAttestation.php';
 require_once __DIR__.'/ProductManifest.php';
 
@@ -27,7 +28,7 @@ final class DkComplianceMonitorJob
         $service=new DkComplianceMonitoringService(new DkComplianceMonitorRepository($this->db),new DkOutboxAlertTransport());
 
         $configurationReasons=array();
-        foreach (array('DKMODUL_DEPLOYMENT_ID','DKMODUL_REQUIRED_RETAIN_UNTIL','DKMODUL_HOSTING_REGISTRATION','DKMODUL_DEPLOYMENT_ATTESTATION_PATH','DKMODUL_ATTESTATION_TRUST_STORE_PATH') as $constant) {
+        foreach (array('DKMODUL_DEPLOYMENT_ID','DKMODUL_REQUIRED_RETAIN_UNTIL','DKMODUL_HOSTING_REGISTRATION','DKMODUL_DEPLOYMENT_ATTESTATION_PATH','DKMODUL_ATTESTATION_TRUST_STORE_PATH','DKMODUL_P0_DEPLOYMENT_RECEIPT_EVIDENCE_PATH') as $constant) {
             if (trim(getDolGlobalString($constant))==='') $configurationReasons[]='missing-'.strtolower($constant);
         }
         if (!getDolGlobalInt('DKMODUL_COMPLIANCE_MODE')) $configurationReasons[]='compliance-mode-disabled';
@@ -35,9 +36,23 @@ final class DkComplianceMonitorJob
 
         $attestationReasons=array();
         try {
+            $manifest=DkProductManifest::load(dirname(__DIR__,2).'/product-manifest.json');
             DkComplianceLock::assertDeploymentReady(dirname(__DIR__,2).'/product-manifest.json',getDolGlobalString('DKMODUL_DEPLOYMENT_ATTESTATION_PATH'),true,getDolGlobalString('DKMODUL_ATTESTATION_TRUST_STORE_PATH'));
+            $attestation=DkDeploymentAttestation::loadSigned(
+                getDolGlobalString('DKMODUL_DEPLOYMENT_ATTESTATION_PATH'),
+                getDolGlobalString('DKMODUL_ATTESTATION_TRUST_STORE_PATH'),
+                $manifest->value('deployment.deployment_attestation.trust_store_sha256')
+            );
+            $receipt=DkP0DeploymentReceiptEvidence::loadSigned(
+                getenv('DKMODUL_P0_DEPLOYMENT_RECEIPT_EVIDENCE_PATH') ?: getDolGlobalString('DKMODUL_P0_DEPLOYMENT_RECEIPT_EVIDENCE_PATH'),
+                getDolGlobalString('DKMODUL_ATTESTATION_TRUST_STORE_PATH'),
+                $manifest->value('deployment.deployment_attestation.trust_store_sha256'),
+                $checkedAt
+            );
+            DkP0DeploymentReceiptEvidence::assertMatchesAttestation($receipt['evidence'],$attestation,$deploymentId);
         } catch (Throwable $e) {
-            $attestationReasons[]='attestation-invalid'; dol_syslog('DK compliance attestation monitor: '.$e->getMessage(),LOG_ERR);
+            $attestationReasons[]='attestation-invalid-or-deployment-receipt-invalid';
+            dol_syslog('DK compliance attestation monitor: '.$e->getMessage(),LOG_ERR);
         }
         $this->record($service,$entity,$deploymentId?:'unconfigured','deployment-attestation',$attestationReasons,$checkedAt,$nextDueAt);
 
