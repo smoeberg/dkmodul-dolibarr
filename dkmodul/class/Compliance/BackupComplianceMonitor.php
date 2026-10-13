@@ -40,7 +40,12 @@ final class DkBackupComplianceMonitor
         if ($backupConfiguration !== null) {
             $status['reasons'] = array_values(array_unique(array_merge(
                 $status['reasons'],
-                DkBackupOperationalPolicy::validate($backupConfiguration, $now, $requiredRetainUntil)
+                DkBackupOperationalPolicy::validate(
+                    $backupConfiguration['backup'] ?? $backupConfiguration,
+                    $now,
+                    $requiredRetainUntil,
+                    $backupConfiguration['evidence'] ?? null
+                )
             )));
             $status['compliant'] = count($status['reasons']) === 0;
         }
