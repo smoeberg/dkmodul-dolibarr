@@ -6,6 +6,7 @@ require_once __DIR__.'/P0SecurityRiskEvidence.php';
 require_once __DIR__.'/P0ReleaseReportSigner.php';
 require_once __DIR__.'/P0ReleaseSigningKeyProvider.php';
 require_once __DIR__.'/P0ReleaseSigningPolicy.php';
+require_once __DIR__.'/P0ReleaseKeyCeremonyEvidence.php';
 require_once __DIR__.'/ProductManifest.php';
 
 final class DkP0ReleaseGateCollector
@@ -35,6 +36,21 @@ final class DkP0ReleaseGateCollector
                 if ($this->signingKeyProvider === null) {
                     $manifestGate = $this->blocked('product-manifest', array('release-signing-not-configured'), $manifestHash);
                 } else {
+                    $ceremonyPath = getenv('DKMODUL_P0_SIGNING_CEREMONY_EVIDENCE_PATH');
+                    $trustStorePath = getenv('DKMODUL_ATTESTATION_TRUST_STORE_PATH');
+                    $ceremony = DkP0ReleaseKeyCeremonyEvidence::loadSigned(
+                        $ceremonyPath,
+                        $trustStorePath,
+                        $manifest->value('deployment.deployment_attestation.trust_store_sha256'),
+                        $now
+                    );
+                    DkP0ReleaseKeyCeremonyEvidence::assertMatchesManifest(
+                        $ceremony['evidence'],
+                        array(
+                            'key_id' => $manifest->value('release_signing.key_id'),
+                            'public_key_sha256' => $manifest->value('release_signing.public_key_sha256'),
+                        )
+                    );
                     DkP0ReleaseSigningPolicy::assertApproved(
                         $this->signingKeyProvider,
                         $manifest->value('release_signing.key_id'),
