@@ -104,9 +104,15 @@ final class DkDocumentArchiveService
             return false;
         }
         $path = $this->storageRoot.DIRECTORY_SEPARATOR.str_replace('/', DIRECTORY_SEPARATOR, $row->storage_key);
-        return is_file($path)
-            && filesize($path) === (int) $row->byte_size
-            && hash_equals((string) $row->content_hash, (string) hash_file('sha256', $path));
+        if (!is_file($path)) {
+            return false;
+        }
+        $size = filesize($path);
+        $actualHash = hash_file('sha256', $path);
+        return $size !== false
+            && $size === (int) $row->byte_size
+            && is_string($actualHash)
+            && hash_equals((string) $row->content_hash, $actualHash);
     }
 
     private function assertBookkeepingRow(int $entity, int $rowId): void
@@ -131,12 +137,32 @@ final class DkDocumentArchiveService
             throw new RuntimeException('Unable to create document archive directory');
         }
         $temporary = $target.'.tmp.'.bin2hex(random_bytes(6));
-        if (!copy($source, $temporary) || !rename($temporary, $target)) {
+        if (!copy($source, $temporary)) {
             @unlink($temporary);
             throw new RuntimeException('Unable to store archived document');
         }
-        chmod($target, 0440);
-        return true;
+
+        chmod($temporary, 0440);
+
+        // Link is an atomic create-if-absent operation on the same filesystem.
+        // A rename here would overwrite a file created by a concurrent archiver;
+        // that could make a later transaction rollback delete another request's
+        // evidence file.
+        if (@link($temporary, $target)) {
+            @unlink($temporary);
+            return true;
+        }
+
+        @unlink($temporary);
+        if (is_file($target)) {
+            $actualHash = hash_file('sha256', $target);
+            if (is_string($actualHash) && hash_equals($expectedHash, $actualHash)) {
+                return false;
+            }
+            throw new RuntimeException('Archived content hash collision or corruption');
+        }
+
+        throw new RuntimeException('Unable to atomically create archived document');
     }
 
     private function uuidV4(): string
