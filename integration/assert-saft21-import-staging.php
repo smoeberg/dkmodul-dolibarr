@@ -151,6 +151,23 @@ if (!$secondApplyBlocked) {
     exit(1);
 }
 
+require_once '/var/www/html/custom/dkmodul/class/Audit/AuditLedger.php';
+$audit = new DkAuditLedger($db);
+if (!$audit->verifyChain(1)) {
+    fwrite(STDERR, "SAF-T Apply left the audit chain invalid\n");
+    exit(1);
+}
+
+$appliedAuditCount = dkFetchCount(
+    $db,
+    "SELECT COUNT(*) AS nb FROM ".$db->prefix()."dk_audit_event"
+    ." WHERE entity=1 AND event_type='saft.import.applied' AND object_id=".((int) $result['id'])
+);
+if ($appliedAuditCount !== 1) {
+    fwrite(STDERR, "Expected exactly one SAF-T applied audit event\n");
+    exit(1);
+}
+
 $provider = new DkDolibarrAccountingDataProvider($db, 1);
 $roundTripTransactions = $provider->getTransactions('2026-01-01', '2026-12-31');
 $foundImportedTax = false;
