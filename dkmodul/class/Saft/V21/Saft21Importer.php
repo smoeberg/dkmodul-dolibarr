@@ -19,12 +19,20 @@ class DkSaft21Importer
 
     public function importXml($xml, $xsdPath, $strictConsistency = true)
     {
-        $xml = (string) $xml;
+        if (!is_string($xml) || $xml === '') {
+            throw new InvalidArgumentException('SAF-T XML must be a non-empty string');
+        }
+        if (strlen($xml) > DkSaftValidator::MAX_XML_BYTES) {
+            throw new InvalidArgumentException(
+                'SAF-T XML exceeds the maximum accepted size of '.DkSaftValidator::MAX_XML_BYTES.' bytes'
+            );
+        }
+        $this->assertSafeXml($xml);
         $this->validator->validateXml($xml, $xsdPath);
 
         $dom = new DOMDocument();
         $dom->preserveWhiteSpace = false;
-        if (!$dom->loadXML($xml, LIBXML_NONET)) {
+        if (!$dom->loadXML($xml, LIBXML_NONET | LIBXML_NOBLANKS)) {
             throw new RuntimeException('Unable to parse validated SAF-T XML');
         }
 
@@ -331,6 +339,13 @@ class DkSaft21Importer
                     throw new InvalidArgumentException('SAF-T line '.$line->lineId.' contains a negative debit/credit amount');
                 }
             }
+        }
+    }
+
+    private function assertSafeXml($xml)
+    {
+        if (preg_match('/<!\\s*DOCTYPE\\b/i', $xml) || preg_match('/<!\\s*ENTITY\\b/i', $xml)) {
+            throw new InvalidArgumentException('SAF-T XML must not contain DOCTYPE or ENTITY declarations');
         }
     }
 
