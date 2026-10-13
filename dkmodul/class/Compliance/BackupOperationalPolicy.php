@@ -30,10 +30,10 @@ final class DkBackupOperationalPolicy
 
         if ($evidence === null) {
             $reasons[] = 'backup-evidence-attestation-missing';
-        } else {
-            self::validateQuarterlyRestore($evidence['quarterly_restore_test'] ?? null, $now, $reasons);
-            self::validateCustomerExit($evidence['customer_exit_access_test'] ?? null, $now, $reasons);
+            $evidence = array();
         }
+        self::validateQuarterlyRestore($evidence['quarterly_restore_test'] ?? null, $now, $reasons);
+        self::validateCustomerExit($evidence['customer_exit_access_test'] ?? null, $now, $reasons);
 
         return array_values(array_unique($reasons));
     }
