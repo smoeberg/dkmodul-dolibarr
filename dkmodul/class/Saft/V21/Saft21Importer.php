@@ -309,8 +309,8 @@ class DkSaft21Importer
         foreach ($package->transactions as $transaction) {
             foreach ($transaction->lines as $line) {
                 foreach ($line->taxInformation as $taxInformation) {
-                    $taxType = trim((string) $taxInformation->taxType);
-                    $taxCode = trim((string) $taxInformation->taxCode);
+                    $taxType = trim((string) ($taxInformation['taxType'] ?? ''));
+                    $taxCode = trim((string) ($taxInformation['taxCode'] ?? ''));
                     if (!isset($declared[$taxType.'|'.$taxCode])) {
                         throw new InvalidArgumentException(
                             'SAF-T line '.$line->lineId.' references undeclared tax code '.$taxType.'/'.$taxCode
