@@ -85,7 +85,7 @@ final class DkComplianceMonitorJob
                 getDolGlobalString('DKMODUL_REQUIRED_RETAIN_UNTIL'),
                 getDolGlobalString('DKMODUL_HOSTING_REGISTRATION'),
                 $checkedAt,
-                $configuration['backup']
+                $configuration
             );
             $backupReasons = $status['reasons'];
         } catch (Throwable $e) {

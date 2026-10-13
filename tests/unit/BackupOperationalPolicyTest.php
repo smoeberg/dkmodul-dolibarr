@@ -13,7 +13,26 @@ $valid = array(
     'incremental_schedule' => 'daily:02:00,14:00',
 );
 
-assert(DkBackupOperationalPolicy::validate($valid, $now, '2031-10-13') === array());
+$evidence = array(
+    'quarterly_restore_test' => array(
+        'status' => 'passed',
+        'completed_at' => '2026-10-13T10:00:00Z',
+        'backup_evidence_uuid' => 'backup-evidence-2026-q4',
+        'reviewed_by' => 'approved reviewer',
+        'reviewed_at' => '2026-10-13T11:00:00Z',
+        'evidence_reference' => 'evidence/restore/2026-q4.json',
+    ),
+    'customer_exit_access_test' => array(
+        'status' => 'passed',
+        'tested_at' => '2026-10-01T10:00:00Z',
+        'access_reference' => 'evidence/customer-exit/2026-10-01/export.zip',
+        'export_sha256' => hash('sha256', 'customer-exit-export'),
+        'reviewed_by' => 'approved reviewer',
+        'reviewed_at' => '2026-10-01T11:00:00Z',
+    ),
+);
+
+assert(DkBackupOperationalPolicy::validate($valid, $now, '2031-10-13', $evidence) === array());
 
 $invalidSchedule = $valid;
 $invalidSchedule['full_schedule'] = 'daily:02:00';
@@ -22,17 +41,35 @@ $reasons = DkBackupOperationalPolicy::validate($invalidSchedule, $now, '2031-10-
 assert(in_array('full-backup-schedule-not-weekly', $reasons, true));
 assert(in_array('incremental-backup-schedule-not-daily', $reasons, true));
 
-$shortRetention = DkBackupOperationalPolicy::validate($valid, $now, '2031-10-12');
+$shortRetention = DkBackupOperationalPolicy::validate($valid, $now, '2031-10-12', $evidence);
 assert(in_array('required-retention-less-than-five-years', $shortRetention, true));
 
 $missing = $valid;
 unset($missing['regions']);
-$missingReasons = DkBackupOperationalPolicy::validate($missing, $now, '2031-10-13');
+$missingReasons = DkBackupOperationalPolicy::validate($missing, $now, '2031-10-13', $evidence);
 assert(in_array('backup-regions-missing', $missingReasons, true));
+
+
+$missingEvidence = DkBackupOperationalPolicy::validate($valid, $now, '2031-10-13');
+assert(in_array('backup-evidence-attestation-missing', $missingEvidence, true));
+assert(in_array('quarterly-restore-evidence-missing', $missingEvidence, true));
+assert(in_array('customer-exit-access-evidence-missing', $missingEvidence, true));
+
+$staleRestore = $evidence;
+$staleRestore['quarterly_restore_test']['completed_at'] = '2026-06-01T10:00:00Z';
+$staleReasons = DkBackupOperationalPolicy::validate($valid, $now, '2031-10-13', $staleRestore);
+assert(in_array('quarterly-restore-evidence-stale-or-future', $staleReasons, true));
+
+$failedExit = $evidence;
+$failedExit['customer_exit_access_test']['status'] = 'failed';
+$failedExit['customer_exit_access_test']['export_sha256'] = 'invalid';
+$exitReasons = DkBackupOperationalPolicy::validate($valid, $now, '2031-10-13', $failedExit);
+assert(in_array('customer-exit-access-evidence-not-passed', $exitReasons, true));
+assert(in_array('customer-exit-access-evidence-invalid-export-hash', $exitReasons, true));
 
 $throws = false;
 try {
-    DkBackupOperationalPolicy::validate($valid, $now, 'not-a-date');
+    DkBackupOperationalPolicy::validate($valid, $now, 'not-a-date', $evidence);
 } catch (RuntimeException $e) {
     $throws = true;
 }

@@ -2,7 +2,7 @@
 
 final class DkBackupOperationalPolicy
 {
-    public static function validate(array $backup, DateTimeImmutable $now, $requiredRetainUntil)
+    public static function validate(array $backup, DateTimeImmutable $now, $requiredRetainUntil, array $evidence = null)
     {
         $reasons = array();
 
@@ -28,7 +28,86 @@ final class DkBackupOperationalPolicy
             $reasons[] = 'backup-regions-missing';
         }
 
+        if ($evidence === null) {
+            $reasons[] = 'backup-evidence-attestation-missing';
+            $evidence = array();
+        }
+        self::validateQuarterlyRestore($evidence['quarterly_restore_test'] ?? null, $now, $reasons);
+        self::validateCustomerExit($evidence['customer_exit_access_test'] ?? null, $now, $reasons);
+
         return array_values(array_unique($reasons));
+    }
+
+    private static function validateQuarterlyRestore($evidence, DateTimeImmutable $now, array &$reasons)
+    {
+        if (!is_array($evidence)) {
+            $reasons[] = 'quarterly-restore-evidence-missing';
+            return;
+        }
+        if (($evidence['status'] ?? null) !== 'passed') {
+            $reasons[] = 'quarterly-restore-evidence-not-passed';
+        }
+        foreach (array('completed_at', 'reviewed_at') as $field) {
+            if (!self::utcTimestamp($evidence[$field] ?? null)) {
+                $reasons[] = 'quarterly-restore-evidence-invalid-'.$field;
+            }
+        }
+        foreach (array('backup_evidence_uuid', 'reviewed_by', 'evidence_reference') as $field) {
+            if (!self::nonEmpty($evidence[$field] ?? null)) {
+                $reasons[] = 'quarterly-restore-evidence-missing-'.$field;
+            }
+        }
+        $completed = self::timestamp($evidence['completed_at'] ?? null);
+        if ($completed !== null && ($completed > $now || $completed < $now->modify('-92 days'))) {
+            $reasons[] = 'quarterly-restore-evidence-stale-or-future';
+        }
+    }
+
+    private static function validateCustomerExit($evidence, DateTimeImmutable $now, array &$reasons)
+    {
+        if (!is_array($evidence)) {
+            $reasons[] = 'customer-exit-access-evidence-missing';
+            return;
+        }
+        if (($evidence['status'] ?? null) !== 'passed') {
+            $reasons[] = 'customer-exit-access-evidence-not-passed';
+        }
+        foreach (array('tested_at', 'reviewed_at') as $field) {
+            if (!self::utcTimestamp($evidence[$field] ?? null)) {
+                $reasons[] = 'customer-exit-access-evidence-invalid-'.$field;
+            }
+        }
+        foreach (array('access_reference', 'reviewed_by') as $field) {
+            if (!self::nonEmpty($evidence[$field] ?? null)) {
+                $reasons[] = 'customer-exit-access-evidence-missing-'.$field;
+            }
+        }
+        if (!preg_match('/^[a-f0-9]{64}$/', strtolower((string) ($evidence['export_sha256'] ?? '')))) {
+            $reasons[] = 'customer-exit-access-evidence-invalid-export-hash';
+        }
+        $tested = self::timestamp($evidence['tested_at'] ?? null);
+        if ($tested !== null && ($tested > $now || $tested < $now->modify('-365 days'))) {
+            $reasons[] = 'customer-exit-access-evidence-stale-or-future';
+        }
+    }
+
+    private static function utcTimestamp($value)
+    {
+        if (!is_string($value)) {
+            return false;
+        }
+        $date = DateTimeImmutable::createFromFormat('!Y-m-d\\TH:i:s\\Z', $value);
+        return $date && $date->format('Y-m-d\\TH:i:s\\Z') === $value;
+    }
+
+    private static function timestamp($value)
+    {
+        return self::utcTimestamp($value) ? DateTimeImmutable::createFromFormat('!Y-m-d\\TH:i:s\\Z', $value) : null;
+    }
+
+    private static function nonEmpty($value)
+    {
+        return is_string($value) && trim($value) !== '';
     }
 
     private static function hasWeeklySchedule($value)

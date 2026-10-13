@@ -51,6 +51,7 @@ final class DkBackupConfiguration
             'hosting' => $attestation['hosting'],
             'backup' => $attestation['backup'],
             'approval' => $attestation['approval'],
+            'evidence' => $attestation['evidence'],
             'attestation_path' => $attestationPath,
             'trust_store_path' => $trustStorePath,
         );
