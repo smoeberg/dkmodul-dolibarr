@@ -134,7 +134,7 @@ class DkAuditLedger
     private function canonicalJson(array $value)
     {
         $this->recursiveKsort($value);
-        return json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        return json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
     }
 
     private function recursiveKsort(array &$value)
