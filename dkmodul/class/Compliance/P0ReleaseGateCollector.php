@@ -56,7 +56,7 @@ final class DkP0ReleaseGateCollector
         }
         $attestation = $this->checkGate($entity, $deploymentId, 'deployment-attestation', 'deployment-attestation', $now);
         $backup = $this->checkGate($entity, $deploymentId, 'backup-restore', 'backup-retention-restore', $now);
-        $accessPoint = $this->checkGate($entity, $deploymentId, 'access-point-certification', 'access-point-certification-evidence', $now);
+        $accessPoint = $this->checkGate($entity, $deploymentId, 'access-point-certification', 'access-point-certification', $now);
         $results[] = $attestation['gate'];
         $results[] = $backup['gate'];
         $results[] = $accessPoint['gate'];
