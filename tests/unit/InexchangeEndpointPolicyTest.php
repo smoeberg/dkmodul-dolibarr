@@ -1,6 +1,7 @@
 <?php
 
 require_once dirname(__DIR__, 2).'/dkmodul/class/AccessPoint/DkInexchangeEndpointPolicy.php';
+require_once dirname(__DIR__, 2).'/dkmodul/class/AccessPoint/DkAccessPointCurlHttpClient.php';
 
 function assertSameValue($expected, $actual, $message)
 {
@@ -19,6 +20,12 @@ function assertThrows(callable $callback, $message)
 
     throw new RuntimeException($message);
 }
+
+assertSameValue(
+    10 * 1024 * 1024,
+    DkAccessPointCurlHttpClient::DEFAULT_MAX_RESPONSE_BYTES,
+    'Access Point HTTP client must enforce a bounded response size by default'
+);
 
 assertSameValue(
     'https://api.inexchange.com/v1/api',
@@ -61,6 +68,11 @@ assertThrows(
 assertThrows(
     function () { DkInexchangeEndpointPolicy::assertAllowed('https://user:pass@api.inexchange.com/v1/api'); },
     'embedded credentials must be rejected'
+);
+
+assertThrows(
+    function () { new DkAccessPointCurlHttpClient('https://api.inexchange.com/v1/api', 30, 1023); },
+    'HTTP response limit below the minimum must be rejected'
 );
 
 assertThrows(
