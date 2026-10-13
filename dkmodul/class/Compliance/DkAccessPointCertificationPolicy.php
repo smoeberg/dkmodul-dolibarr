@@ -17,7 +17,7 @@ final class DkAccessPointCertificationPolicy
             elseif ($from>$now || $until<$now || $until<$from) $reasons[]='access-point-certification-evidence-expired-or-future';
         }
         foreach (array('certification_id','certificate_sha256','valid_from','valid_until') as $field) {
-            if (isset($manifestAccessPoint[$field],$evidence[$field]) && strtolower((string)$manifestAccessPoint[$field])!==strtolower((string)$evidence[$field])) $reasons[]='access-point-'.$field.'-mismatch';
+            if (isset($manifestAccessPoint[$field],$evidence[$field]) && strtolower((string)$manifestAccessPoint[$field])!==strtolower((string)$evidence[$field])) $reasons[]='access-point-'.($field === 'certification_id' ? 'certification-id' : $field).'-mismatch';
         }
         return array('compliant'=>count($reasons)===0,'reasons'=>array_values(array_unique($reasons)));
     }
