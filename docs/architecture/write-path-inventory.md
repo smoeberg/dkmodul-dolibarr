@@ -42,7 +42,7 @@ For the registered product, generic direct ledger import must either:
 - be disabled in DK compliance mode, or
 - route through a controlled DK importer that preserves actor, audit and validation semantics.
 
-Decision is now implemented at the Dolibarr import entry point, but DK-ACC-004/005 and SAF-T import remain gated on the controlled importer and its evidence.
+Decision is now enforced at the Dolibarr import entry point in compliance mode. The generic accounting import is blocked; DK-ACC/SAF-T import coverage remains gated on a future controlled importer and its evidence.
 
 ### F-004 — clone/reversal inserts need audit coverage
 
@@ -70,7 +70,7 @@ The controlled importer must, at minimum:
 6. emit evidence for rejected rows without persisting them as accepted postings;
 7. be covered by negative tests for trigger bypass, forged validation state, duplicate retries, and audit-write failure.
 
-**Implementation status: OPEN.** This policy is not considered enforced until the compliance-mode UI/entry point is actually disabled and integration-tested. Do not mark DK-ACC/SAF-T import coverage complete based on this decision alone.
+**Implementation status: ENFORCED AT ENTRY POINT; CONTROLLED IMPORTER OPEN.** The registered/compliance-mode Dolibarr import entry point rejects `accounting_*` imports and has an integration test covering blocked accounting imports, allowed non-accounting imports, and compliance-mode off behavior. This does not make DK-ACC/SAF-T importing complete: a controlled importer remains a separate implementation and evidence gate.
 
 ## Upgrade gate
 
@@ -86,7 +86,7 @@ For every supported Dolibarr release:
 
 ## Controlled deletion policy for bookkeeping
 
-**Status: design requirement; implementation and integration evidence are still open.** The normal Dolibarr delete methods are not interchangeable: `deleteMvtNum()` emits the application trigger unless `$notrigger` is set, while `deleteByImportkey()` and `deleteByYearAndJournal()` use direct SQL and do not provide equivalent per-row trigger evidence.
+**Status: IMPLEMENTED AND INTEGRATION-EVIDENCED.** The normal Dolibarr delete methods are not interchangeable: `deleteMvtNum()` emits the application trigger unless `$notrigger` is set, while `deleteByImportkey()` and `deleteByYearAndJournal()` use direct SQL and do not provide equivalent per-row trigger evidence.
 
 ### Required enforcement
 
@@ -106,4 +106,4 @@ For every supported Dolibarr release:
 - Audit-failure case: mutation is rejected/rolled back when the audit append fails.
 - Append-only case: UPDATE and DELETE attempts against the committed audit event are rejected, and `DkAuditLedger::verifyChain()` still verifies the chain.
 
-Do not mark `audit-write-paths` complete until these tests prove the database rejection and application evidence independently. A row merely surviving a core API call is not enough to prove the database guard fired.
+The controlled-delete integration suite now proves the database rejection and application evidence independently, including raw SQL rejection, validated/forged-validation rejection, controlled per-row audit, audit-failure rollback, and audit-chain verification. A row merely surviving a core API call is not used as the evidence.
