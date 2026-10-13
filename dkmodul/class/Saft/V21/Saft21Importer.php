@@ -237,11 +237,8 @@ class DkSaft21Importer
 
     private function assertPackageConsistency(DkSaft21ImportPackage $package)
     {
-        $this->assertSourceIdentity($package);
-        $this->assertSelectionPeriod($package);
-        $this->assertTaxReferences($package);
-        $this->assertNonNegativeAmounts($package);
-
+        // Validate the declared ledger aggregates before semantic admission
+        // gates so an accounting mismatch is never hidden by a later rejection.
         if ($package->declaredNumberOfEntries !== $package->lineCount()) {
             throw new InvalidArgumentException(
                 'SAF-T NumberOfEntries does not match parsed line count'
@@ -255,6 +252,11 @@ class DkSaft21Importer
         if (!DkCanonicalDecimal::equals($package->declaredTotalCredit, $package->totalCredit())) {
             throw new InvalidArgumentException('SAF-T TotalCredit does not match parsed lines');
         }
+
+        $this->assertSourceIdentity($package);
+        $this->assertSelectionPeriod($package);
+        $this->assertTaxReferences($package);
+        $this->assertNonNegativeAmounts($package);
 
         return true;
     }
