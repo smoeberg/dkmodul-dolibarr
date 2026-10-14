@@ -99,11 +99,10 @@ final class DkP0SecurityRiskEvidence
                 throw new RuntimeException('Security risk evidence requires '.$field);
             }
         }
-        try {
-            $assessedAt = new DateTimeImmutable($data['assessed_at']);
-            $validUntil = new DateTimeImmutable($data['valid_until']);
-        } catch (Throwable $e) {
-            throw new RuntimeException('Security risk evidence contains invalid dates');
+        $assessedAt = self::utcTimestamp($data['assessed_at']);
+        $validUntil = self::utcTimestamp($data['valid_until']);
+        if ($assessedAt === null || $validUntil === null) {
+            throw new RuntimeException('Security risk evidence contains invalid UTC dates');
         }
         if ($assessedAt > $now || $validUntil < $now || $validUntil < $assessedAt) {
             throw new RuntimeException('Security risk evidence approval period is invalid or expired');
@@ -114,5 +113,14 @@ final class DkP0SecurityRiskEvidence
                 throw new RuntimeException('Security risk evidence requires '.$field);
             }
         }
+    }
+
+    private static function utcTimestamp($value)
+    {
+        if (!is_string($value) || !preg_match('/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$/', $value)) {
+            return null;
+        }
+        $date = DateTimeImmutable::createFromFormat('!Y-m-d\\TH:i:s\\Z', $value, new DateTimeZone('UTC'));
+        return $date !== false && $date->format('Y-m-d\\TH:i:s\\Z') === $value ? $date : null;
     }
 }
