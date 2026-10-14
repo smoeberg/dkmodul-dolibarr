@@ -11,6 +11,10 @@ $valid = array(
     'regions' => array('DK'),
     'full_schedule' => 'weekly:sunday:02:00',
     'incremental_schedule' => 'daily:02:00,14:00',
+    'platform' => 'MariaDB-compatible object backup platform',
+    'destination' => 'dk-west-1',
+    'retention_policy' => 'five-years-from-financial-year-end',
+    'early_delete_denied' => true,
 );
 
 $evidence = array(
@@ -68,6 +72,21 @@ foreach ($malformedIncrementals as $schedule) {
     assert(in_array('incremental-backup-schedule-not-daily', $reasons, true));
 }
 
+
+$invalidRetentionPolicy = $valid;
+$invalidRetentionPolicy['retention_policy'] = 'one-year';
+$reasons = DkBackupOperationalPolicy::validate($invalidRetentionPolicy, $now, '2031-10-13', $evidence);
+assert(in_array('backup-retention-policy-invalid', $reasons, true));
+
+$earlyDeleteAllowed = $valid;
+$earlyDeleteAllowed['early_delete_denied'] = false;
+$reasons = DkBackupOperationalPolicy::validate($earlyDeleteAllowed, $now, '2031-10-13', $evidence);
+assert(in_array('backup-early-delete-not-denied', $reasons, true));
+
+$missingPlatform = $valid;
+unset($missingPlatform['platform']);
+$reasons = DkBackupOperationalPolicy::validate($missingPlatform, $now, '2031-10-13', $evidence);
+assert(in_array('backup-configuration-missing-platform', $reasons, true));
 
 $shortRetention = DkBackupOperationalPolicy::validate($valid, $now, '2031-10-12', $evidence);
 assert(in_array('required-retention-less-than-five-years', $shortRetention, true));
