@@ -39,19 +39,6 @@ try {
 }
 assert($missingAttestationBlocked);
 
-$invalidAttestationBlocked = false;
-try {
-    DkComplianceLock::assertDeploymentReady(
-        __DIR__.'/../fixtures/product-manifest-registered-candidate.json',
-        __DIR__.'/../fixtures/deployment-attestation-invalid-location.json',
-        true,
-        __DIR__.'/../fixtures/attestation-trust-store.json'
-    );
-} catch (RuntimeException $e) {
-    $invalidAttestationBlocked = strpos($e->getMessage(), 'EU/EEA') !== false;
-}
-assert($invalidAttestationBlocked);
-
 $dir = sys_get_temp_dir().'/dk-compliance-lock-'.bin2hex(random_bytes(4));
 mkdir($dir, 0700, true);
 
@@ -96,10 +83,33 @@ $manifest['deployment']['deployment_attestation']['trust_store_sha256'] = hash_f
 $manifestPath = $dir.'/manifest.json';
 file_put_contents($manifestPath, json_encode($manifest, JSON_UNESCAPED_SLASHES));
 
+$invalidPayload = json_decode(file_get_contents(__DIR__.'/../fixtures/deployment-attestation-invalid-location.json'), true);
+$invalidPayloadJson = json_encode($invalidPayload, JSON_UNESCAPED_SLASHES);
+openssl_sign($invalidPayloadJson, $invalidSignature, $privatePem, OPENSSL_ALGO_SHA256);
+$invalidAttestationPath = $dir.'/invalid-attestation.json';
+file_put_contents($invalidAttestationPath, json_encode(array(
+    'schema_version' => 1,
+    'signed_payload' => base64_encode($invalidPayloadJson),
+    'signature' => array(
+        'key_id' => $keyId,
+        'algorithm' => 'RSA-SHA256',
+        'value' => base64_encode($invalidSignature),
+    ),
+), JSON_UNESCAPED_SLASHES));
+
 DkComplianceLock::assertDeploymentReady($manifestPath, $attestationPath, true, $trustStorePath);
+
+$invalidAttestationBlocked = false;
+try {
+    DkComplianceLock::assertDeploymentReady($manifestPath, $invalidAttestationPath, true, $trustStorePath);
+} catch (RuntimeException $e) {
+    $invalidAttestationBlocked = strpos($e->getMessage(), 'EU/EEA') !== false;
+}
+assert($invalidAttestationBlocked);
 
 unlink($manifestPath);
 unlink($attestationPath);
+unlink($invalidAttestationPath);
 unlink($trustStorePath);
 rmdir($dir);
 
