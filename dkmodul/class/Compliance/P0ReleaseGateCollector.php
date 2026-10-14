@@ -6,6 +6,7 @@ require_once __DIR__.'/P0SecurityRiskEvidence.php';
 require_once __DIR__.'/P0ReleaseReportSigner.php';
 require_once __DIR__.'/P0ReleaseSigningKeyProvider.php';
 require_once __DIR__.'/P0ReleaseSigningPolicy.php';
+require_once __DIR__.'/P0ReleaseCandidatePolicy.php';
 require_once __DIR__.'/P0ReleaseKeyCeremonyEvidence.php';
 require_once __DIR__.'/ProductManifest.php';
 
@@ -103,6 +104,13 @@ final class DkP0ReleaseGateCollector
             );
             DkP0ReleaseSigningPolicy::assertSignatureMatchesProvider($report, $signature, $this->signingKeyProvider);
             $report['signature'] = $signature;
+        }
+
+        if ($candidate && $report['decision'] === 'PASS') {
+            if (!isset($report['signature']) || !is_array($report['signature'])) {
+                throw new RuntimeException('Registered-candidate P0 release requires a signed release report');
+            }
+            DkP0ReleaseCandidatePolicy::assertEligible($report, $report['signature'], $this->signingKeyProvider);
         }
 
         return array('report' => $report, 'report_uuid' => $this->repository->appendReport($entity, $report));
