@@ -18,7 +18,7 @@ final class DkBackupOperationalPolicy
             $reasons[] = 'required-retention-less-than-five-years';
         }
 
-        foreach (array('legal_name', 'registration_number', 'country', 'regions') as $field) {
+        foreach (array('legal_name', 'registration_number', 'country', 'regions', 'platform', 'destination', 'retention_policy') as $field) {
             if (!isset($backup[$field]) || $backup[$field] === '' || (is_array($backup[$field]) && count($backup[$field]) === 0)) {
                 $reasons[] = 'backup-configuration-missing-'.$field;
             }
@@ -26,6 +26,13 @@ final class DkBackupOperationalPolicy
 
         if (!isset($backup['regions']) || !is_array($backup['regions']) || count($backup['regions']) === 0) {
             $reasons[] = 'backup-regions-missing';
+        }
+
+        if (($backup['retention_policy'] ?? null) !== 'five-years-from-financial-year-end') {
+            $reasons[] = 'backup-retention-policy-invalid';
+        }
+        if (($backup['early_delete_denied'] ?? null) !== true) {
+            $reasons[] = 'backup-early-delete-not-denied';
         }
 
         if ($evidence === null) {
