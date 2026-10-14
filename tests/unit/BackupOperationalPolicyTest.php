@@ -41,6 +41,34 @@ $reasons = DkBackupOperationalPolicy::validate($invalidSchedule, $now, '2031-10-
 assert(in_array('full-backup-schedule-not-weekly', $reasons, true));
 assert(in_array('incremental-backup-schedule-not-daily', $reasons, true));
 
+$malformedSchedules = array(
+    'weekly:garbage:02:00',
+    'weekly:sunday:24:00',
+    'weekly:sunday:2:00',
+    'daily:02:00,garbage',
+    'daily:2:00',
+    'daily:25:00',
+);
+foreach ($malformedSchedules as $schedule) {
+    $candidate = $valid;
+    $candidate['full_schedule'] = $schedule;
+    $reasons = DkBackupOperationalPolicy::validate($candidate, $now, '2031-10-13', $evidence);
+    assert(in_array('full-backup-schedule-not-weekly', $reasons, true));
+}
+
+$malformedIncrementals = array(
+    'hourly:02:00',
+    'daily:02:00,25:00',
+    'daily:02:00,garbage',
+);
+foreach ($malformedIncrementals as $schedule) {
+    $candidate = $valid;
+    $candidate['incremental_schedule'] = $schedule;
+    $reasons = DkBackupOperationalPolicy::validate($candidate, $now, '2031-10-13', $evidence);
+    assert(in_array('incremental-backup-schedule-not-daily', $reasons, true));
+}
+
+
 $shortRetention = DkBackupOperationalPolicy::validate($valid, $now, '2031-10-12', $evidence);
 assert(in_array('required-retention-less-than-five-years', $shortRetention, true));
 
