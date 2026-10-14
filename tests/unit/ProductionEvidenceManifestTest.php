@@ -7,7 +7,7 @@ $base = array(
     'deploymentId' => 'deployment-001',
     'items' => array(
         array(
-            'controlId' => 'production-signing-key-ceremony',
+            'controlId' => 'production-release-signing',
             'status' => 'evidenced',
             'evidenceRef' => 'evidence/key-ceremony-001.json',
             'evidenceSha256' => str_repeat('a', 64),
@@ -19,7 +19,7 @@ $base = array(
 
 $complete = $base;
 foreach (DkProductionEvidenceManifest::REQUIRED_CONTROLS as $controlId) {
-    if ($controlId === 'production-signing-key-ceremony') continue;
+    if ($controlId === 'production-release-signing') continue;
     $complete['items'][] = array(
         'controlId' => $controlId,
         'status' => 'evidenced',
