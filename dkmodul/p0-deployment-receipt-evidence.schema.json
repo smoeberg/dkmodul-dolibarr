@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dolibarr.dk/schemas/p0-deployment-receipt-evidence-v1.json",
+  "title": "Dolibarr DK signed P0 deployment receipt evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "signed_payload", "signature"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "signed_payload": { "type": "string", "contentEncoding": "base64", "minLength": 1 },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key_id", "algorithm", "value"],
+      "properties": {
+        "key_id": { "type": "string", "minLength": 1 },
+        "algorithm": { "const": "RSA-SHA256" },
+        "value": { "type": "string", "contentEncoding": "base64", "minLength": 1 }
+      }
+    }
+  }
+}
