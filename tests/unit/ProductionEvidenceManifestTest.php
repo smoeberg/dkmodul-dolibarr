@@ -31,7 +31,7 @@ foreach (DkProductionEvidenceManifest::REQUIRED_CONTROLS as $controlId) {
 }
 
 $result = DkProductionEvidenceManifest::assertComplete($complete);
-if ($result['open_count'] !== 0 || $result['evidenced_count'] !== 1) {
+if ($result['open_count'] !== 0 || $result['evidenced_count'] !== count(DkProductionEvidenceManifest::REQUIRED_CONTROLS)) {
     throw new RuntimeException('Complete production evidence manifest was rejected');
 }
 
