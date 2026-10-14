@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DK Modul controlled migration/decommissioning evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "migrationId",
+    "sourceSystem",
+    "destinationSystem",
+    "exportedAt",
+    "verifiedAt",
+    "exportSha256",
+    "approvedBy",
+    "cutoverAt",
+    "decommissionAfter"
+  ],
+  "properties": {
+    "schemaVersion": {"const": "1"},
+    "migrationId": {"type": "string", "minLength": 1},
+    "sourceSystem": {"type": "string", "minLength": 1},
+    "destinationSystem": {"type": "string", "minLength": 1},
+    "exportedAt": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"},
+    "verifiedAt": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"},
+    "exportSha256": {"type": "string", "pattern": "^[a-fA-F0-9]{64}$"},
+    "approvedBy": {"type": "string", "minLength": 1},
+    "cutoverAt": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"},
+    "decommissionAfter": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"}
+  }
+}
