@@ -27,6 +27,7 @@
 - [x] Registered-candidate runtime requires signed release-key ceremony evidence and binds its key id and public-key fingerprint to the product manifest.
 - [x] Hourly product-side monitoring records append-only checks and deduplicated alert lifecycle events.
 - [ ] Production webhook/mail adapter, recipients, retry worker and escalation channel are approved and tested.
+- [x] Application-side migration/decommissioning evidence is validated fail closed (export fingerprint, verification, cutover ordering and future decommission date).
 - [ ] Controlled migration and decommissioning procedure is approved.
 
 ## Backup, retention and restore
