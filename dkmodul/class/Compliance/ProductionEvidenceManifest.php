@@ -72,6 +72,33 @@ final class DkProductionEvidenceManifest
         );
     }
 
+    public static function loadJson($path, $expectedDeploymentId = null): array
+    {
+        if (!is_string($path) || trim($path) === '' || !is_file($path) || !is_readable($path)) {
+            throw new RuntimeException('Production evidence manifest is missing or unreadable');
+        }
+
+        $json = file_get_contents($path);
+        if ($json === false) {
+            throw new RuntimeException('Production evidence manifest cannot be read');
+        }
+
+        try {
+            $manifest = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
+        } catch (Throwable $e) {
+            throw new RuntimeException('Production evidence manifest JSON is invalid', 0, $e);
+        }
+        if (!is_array($manifest)) {
+            throw new RuntimeException('Production evidence manifest must be a JSON object');
+        }
+
+        $result = self::assertComplete($manifest);
+        if ($expectedDeploymentId !== null && $result['deployment_id'] !== $expectedDeploymentId) {
+            throw new RuntimeException('Production evidence manifest deployment mismatch');
+        }
+        return array('manifest' => $manifest, 'summary' => $result, 'sha256' => hash('sha256', $json));
+    }
+
     public static function assertComplete(array $manifest): array
     {
         $result = self::validate($manifest);
