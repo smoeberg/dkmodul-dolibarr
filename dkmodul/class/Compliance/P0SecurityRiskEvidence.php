@@ -126,9 +126,6 @@ final class DkP0SecurityRiskEvidence
             throw new RuntimeException('Security risk evidence requires control_domains');
         }
         $domains = $data['control_domains'];
-        if (array_keys($domains) !== array_values(array_unique(array_keys($domains)))) {
-            throw new RuntimeException('Security risk evidence control domains must be unique');
-        }
         foreach ($requiredDomains as $domain) {
             $entry = $domains[$domain] ?? null;
             if (!is_array($entry)
