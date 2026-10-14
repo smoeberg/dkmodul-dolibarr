@@ -14,7 +14,7 @@
 - [ ] Every production deployment has an approved, current attestation and supporting evidence.
 - [ ] Own Nemhandel/Peppol access-point certification identifier and lifecycle are recorded.
 - [x] Registered-candidate runtime rejects a planned, unidentified or expired access-point certification.
-- [ ] Release is changed from `p0-draft` to `registered-candidate` only after all gates pass.
+- [x] Application runtime changes to `registered-candidate` only after all P0 gates pass and the exact release report is signed by the approved release key.
 
 ## Compliance lock
 
