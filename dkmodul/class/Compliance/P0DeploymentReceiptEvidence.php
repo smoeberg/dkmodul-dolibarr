@@ -65,12 +65,12 @@ final class DkP0DeploymentReceiptEvidence
         if (($payload['environment'] ?? '') !== 'production') {
             throw new RuntimeException('Deployment receipt environment must be production');
         }
-        foreach (array('deployed_at', 'approved_at') as $field) {
-            $date = self::timestamp($payload[$field]);
-            if ($date === null || $date > $now) {
-                throw new RuntimeException('Deployment receipt timestamp is invalid: '.$field);
-            }
+
+        $deployedAt = self::timestamp($payload['deployed_at']);
+        if ($deployedAt === null || $deployedAt > $now) {
+            throw new RuntimeException('Deployment receipt timestamp is invalid: deployed_at');
         }
+
         $approvedAt = self::date($payload['approved_at']);
         $validUntil = self::date($payload['valid_until']);
         if ($approvedAt === null || $validUntil === null || $approvedAt > $validUntil || $validUntil < $now->setTime(0, 0, 0)) {
