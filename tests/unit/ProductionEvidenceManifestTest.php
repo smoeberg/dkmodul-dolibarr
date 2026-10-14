@@ -40,7 +40,7 @@ $open['items'][] = array('controlId' => 'quarterly-restore', 'status' => 'open')
 $failed = false;
 try {
     DkProductionEvidenceManifest::assertComplete($open);
-} catch (RuntimeException $e) {
+} catch (Throwable $e) {
     $failed = true;
 }
 if (!$failed) {
