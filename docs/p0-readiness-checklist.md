@@ -44,6 +44,8 @@
 - [ ] Customer-exit/insolvency access path tested.
 - [ ] Quarterly end-to-end restore completed and signed off.
 
+- [x] Deployment-scoped production evidence manifest validates references, SHA-256 fingerprints and approvals fail closed; it cannot fabricate missing production evidence.
+
 ## Security
 
 - [ ] System/data-flow architecture completed.

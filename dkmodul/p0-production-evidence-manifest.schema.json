@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DK Modul production evidence manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "deploymentId", "items"],
+  "properties": {
+    "schemaVersion": {"const": "1"},
+    "deploymentId": {"type": "string", "minLength": 1},
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["controlId", "status"],
+        "properties": {
+          "controlId": {"type": "string", "minLength": 1},
+          "status": {"enum": ["open", "evidenced"]},
+          "evidenceRef": {"type": "string", "minLength": 1},
+          "evidenceSha256": {"type": "string", "pattern": "^[a-fA-F0-9]{64}$"},
+          "approvedBy": {"type": "string", "minLength": 1},
+          "approvedAt": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  }
+}
