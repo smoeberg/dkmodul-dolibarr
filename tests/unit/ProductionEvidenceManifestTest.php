@@ -17,7 +17,20 @@ $base = array(
     ),
 );
 
-$result = DkProductionEvidenceManifest::assertComplete($base);
+$complete = $base;
+foreach (DkProductionEvidenceManifest::REQUIRED_CONTROLS as $controlId) {
+    if ($controlId === 'production-signing-key-ceremony') continue;
+    $complete['items'][] = array(
+        'controlId' => $controlId,
+        'status' => 'evidenced',
+        'evidenceRef' => 'evidence/'.$controlId.'.json',
+        'evidenceSha256' => str_repeat('b', 64),
+        'approvedBy' => 'reviewer-1',
+        'approvedAt' => '2026-10-14T10:00:00Z',
+    );
+}
+
+$result = DkProductionEvidenceManifest::assertComplete($complete);
 if ($result['open_count'] !== 0 || $result['evidenced_count'] !== 1) {
     throw new RuntimeException('Complete production evidence manifest was rejected');
 }
@@ -70,4 +83,15 @@ try {
 }
 if (!$failed) {
     throw new RuntimeException('Non-UTC approval timestamp was accepted');
+}
+
+$missingRequired = $base;
+$failed = false;
+try {
+    DkProductionEvidenceManifest::assertComplete($missingRequired);
+} catch (InvalidArgumentException $e) {
+    $failed = true;
+}
+if (!$failed) {
+    throw new RuntimeException('Manifest missing required production controls was accepted');
 }
