@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__.'/DkAccessPointCertificateOperationsPolicy.php';
+
 final class DkAccessPointCertificationPolicy
 {
     public static function validate(array $manifestAccessPoint, $evidence, DateTimeImmutable $now)
@@ -18,6 +20,12 @@ final class DkAccessPointCertificationPolicy
         }
         foreach (array('certification_id','certificate_sha256','valid_from','valid_until') as $field) {
             if (isset($manifestAccessPoint[$field],$evidence[$field]) && strtolower((string)$manifestAccessPoint[$field])!==strtolower((string)$evidence[$field])) $reasons[]='access-point-'.($field === 'certification_id' ? 'certification-id' : $field).'-mismatch';
+        }
+        if (isset($evidence['certificate_operations']) && is_array($evidence['certificate_operations'])) {
+            $operations = DkAccessPointCertificateOperationsPolicy::validate($evidence['certificate_operations'], $now);
+            $reasons = array_merge($reasons, $operations['reasons']);
+        } else {
+            $reasons[] = 'access-point-certificate-operations-evidence-missing';
         }
         return array('compliant'=>count($reasons)===0,'reasons'=>array_values(array_unique($reasons)));
     }
