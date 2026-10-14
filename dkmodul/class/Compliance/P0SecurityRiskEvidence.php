@@ -113,6 +113,33 @@ final class DkP0SecurityRiskEvidence
                 throw new RuntimeException('Security risk evidence requires '.$field);
             }
         }
+
+        $requiredDomains = array(
+            'iam',
+            'network',
+            'supplier',
+            'logging',
+            'incident',
+            'data-protection',
+        );
+        if (!is_array($data['control_domains'] ?? null)) {
+            throw new RuntimeException('Security risk evidence requires control_domains');
+        }
+        $domains = $data['control_domains'];
+        if (array_keys($domains) !== array_values(array_unique(array_keys($domains)))) {
+            throw new RuntimeException('Security risk evidence control domains must be unique');
+        }
+        foreach ($requiredDomains as $domain) {
+            $entry = $domains[$domain] ?? null;
+            if (!is_array($entry)
+                || ($entry['status'] ?? null) !== 'approved'
+                || !preg_match('/^[a-f0-9]{64}$/', (string) ($entry['evidence_sha256'] ?? ''))) {
+                throw new RuntimeException('Security risk evidence requires approved evidence for '.$domain);
+            }
+        }
+        if (array_diff(array_keys($domains), $requiredDomains) !== array()) {
+            throw new RuntimeException('Security risk evidence contains an unsupported control domain');
+        }
     }
 
     private static function utcTimestamp($value)
