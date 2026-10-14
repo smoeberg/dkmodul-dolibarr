@@ -19,7 +19,15 @@ $payload=array(
     'assessed_at'=>'2026-10-10T10:00:00Z',
     'valid_until'=>'2026-11-10T10:00:00Z',
     'risk_register_sha256'=>str_repeat('a',64),
-    'controls_sha256'=>str_repeat('b',64)
+    'controls_sha256'=>str_repeat('b',64),
+    'control_domains'=>array(
+        'iam'=>array('status'=>'approved','evidence_sha256'=>str_repeat('1',64)),
+        'network'=>array('status'=>'approved','evidence_sha256'=>str_repeat('2',64)),
+        'supplier'=>array('status'=>'approved','evidence_sha256'=>str_repeat('3',64)),
+        'logging'=>array('status'=>'approved','evidence_sha256'=>str_repeat('4',64)),
+        'incident'=>array('status'=>'approved','evidence_sha256'=>str_repeat('5',64)),
+        'data-protection'=>array('status'=>'approved','evidence_sha256'=>str_repeat('6',64))
+    )
 );
 $payloadJson=json_encode($payload,JSON_UNESCAPED_SLASHES);
 openssl_sign($payloadJson,$signature,$privatePem,OPENSSL_ALGO_SHA256);
@@ -42,6 +50,16 @@ foreach (array(
     try { DkP0SecurityRiskEvidence::loadSigned($dir.'/evidence.json',$dir.'/trust.json',hash_file('sha256',$dir.'/trust.json'),new DateTimeImmutable('2026-10-14T12:00:00Z')); } catch (Throwable $e) { $failed=true; }
     assert($failed===true);
 }
+
+
+$invalidPayload=$payload;
+unset($invalidPayload['control_domains']['incident']);
+$invalidJson=json_encode($invalidPayload,JSON_UNESCAPED_SLASHES);
+openssl_sign($invalidJson,$invalidSignature,$privatePem,OPENSSL_ALGO_SHA256);
+file_put_contents($dir.'/evidence.json',json_encode(array('schema_version'=>1,'signed_payload'=>base64_encode($invalidJson),'signature'=>array('key_id'=>$keyId,'algorithm'=>'RSA-SHA256','value'=>base64_encode($invalidSignature))),JSON_UNESCAPED_SLASHES));
+$failed=false;
+try { DkP0SecurityRiskEvidence::loadSigned($dir.'/evidence.json',$dir.'/trust.json',hash_file('sha256',$dir.'/trust.json'),new DateTimeImmutable('2026-10-14T12:00:00Z')); } catch (Throwable $e) { $failed=true; }
+assert($failed===true);
 
 unlink($dir.'/evidence.json');
 unlink($dir.'/trust.json');
