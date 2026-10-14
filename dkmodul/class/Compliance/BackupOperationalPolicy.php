@@ -112,12 +112,14 @@ final class DkBackupOperationalPolicy
 
     private static function hasWeeklySchedule($value)
     {
-        return is_string($value) && preg_match('/\bweekly\b/i', $value) === 1;
+        return is_string($value)
+            && preg_match('/^weekly:(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday):(?:[01][0-9]|2[0-3]):[0-5][0-9]$/i', $value) === 1;
     }
 
     private static function hasDailySchedule($value)
     {
-        return is_string($value) && preg_match('/\bdaily\b/i', $value) === 1;
+        return is_string($value)
+            && preg_match('/^daily:(?:[01][0-9]|2[0-3]):[0-5][0-9](?:,(?:[01][0-9]|2[0-3]):[0-5][0-9])*$/i', $value) === 1;
     }
 
     private static function date($value)
