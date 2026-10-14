@@ -12,8 +12,12 @@
     "registration_number": "DK87654321",
     "country": "DK",
     "regions": ["dk-west-1"],
-    "full_schedule": "weekly",
-    "incremental_schedule": "daily"
+    "full_schedule": "weekly:sunday:02:00",
+    "incremental_schedule": "daily:02:00,14:00",
+    "platform": "MariaDB-compatible object backup platform",
+    "destination": "dk-west-1",
+    "retention_policy": "five-years-from-financial-year-end",
+    "early_delete_denied": true
   },
   "evidence": {
     "risk_assessment": "evidence/risk-assessment.pdf",
