@@ -52,4 +52,5 @@
 - [ ] Formal risk register approved.
 - [ ] IAM, network, supplier, logging, incident and data-protection controls evidenced.
 - [ ] Article 28 processor agreement and subprocessor inventory approved.
+- [x] Application runtime validates access-point certificate operations evidence (serial, issuer, renewal/revocation contacts, rotation/revocation-test timestamps) inside the signed deployment attestation.
 - [ ] Own access point certification and certificate operations evidenced.
