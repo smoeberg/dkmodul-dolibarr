@@ -5,13 +5,17 @@
     "legal_name": "Example Hosting ApS",
     "registration_number": "DK12345678",
     "country": "DK",
-    "regions": ["dk-east-1"]
+    "regions": [
+      "dk-east-1"
+    ]
   },
   "backup": {
     "legal_name": "Independent Backup ApS",
     "registration_number": "DK87654321",
     "country": "DK",
-    "regions": ["dk-west-1"],
+    "regions": [
+      "dk-west-1"
+    ],
     "full_schedule": "weekly:sunday:02:00",
     "incremental_schedule": "daily:02:00,14:00",
     "platform": "MariaDB-compatible object backup platform",
@@ -23,7 +27,26 @@
     "risk_assessment": "evidence/risk-assessment.pdf",
     "restore_test": "evidence/restore-test.pdf",
     "retention_test": "evidence/retention-test.pdf",
-    "authority_export_test": "evidence/authority-export-test.pdf"
+    "authority_export_test": "evidence/authority-export-test.pdf",
+    "access_point_certification": {
+      "certification_id": "NH-TEST-123",
+      "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "status": "certified",
+      "valid_from": "2026-01-01",
+      "valid_until": "2027-01-01",
+      "evidence_reference": "evidence/access-point/certification.json",
+      "reviewed_by": "P0 test approval authority",
+      "reviewed_at": "2026-10-13",
+      "certificate_operations": {
+        "certificate_serial": "NH-CERT-2026-001",
+        "issuer": "NemHandel/Peppol certification authority",
+        "renewal_contact": "cert-operations@example.invalid",
+        "revocation_contact": "revocation@example.invalid",
+        "last_rotation_at": "2026-09-01T10:00:00Z",
+        "revocation_tested_at": "2026-10-01T10:00:00Z",
+        "evidence_reference": "evidence/access-point/certificate-operations.json"
+      }
+    }
   },
   "approval": {
     "approved_by": "P0 test approval authority",
