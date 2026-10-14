@@ -9,6 +9,7 @@ require_once __DIR__.'/P0ReleaseSigningPolicy.php';
 require_once __DIR__.'/P0ReleaseCandidatePolicy.php';
 require_once __DIR__.'/P0ReleaseKeyCeremonyEvidence.php';
 require_once __DIR__.'/ProductManifest.php';
+require_once __DIR__.'/ProductionEvidenceManifest.php';
 
 final class DkP0ReleaseGateCollector
 {
@@ -33,6 +34,8 @@ final class DkP0ReleaseGateCollector
             : $this->blocked('product-manifest', array('product-profile-not-registered-candidate'), $manifestHash);
         if ($candidate) {
             try {
+                $evidenceManifestPath = getenv('DKMODUL_P0_PRODUCTION_EVIDENCE_MANIFEST_PATH');
+                $evidenceManifest = DkProductionEvidenceManifest::loadJson($evidenceManifestPath, $deploymentId);
                 $manifest->assertReleaseSigningContract();
                 if ($this->signingKeyProvider === null) {
                     $manifestGate = $this->blocked('product-manifest', array('release-signing-not-configured'), $manifestHash);
@@ -60,7 +63,10 @@ final class DkP0ReleaseGateCollector
                     $signingApproved = true;
                 }
             } catch (Throwable $e) {
-                $manifestGate = $this->blocked('product-manifest', array('release-signing-key-not-approved'), $manifestHash);
+                $reason = strpos($e->getMessage(), 'Production evidence manifest') === 0
+                    ? 'production-evidence-manifest-not-complete'
+                    : 'release-signing-key-not-approved';
+                $manifestGate = $this->blocked('product-manifest', array($reason), $manifestHash);
             }
         }
         $results = array($manifestGate);
