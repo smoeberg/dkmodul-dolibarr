@@ -11,6 +11,24 @@ final class DkProductionEvidenceManifest
 {
     public const SCHEMA_VERSION = '1';
 
+    public const REQUIRED_CONTROLS = array(
+        'production-release-signing',
+        'production-deployment-attestation',
+        'access-point-certification-lifecycle',
+        'release-key-ceremony',
+        'alert-delivery',
+        'migration-decommissioning',
+        'backup-schedule-retention',
+        'backup-eu-eea-copy',
+        'backup-customer-exit',
+        'backup-quarterly-restore',
+        'system-data-flow-architecture',
+        'formal-risk-register',
+        'security-operational-controls',
+        'article-28-subprocessors',
+        'access-point-certificate-operations',
+    );
+
     public static function validate(array $manifest): array
     {
         if (($manifest['schemaVersion'] ?? null) !== self::SCHEMA_VERSION) {
@@ -59,6 +77,11 @@ final class DkProductionEvidenceManifest
                     throw new InvalidArgumentException('Evidenced control requires valid UTC approvedAt: '.$controlId);
                 }
             }
+        }
+
+        $missing = array_values(array_diff(self::REQUIRED_CONTROLS, array_keys($seen)));
+        if (count($missing) > 0) {
+            throw new InvalidArgumentException('Production evidence manifest is missing required controls: '.implode(',', $missing));
         }
 
         return array(

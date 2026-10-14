@@ -7,7 +7,7 @@ $base = array(
     'deploymentId' => 'deployment-001',
     'items' => array(
         array(
-            'controlId' => 'production-signing-key-ceremony',
+            'controlId' => 'production-release-signing',
             'status' => 'evidenced',
             'evidenceRef' => 'evidence/key-ceremony-001.json',
             'evidenceSha256' => str_repeat('a', 64),
@@ -17,8 +17,21 @@ $base = array(
     ),
 );
 
-$result = DkProductionEvidenceManifest::assertComplete($base);
-if ($result['open_count'] !== 0 || $result['evidenced_count'] !== 1) {
+$complete = $base;
+foreach (DkProductionEvidenceManifest::REQUIRED_CONTROLS as $controlId) {
+    if ($controlId === 'production-release-signing') continue;
+    $complete['items'][] = array(
+        'controlId' => $controlId,
+        'status' => 'evidenced',
+        'evidenceRef' => 'evidence/'.$controlId.'.json',
+        'evidenceSha256' => str_repeat('b', 64),
+        'approvedBy' => 'reviewer-1',
+        'approvedAt' => '2026-10-14T10:00:00Z',
+    );
+}
+
+$result = DkProductionEvidenceManifest::assertComplete($complete);
+if ($result['open_count'] !== 0 || $result['evidenced_count'] !== count(DkProductionEvidenceManifest::REQUIRED_CONTROLS)) {
     throw new RuntimeException('Complete production evidence manifest was rejected');
 }
 
@@ -27,7 +40,7 @@ $open['items'][] = array('controlId' => 'quarterly-restore', 'status' => 'open')
 $failed = false;
 try {
     DkProductionEvidenceManifest::assertComplete($open);
-} catch (RuntimeException $e) {
+} catch (Throwable $e) {
     $failed = true;
 }
 if (!$failed) {
@@ -70,4 +83,15 @@ try {
 }
 if (!$failed) {
     throw new RuntimeException('Non-UTC approval timestamp was accepted');
+}
+
+$missingRequired = $base;
+$failed = false;
+try {
+    DkProductionEvidenceManifest::assertComplete($missingRequired);
+} catch (InvalidArgumentException $e) {
+    $failed = true;
+}
+if (!$failed) {
+    throw new RuntimeException('Manifest missing required production controls was accepted');
 }
