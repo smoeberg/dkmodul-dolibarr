@@ -131,6 +131,7 @@ final class DkDeploymentAttestation
             'hosting.legal_name', 'hosting.registration_number', 'hosting.country',
             'backup.legal_name', 'backup.registration_number', 'backup.country',
             'backup.full_schedule', 'backup.incremental_schedule',
+            'backup.platform', 'backup.destination', 'backup.retention_policy',
             'evidence.risk_assessment', 'evidence.restore_test',
             'evidence.retention_test', 'evidence.authority_export_test',
         ) as $field) {
@@ -155,12 +156,30 @@ final class DkDeploymentAttestation
             throw new RuntimeException('The backup copy must be operated by an independent third party');
         }
 
-        if (!in_array(strtolower(self::valueAt($data, 'backup.full_schedule')), array('daily', 'weekly'), true)) {
-            throw new RuntimeException('Full backup schedule must be daily or weekly');
+        if (!self::hasWeeklySchedule(self::valueAt($data, 'backup.full_schedule'))) {
+            throw new RuntimeException('Full backup schedule must use canonical weekly syntax: weekly:<weekday>:HH:MM');
         }
-        if (!in_array(strtolower(self::valueAt($data, 'backup.incremental_schedule')), array('hourly', 'daily'), true)) {
-            throw new RuntimeException('Incremental backup schedule must be hourly or daily');
+        if (!self::hasDailySchedule(self::valueAt($data, 'backup.incremental_schedule'))) {
+            throw new RuntimeException('Incremental backup schedule must use canonical daily syntax: daily:HH:MM[,HH:MM...]');
         }
+        if (self::valueAt($data, 'backup.retention_policy') !== 'five-years-from-financial-year-end') {
+            throw new RuntimeException('Backup retention policy must be five-years-from-financial-year-end');
+        }
+        if (self::valueAt($data, 'backup.early_delete_denied') !== true) {
+            throw new RuntimeException('Backup early deletion must be denied');
+        }
+    }
+
+    private static function hasWeeklySchedule($value)
+    {
+        return is_string($value)
+            && preg_match('/^weekly:(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday):(?:[01][0-9]|2[0-3]):[0-5][0-9]$/i', $value) === 1;
+    }
+
+    private static function hasDailySchedule($value)
+    {
+        return is_string($value)
+            && preg_match('/^daily:(?:[01][0-9]|2[0-3]):[0-5][0-9](?:,(?:[01][0-9]|2[0-3]):[0-5][0-9])*$/i', $value) === 1;
     }
 
     private static function hasNonEmptyString(array $data, $path)
