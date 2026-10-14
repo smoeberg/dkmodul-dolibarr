@@ -78,7 +78,7 @@ file_put_contents($attestationPath, json_encode(array(
     ),
 ), JSON_UNESCAPED_SLASHES));
 
-$manifest = json_decode(file_get_contents(__DIR__.'/../../dkmodul/product-manifest.json'), true);
+$manifest = json_decode(file_get_contents(__DIR__.'/../fixtures/product-manifest-registered-candidate.json'), true);
 $manifest['deployment']['deployment_attestation']['trust_store_sha256'] = hash_file('sha256', $trustStorePath);
 $manifestPath = $dir.'/manifest.json';
 file_put_contents($manifestPath, json_encode($manifest, JSON_UNESCAPED_SLASHES));
