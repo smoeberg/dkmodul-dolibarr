@@ -47,3 +47,27 @@ if (!$failed) {
 }
 
 echo "Production evidence manifest tests passed\n";
+
+$invalidTimestamp = $base;
+$invalidTimestamp['items'][0]['approvedAt'] = '2026-02-30T10:00:00Z';
+$failed = false;
+try {
+    DkProductionEvidenceManifest::validate($invalidTimestamp);
+} catch (InvalidArgumentException $e) {
+    $failed = true;
+}
+if (!$failed) {
+    throw new RuntimeException('Invalid UTC approval timestamp was accepted');
+}
+
+$localTimestamp = $base;
+$localTimestamp['items'][0]['approvedAt'] = '2026-10-14T10:00:00+02:00';
+$failed = false;
+try {
+    DkProductionEvidenceManifest::validate($localTimestamp);
+} catch (InvalidArgumentException $e) {
+    $failed = true;
+}
+if (!$failed) {
+    throw new RuntimeException('Non-UTC approval timestamp was accepted');
+}

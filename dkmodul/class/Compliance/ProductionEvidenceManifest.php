@@ -55,8 +55,8 @@ final class DkProductionEvidenceManifest
                 if (!is_string($item['approvedBy'] ?? null) || trim($item['approvedBy']) === '') {
                     throw new InvalidArgumentException('Evidenced control requires approvedBy: '.$controlId);
                 }
-                if (!is_string($item['approvedAt'] ?? null) || trim($item['approvedAt']) === '') {
-                    throw new InvalidArgumentException('Evidenced control requires approvedAt: '.$controlId);
+                if (!self::isUtcTimestamp($item['approvedAt'] ?? null)) {
+                    throw new InvalidArgumentException('Evidenced control requires valid UTC approvedAt: '.$controlId);
                 }
             }
         }
@@ -70,6 +70,16 @@ final class DkProductionEvidenceManifest
                 return $item['status'] === 'open';
             })),
         );
+    }
+
+    private static function isUtcTimestamp($value): bool
+    {
+        if (!is_string($value) || !preg_match('/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$/', $value)) {
+            return false;
+        }
+
+        $date = DateTimeImmutable::createFromFormat('!Y-m-d\\TH:i:s\\Z', $value, new DateTimeZone('UTC'));
+        return $date !== false && $date->format('Y-m-d\\TH:i:s\\Z') === $value;
     }
 
     public static function loadJson($path, $expectedDeploymentId = null): array
