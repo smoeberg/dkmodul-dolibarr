@@ -10,6 +10,7 @@ require_once __DIR__.'/P0ReleaseCandidatePolicy.php';
 require_once __DIR__.'/P0ReleaseKeyCeremonyEvidence.php';
 require_once __DIR__.'/ProductManifest.php';
 require_once __DIR__.'/ProductionEvidenceManifest.php';
+require_once __DIR__.'/P0RiskEvidenceManifestBindingPolicy.php';
 
 final class DkP0ReleaseGateCollector
 {
@@ -99,7 +100,7 @@ final class DkP0ReleaseGateCollector
         $results[] = $failed ? $this->fail('compliance-monitoring', $reasons, $monitorHash)
             : (count($reasons) ? $this->blocked('compliance-monitoring', $reasons, $monitorHash) : $this->pass('compliance-monitoring', $monitorHash));
 
-        $results[] = $this->collectSecurityRiskEvidence($deploymentId, $manifest, $now);
+        $results[] = $this->collectSecurityRiskEvidence($deploymentId, $manifest, $now, isset($evidenceManifest) ? $evidenceManifest['manifest'] : null);
 
         $report = DkP0ReleaseGate::evaluate($manifest->value('product.id'), $manifest->value('product.release'), $deploymentId, $results, $now);
         if ($signingApproved) {
@@ -122,7 +123,7 @@ final class DkP0ReleaseGateCollector
         return array('report' => $report, 'report_uuid' => $this->repository->appendReport($entity, $report));
     }
 
-    private function collectSecurityRiskEvidence($deploymentId, $manifest, DateTimeImmutable $now)
+    private function collectSecurityRiskEvidence($deploymentId, $manifest, DateTimeImmutable $now, $productionEvidenceManifest = null)
     {
         $pathEnv = $manifest->value('deployment.deployment_attestation.security_risk_evidence.path_env');
         $path = getenv($pathEnv);
@@ -141,6 +142,9 @@ final class DkP0ReleaseGateCollector
             $result = DkP0SecurityRiskEvidence::loadSigned($path, $trustStorePath, $trustStoreSha256, $now);
             if ($result['evidence']['deployment_id'] !== $deploymentId) {
                 return $this->blocked('security-risk-evidence', array('security-risk-evidence-deployment-mismatch'), $result['evidence_sha256']);
+            }
+            if (is_array($productionEvidenceManifest)) {
+                DkP0RiskEvidenceManifestBindingPolicy::assertMatches($productionEvidenceManifest, $result['evidence']);
             }
 
             return $this->pass('security-risk-evidence', $result['evidence_sha256']);

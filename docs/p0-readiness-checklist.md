@@ -52,6 +52,7 @@
 - [ ] System/data-flow architecture completed.
 - [ ] Formal risk register approved.
 - [x] Application runtime requires signed security-risk evidence to explicitly cover IAM, network, supplier, logging, incident and data-protection control domains with SHA-256 evidence fingerprints.
+- [x] Registered-candidate release binding requires production-manifest risk-register and security-control fingerprints to match the signed security-risk evidence.
 - [ ] IAM, network, supplier, logging, incident and data-protection controls evidenced.
 - [ ] Article 28 processor agreement and subprocessor inventory approved.
 - [x] Application runtime validates access-point certificate operations evidence (serial, issuer, renewal/revocation contacts, rotation/revocation-test timestamps) inside the signed deployment attestation.
