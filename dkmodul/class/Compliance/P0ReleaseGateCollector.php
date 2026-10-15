@@ -35,7 +35,7 @@ final class DkP0ReleaseGateCollector
         if ($candidate) {
             try {
                 $evidenceManifestPath = getenv('DKMODUL_P0_PRODUCTION_EVIDENCE_MANIFEST_PATH');
-                $evidenceManifest = DkProductionEvidenceManifest::loadJson($evidenceManifestPath, $deploymentId);
+                $evidenceManifest = DkProductionEvidenceManifest::loadJson($evidenceManifestPath, $deploymentId, $now);
                 $manifest->assertReleaseSigningContract();
                 if ($this->signingKeyProvider === null) {
                     $manifestGate = $this->blocked('product-manifest', array('release-signing-not-configured'), $manifestHash);

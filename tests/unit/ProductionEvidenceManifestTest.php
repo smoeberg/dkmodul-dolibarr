@@ -30,7 +30,8 @@ foreach (DkProductionEvidenceManifest::REQUIRED_CONTROLS as $controlId) {
     );
 }
 
-$result = DkProductionEvidenceManifest::assertComplete($complete);
+$now = new DateTimeImmutable('2026-10-15T08:00:00Z');
+$result = DkProductionEvidenceManifest::assertComplete($complete, $now);
 if ($result['open_count'] !== 0 || $result['evidenced_count'] !== count(DkProductionEvidenceManifest::REQUIRED_CONTROLS)) {
     throw new RuntimeException('Complete production evidence manifest was rejected');
 }
@@ -94,4 +95,35 @@ try {
 }
 if (!$failed) {
     throw new RuntimeException('Manifest missing required production controls was accepted');
+}
+
+$futureApproval = $base;
+$futureApproval['items'][0]['approvedAt'] = '2026-10-15T09:00:00Z';
+$failed = false;
+try {
+    DkProductionEvidenceManifest::validate($futureApproval, $now);
+} catch (InvalidArgumentException $e) {
+    $failed = true;
+}
+if (!$failed) {
+    throw new RuntimeException('Future production evidence approval was accepted');
+}
+
+$unknownControl = $complete;
+$unknownControl['items'][] = array(
+    'controlId' => 'unknown-control',
+    'status' => 'evidenced',
+    'evidenceRef' => 'evidence/unknown-control.json',
+    'evidenceSha256' => str_repeat('c', 64),
+    'approvedBy' => 'reviewer-1',
+    'approvedAt' => '2026-10-14T10:00:00Z',
+);
+$failed = false;
+try {
+    DkProductionEvidenceManifest::validate($unknownControl, $now);
+} catch (InvalidArgumentException $e) {
+    $failed = true;
+}
+if (!$failed) {
+    throw new RuntimeException('Unknown production evidence control was accepted');
 }

@@ -29,8 +29,9 @@ final class DkProductionEvidenceManifest
         'access-point-certificate-operations',
     );
 
-    public static function validate(array $manifest): array
+    public static function validate(array $manifest, DateTimeImmutable $now = null): array
     {
+        $now = $now ?: new DateTimeImmutable('now');
         if (($manifest['schemaVersion'] ?? null) !== self::SCHEMA_VERSION) {
             throw new InvalidArgumentException('Unsupported production evidence manifest schema');
         }
@@ -54,6 +55,9 @@ final class DkProductionEvidenceManifest
                 }
             }
             $controlId = $item['controlId'];
+            if (!in_array($controlId, self::REQUIRED_CONTROLS, true)) {
+                throw new InvalidArgumentException('Unsupported production evidence control: '.$controlId);
+            }
             if (isset($seen[$controlId])) {
                 throw new InvalidArgumentException('Duplicate production evidence control: '.$controlId);
             }
@@ -73,8 +77,9 @@ final class DkProductionEvidenceManifest
                 if (!is_string($item['approvedBy'] ?? null) || trim($item['approvedBy']) === '') {
                     throw new InvalidArgumentException('Evidenced control requires approvedBy: '.$controlId);
                 }
-                if (!self::isUtcTimestamp($item['approvedAt'] ?? null)) {
-                    throw new InvalidArgumentException('Evidenced control requires valid UTC approvedAt: '.$controlId);
+                $approvedAt = self::parseUtcTimestamp($item['approvedAt'] ?? null);
+                if ($approvedAt === null || $approvedAt > $now) {
+                    throw new InvalidArgumentException('Evidenced control requires non-future UTC approvedAt: '.$controlId);
                 }
             }
         }
@@ -95,17 +100,17 @@ final class DkProductionEvidenceManifest
         );
     }
 
-    private static function isUtcTimestamp($value): bool
+    private static function parseUtcTimestamp($value)
     {
         if (!is_string($value) || !preg_match('/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$/', $value)) {
-            return false;
+            return null;
         }
 
         $date = DateTimeImmutable::createFromFormat('!Y-m-d\\TH:i:s\\Z', $value, new DateTimeZone('UTC'));
-        return $date !== false && $date->format('Y-m-d\\TH:i:s\\Z') === $value;
+        return $date !== false && $date->format('Y-m-d\\TH:i:s\\Z') === $value ? $date : null;
     }
 
-    public static function loadJson($path, $expectedDeploymentId = null): array
+    public static function loadJson($path, $expectedDeploymentId = null, DateTimeImmutable $now = null): array
     {
         if (!is_string($path) || trim($path) === '' || !is_file($path) || !is_readable($path)) {
             throw new RuntimeException('Production evidence manifest is missing or unreadable');
@@ -125,16 +130,16 @@ final class DkProductionEvidenceManifest
             throw new RuntimeException('Production evidence manifest must be a JSON object');
         }
 
-        $result = self::assertComplete($manifest);
+        $result = self::assertComplete($manifest, $now);
         if ($expectedDeploymentId !== null && $result['deployment_id'] !== $expectedDeploymentId) {
             throw new RuntimeException('Production evidence manifest deployment mismatch');
         }
         return array('manifest' => $manifest, 'summary' => $result, 'sha256' => hash('sha256', $json));
     }
 
-    public static function assertComplete(array $manifest): array
+    public static function assertComplete(array $manifest, DateTimeImmutable $now = null): array
     {
-        $result = self::validate($manifest);
+        $result = self::validate($manifest, $now);
         if ($result['open_count'] !== 0) {
             throw new RuntimeException('Production evidence manifest is incomplete');
         }
