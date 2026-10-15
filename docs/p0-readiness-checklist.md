@@ -45,6 +45,7 @@
 - [ ] Quarterly end-to-end restore completed and signed off.
 
 - [x] Registered-candidate release boundary requires a complete deployment-scoped production evidence manifest; references, SHA-256 fingerprints and approvals fail closed and missing evidence cannot be fabricated.
+- [x] Production evidence manifest rejects unknown control identifiers and future approval timestamps at the release boundary.
 
 ## Security
 
