@@ -11,6 +11,8 @@ require_once __DIR__.'/P0ReleaseKeyCeremonyEvidence.php';
 require_once __DIR__.'/ProductManifest.php';
 require_once __DIR__.'/ProductionEvidenceManifest.php';
 require_once __DIR__.'/P0RiskEvidenceManifestBindingPolicy.php';
+require_once __DIR__.'/DkDeploymentAttestationManifestBindingPolicy.php';
+require_once __DIR__.'/DeploymentAttestation.php';
 
 final class DkP0ReleaseGateCollector
 {
@@ -37,6 +39,18 @@ final class DkP0ReleaseGateCollector
             try {
                 $evidenceManifestPath = getenv('DKMODUL_P0_PRODUCTION_EVIDENCE_MANIFEST_PATH');
                 $evidenceManifest = DkProductionEvidenceManifest::loadJson($evidenceManifestPath, $deploymentId, $now);
+                $attestationPath = getenv('DKMODUL_DEPLOYMENT_ATTESTATION_PATH');
+                $trustStorePath = getenv('DKMODUL_ATTESTATION_TRUST_STORE_PATH');
+                $attestation = DkDeploymentAttestation::loadSigned(
+                    $attestationPath,
+                    $trustStorePath,
+                    $manifest->value('deployment.deployment_attestation.trust_store_sha256')
+                );
+                DkDeploymentAttestationManifestBindingPolicy::assertMatches(
+                    $evidenceManifest['manifest'],
+                    $attestation,
+                    $deploymentId
+                );
                 $manifest->assertReleaseSigningContract();
                 if ($this->signingKeyProvider === null) {
                     $manifestGate = $this->blocked('product-manifest', array('release-signing-not-configured'), $manifestHash);

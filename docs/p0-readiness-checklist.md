@@ -11,6 +11,7 @@
 - [x] Customer-selectable hosting policy and deployment-attestation schema exist.
 - [x] Registered-profile runtime blocks missing or invalid attestations for the actual hosting/backup parties and regions.
 - [x] Registered deployment requires a signed, current deployment receipt bound to the deployment attestation.
+- [x] Registered-candidate release binding requires the production-evidence manifest fingerprint to match the signed deployment attestation for the same deployment.
 - [ ] Every production deployment has an approved, current attestation and supporting evidence.
 - [ ] Own Nemhandel/Peppol access-point certification identifier and lifecycle are recorded.
 - [x] Registered-candidate runtime rejects a planned, unidentified or expired access-point certification.
